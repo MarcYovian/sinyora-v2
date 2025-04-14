@@ -31,10 +31,19 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], 
         ->name('event-category.index');
 
     Route::get('organization', \App\Livewire\Admin\Pages\Organization::class)
-        ->name('organization.index');
+        ->name('organizations.index');
 
     Route::get('location', \App\Livewire\Admin\Pages\Location::class)
-        ->name('location.index');
+        ->name('locations.index');
+
+    Route::get('event', \App\Livewire\Admin\Pages\Event\Index::class)
+        ->name('events.index');
+
+    Route::get('event/{event}/show', \App\Livewire\Admin\Pages\Event\Show::class)
+        ->name('event.show');
+
+    Route::get('event/{event}/recurrence/edit', \App\Livewire\Admin\Pages\Event\Recurrence::class)
+        ->name('events.recurrences.edit');
 });
 
 

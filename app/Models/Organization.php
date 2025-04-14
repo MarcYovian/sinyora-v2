@@ -3,9 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-
-use function PHPUnit\Framework\isTrue;
 
 class Organization extends Model
 {
@@ -27,8 +26,8 @@ class Organization extends Model
     }
 
     #[Scope]
-    public function Active($query)
+    protected function Active(Builder $query): void
     {
-        return $query->where('is_active', true);
+        $query->where('is_active', true);
     }
 }

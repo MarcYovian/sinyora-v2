@@ -34,12 +34,11 @@ class Event extends Model
         'created_by',
         'organization_id',
         'event_category_id',
-        'location_id',
     ];
 
     protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
+        'start_recurring' => 'date',
+        'end_recurring' => 'date',
         'status' => EventApprovalStatus::class,
         'recurrence_type' => EventRecurrenceType::class,
     ];
@@ -49,9 +48,9 @@ class Event extends Model
         return $this->hasMany(EventRecurrence::class);
     }
 
-    public function location()
+    public function locations()
     {
-        return $this->belongsTo(Location::class);
+        return $this->belongsToMany(Location::class);
     }
 
     public function eventCategory()

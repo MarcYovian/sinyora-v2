@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Location extends Model
@@ -16,12 +17,12 @@ class Location extends Model
 
     public function events()
     {
-        return $this->hasMany(Event::class);
+        return $this->belongsToMany(Event::class);
     }
 
     #[Scope]
-    public function active($query)
+    protected function active(Builder $query): void
     {
-        return $query->where('is_active', 'active');
+        $query->where('is_active', true);
     }
 }

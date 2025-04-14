@@ -20,9 +20,9 @@ enum EventApprovalStatus: String
     public function color(): string
     {
         return match ($this) {
-            self::PENDING => 'warning',
-            self::APPROVED => 'success',
-            self::REJECTED => 'danger',
+            self::PENDING => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+            self::APPROVED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            self::REJECTED => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
         };
     }
 

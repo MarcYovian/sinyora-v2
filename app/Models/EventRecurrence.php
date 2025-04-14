@@ -13,6 +13,12 @@ class EventRecurrence extends Model
         'time_end',
     ];
 
+    protected $casts = [
+        'date' => 'date:Y-m-d',
+        'time_start' => 'datetime:H:i:s',
+        'time_end' => 'datetime:H:i:s',
+    ];
+
     public function event()
     {
         return $this->belongsTo(Event::class);

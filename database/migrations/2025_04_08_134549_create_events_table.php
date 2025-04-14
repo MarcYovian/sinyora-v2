@@ -24,7 +24,6 @@ return new class extends Migration
             $table->string('created_by')->nullable();
             $table->foreignId('organization_id')->nullable()->constrained();
             $table->foreignId('event_category_id')->nullable()->constrained();
-            $table->foreignId('location_id')->nullable()->constrained();
             $table->timestamps();
         });
     }
