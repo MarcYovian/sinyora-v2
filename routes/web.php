@@ -44,6 +44,15 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], 
 
     Route::get('event/{event}/recurrence/edit', \App\Livewire\Admin\Pages\Event\Recurrence::class)
         ->name('events.recurrences.edit');
+
+    Route::get('asset-categories', \App\Livewire\Admin\Pages\Asset\Category::class)
+        ->name('asset-categories.index');
+
+    Route::get('assets', \App\Livewire\Admin\Pages\Asset\Index::class)
+        ->name('assets.index');
+
+    Route::get('asset-borrowings', \App\Livewire\Admin\Pages\Borrowing\Index::class)
+        ->name('asset-borrowings.index');
 });
 
 

@@ -4,7 +4,6 @@ namespace App\Livewire\Forms;
 
 use App\Models\Location;
 use Illuminate\Support\Facades\Storage;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 use Livewire\WithFileUploads;
 
