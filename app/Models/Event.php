@@ -63,6 +63,11 @@ class Event extends Model
         return $this->belongsTo(Organization::class);
     }
 
+    public function borrowings()
+    {
+        return $this->hasMany(Borrowing::class);
+    }
+
     #[Scope]
     public function pending($query)
     {

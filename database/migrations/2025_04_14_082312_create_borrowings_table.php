@@ -14,7 +14,6 @@ return new class extends Migration
     {
         Schema::create('borrowings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('asset_id')->constrained()->cascadeOnDelete();
             $table->foreignId('created_by')->constrained('users', 'id')->cascadeOnDelete();
             $table->foreignId('event_id')->nullable()->constrained()->cascadeOnDelete();
             $table->dateTime('start_datetime');

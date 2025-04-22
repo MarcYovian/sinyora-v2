@@ -53,6 +53,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], 
 
     Route::get('asset-borrowings', \App\Livewire\Admin\Pages\Borrowing\Index::class)
         ->name('asset-borrowings.index');
+
+    Route::get('asset-borrowings/create', \App\Livewire\Admin\Pages\Borrowing\Create::class)
+        ->name('asset-borrowings.create');
+
+    Route::get('asset-borrowings/{borrowing}/edit', \App\Livewire\Admin\Pages\Borrowing\Edit::class)
+        ->name('asset-borrowings.edit');
 });
 
 

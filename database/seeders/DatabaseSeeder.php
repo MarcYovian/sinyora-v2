@@ -5,9 +5,11 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class DatabaseSeeder extends Seeder
 {
+    // use RefreshDatabase;
     /**
      * Seed the application's database.
      */
@@ -15,14 +17,15 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'), // password
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        //     'password' => bcrypt('password'), // password
+        // ]);
 
         $this->call([
             MenuSeeder::class,
+            AssetBorrowingSeeder::class
         ]);
     }
 }
