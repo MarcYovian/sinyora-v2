@@ -1,10 +1,9 @@
 <?php
 
 use App\Http\Controllers\TrixAttachmentController;
-use App\Http\Controllers\TrixFileUploadController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
+Route::redirect('/', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {
     Route::view('dashboard', 'dashboard')
