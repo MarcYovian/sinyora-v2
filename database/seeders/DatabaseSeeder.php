@@ -24,8 +24,10 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call([
-            MenuSeeder::class,
-            AssetBorrowingSeeder::class
+            // MenuSeeder::class,
+            // AssetBorrowingSeeder::class
+            TagSeeder::class,
+            ArticleCategorySeeder::class
         ]);
     }
 }

@@ -14,8 +14,6 @@ new #[Layout('layouts.guest')] class extends Component
      */
     public function login(): void
     {
-        $this->validate();
-
         $this->form->authenticate();
 
         Session::regenerate();
@@ -31,9 +29,9 @@ new #[Layout('layouts.guest')] class extends Component
     <form wire:submit="login">
         <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
+            <x-input-label for="id_user" :value="__('Email or Username')" />
+            <x-text-input wire:model="form.id_user" id="id_user" class="block mt-1 w-full" type="text" name="id_user" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('form.id_user')" class="mt-2" />
         </div>
 
         <!-- Password -->
@@ -63,9 +61,9 @@ new #[Layout('layouts.guest')] class extends Component
                 </a>
             @endif
 
-            <x-primary-button class="ms-3">
+            <x-button variant="warning" size="sm" class="ms-3">
                 {{ __('Log in') }}
-            </x-primary-button>
+            </x-button>
         </div>
     </form>
 </div>

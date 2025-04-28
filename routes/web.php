@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\TrixAttachmentController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
+Route::redirect('/', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {
     Route::view('dashboard', 'dashboard')
@@ -59,8 +60,27 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], 
 
     Route::get('asset-borrowings/{borrowing}/edit', \App\Livewire\Admin\Pages\Borrowing\Edit::class)
         ->name('asset-borrowings.edit');
+
+    Route::get('articles/categories', \App\Livewire\Admin\Pages\Article\Category::class)
+        ->name('articles.categories.index');
+
+    Route::get('articles/tags', \App\Livewire\Admin\Pages\Article\Tag::class)
+        ->name('articles.tags.index');
+
+    Route::get('articles', \App\Livewire\Admin\Pages\Article\Index::class)
+        ->name('articles.index');
+
+    // Pindahkan create sebelum edit
+    Route::get('articles/create', \App\Livewire\Admin\Pages\Article\Form::class)
+        ->name('articles.create');
+
+    Route::get('articles/{id}/edit', \App\Livewire\Admin\Pages\Article\Form::class)
+        ->name('articles.edit');
 });
 
-
+Route::post('/trix-attachments', [TrixAttachmentController::class, 'store'])
+    ->name('trix-file-upload');
+Route::delete('/trix-attachments', [TrixAttachmentController::class, 'destroy'])
+    ->name('trix-file-delete');
 
 require __DIR__ . '/auth.php';
