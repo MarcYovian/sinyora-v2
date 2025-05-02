@@ -36,7 +36,8 @@ new class extends Component {
                 <a href="{{ route('admin.dashboard.index') }}" class="flex ms-2 md:me-24" wire:navigate>
                     <img src="{{ asset('images/logo.png') }}" class="h-8 me-3" alt="Sinyora Logo" />
                     <span
-                        class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-[#FEC006] dark:text-[#FFD24C]">St Yohanes Rasul</span>
+                        class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-[#FEC006] dark:text-[#FFD24C]">St
+                        Yohanes Rasul</span>
                 </a>
             </div>
 
@@ -92,7 +93,7 @@ new class extends Component {
                             </div>
                             <ul class="py-1" role="none">
                                 <li>
-                                    <x-dropdown-link :href="route('admin.profile')" wire:navigate>
+                                    <x-dropdown-link :href="route('admin.profile.index')" wire:navigate>
                                         {{ __('Profile') }}
                                     </x-dropdown-link>
                                 </li>

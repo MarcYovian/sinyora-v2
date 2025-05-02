@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Forms\RoleForm;
 use App\Models\Group;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -11,7 +12,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesRequests;
     #[Layout('layouts.app')]
 
     public RoleForm $form;
@@ -61,6 +62,8 @@ class Role extends Component
 
     public function create()
     {
+        $this->authorize('access', 'admin.roles.create');
+
         $this->form->reset();
         $this->editId = null;
         $this->deleteId = null;
@@ -69,6 +72,8 @@ class Role extends Component
 
     public function edit($id)
     {
+        $this->authorize('access', 'admin.roles.edit');
+
         $this->editId = $id;
         $role = SpatieRole::find($id);
         $this->form->setRole($role);
@@ -78,18 +83,25 @@ class Role extends Component
     public function save()
     {
         if ($this->editId) {
+            $this->authorize('access', 'admin.roles.edit');
+
             $this->form->update();
             $this->editId = null;
-            $this->dispatch('updateSuccess');
+            toastr()->success('Role updated successfully');
         } else {
+            $this->authorize('access', 'admin.roles.create');
+
             $this->form->store();
-            $this->dispatch('createSuccess');
+            $this->editId = null;
+            toastr()->success('Role created successfully');
         }
         $this->dispatch('close-modal', 'role-modal');
     }
 
     public function confirmDelete($id)
     {
+        $this->authorize('access', 'admin.roles.destroy');
+
         $this->deleteId = $id;
         $role = SpatieRole::find($id);
         $this->form->setRole($role);
@@ -98,10 +110,12 @@ class Role extends Component
 
     public function delete()
     {
+        $this->authorize('access', 'admin.roles.destroy');
+
         if ($this->deleteId) {
             $this->form->destroy();
             $this->deleteId = null;
-            $this->dispatch('deleteSuccess');
+            toastr()->success('Role deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-role-confirmation');
     }
@@ -110,8 +124,6 @@ class Role extends Component
     {
         $this->form->setRole(SpatieRole::find($id));
         $this->form->assignPermission();
-
-        // dd($this->form->selectedPermissions);
 
         $this->groups = Group::with(['permissions' => function ($query) {
             $query->orderBy('name');
@@ -123,12 +135,14 @@ class Role extends Component
     public function syncPermission()
     {
         $this->form->syncPermissions();
-        $this->dispatch('updateSuccess');
+        toastr()->success('Permissions updated successfully');
         $this->dispatch('close-modal', 'permission-modal');
     }
 
     public function render()
     {
+        $this->authorize('access', 'admin.roles.index');
+
         $table_heads = ['#', 'Name', 'Actions'];
 
         $roles = SpatieRole::when($this->search, function ($query) {

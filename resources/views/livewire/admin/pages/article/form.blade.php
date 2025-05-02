@@ -195,11 +195,13 @@
                                 <span>{{ __('Preview') }}</span>
                             </x-button>
 
-                            @if ($form->article)
-                                <x-button type="button" variant="danger" class="w-full" wire:click="confirmDelete">
-                                    {{ __('Hapus Artikel') }}
-                                </x-button>
-                            @endif
+                            @can('delete article')
+                                @if ($form->article)
+                                    <x-button type="button" variant="danger" class="w-full" wire:click="confirmDelete">
+                                        {{ __('Hapus Artikel') }}
+                                    </x-button>
+                                @endif
+                            @endcan
 
                             <x-button variant="secondary" class="w-full" href="{{ route('admin.articles.index') }}">
                                 Batal

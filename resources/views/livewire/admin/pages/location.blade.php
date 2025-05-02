@@ -7,11 +7,13 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create location')
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
             <div class="w-full md:w-1/2">
                 <x-search placeholder="Search location by name.." />
@@ -47,14 +49,18 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="warning" type="button"
-                                    wire:click="edit({{ $location->id }})">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $location->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('edit location')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        wire:click="edit({{ $location->id }})">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+                                @can('delete location')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $location->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -137,7 +143,8 @@
 
                                 <!-- Upload Button -->
                                 <label for="image-upload" class="absolute inset-0 cursor-pointer"></label>
-                                <input id="image-upload" type="file" wire:model="form.image" class="hidden">
+                                <input id="image-upload" type="file" wire:model="form.image"
+                                    accept="image/jpeg,image/png" class="hidden">
                             </div>
 
                             <x-input-error :messages="$errors->get('form.image')" class="mt-2" />
@@ -165,18 +172,12 @@
                             <!-- Status Field -->
                             <div>
                                 <x-input-label for="is_active" value="{{ __('Status') }}" />
-                                <div class="mt-2 flex items-center gap-4">
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" wire:model="form.is_active" value="1"
-                                            class="h-5 w-5 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
-                                        <span class="ml-2 text-gray-700 dark:text-gray-300">{{ __('Active') }}</span>
-                                    </label>
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" wire:model="form.is_active" value="0"
-                                            class="h-5 w-5 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
-                                        <span
-                                            class="ml-2 text-gray-700 dark:text-gray-300">{{ __('Inactive') }}</span>
-                                    </label>
+                                <div class="mt-1">
+                                    <select wire:model.live="form.is_active" id="is_active"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
+                                        <option value='1'>{{ __('Active') }}</option>
+                                        <option value='0'>{{ __('Inactive') }}</option>
+                                    </select>
                                 </div>
                                 <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
                             </div>
@@ -192,15 +193,14 @@
                     class="w-full sm:w-auto justify-center px-6 py-3">
                     {{ __('Cancel') }}
                 </x-secondary-button>
-                <x-primary-button type="submit"
-                    class="w-full sm:w-auto justify-center px-6 py-3 shadow-lg hover:shadow-xl transition-shadow">
+                <x-primary-button type="submit" class="w-full sm:w-auto justify-center">
                     <span wire:loading.remove wire:target="save">
                         {{ $editId ? __('Update Location') : __('Create Location') }}
                     </span>
                     <span wire:loading wire:target="save" class="flex items-center gap-2">
-                        <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
-                        {{ __('Processing...') }}
+                        {{ __('Saving...') }}
                     </span>
+                    <x-heroicon-s-arrow-path wire:loading wire:target="save" class="ml-2 h-4 w-4 animate-spin" />
                 </x-primary-button>
             </div>
         </form>

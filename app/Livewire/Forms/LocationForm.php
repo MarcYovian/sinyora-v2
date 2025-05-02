@@ -3,6 +3,7 @@
 namespace App\Livewire\Forms;
 
 use App\Models\Location;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Form;
 use Livewire\WithFileUploads;
@@ -15,7 +16,7 @@ class LocationForm extends Form
     public $image = null;
     public string $name = '';
     public string $description = '';
-    public bool $is_active = false;
+    public $is_active = 0;
     public ?string $existingImage = null;
 
     protected function rules()
@@ -65,16 +66,20 @@ class LocationForm extends Form
     {
         $validated = $this->validate();
 
-        $imagePath = $this->storeImage() ?? $this->existingImage;
+        try {
+            $imagePath = $this->storeImage() ?? $this->existingImage;
 
-        $this->location->update([
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'image' => $imagePath,
-            'is_active' => $validated['is_active'],
-        ]);
+            $this->location->update([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'image' => $imagePath,
+                'is_active' => $validated['is_active'],
+            ]);
 
-        $this->resetForm();
+            $this->resetForm();
+        } catch (\Throwable $th) {
+            Log::error('Error updating location: ' . $th->getMessage());
+        }
     }
 
     public function delete(): void

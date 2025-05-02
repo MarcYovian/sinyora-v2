@@ -7,11 +7,14 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create group')
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
+
 
             <div class="w-full md:w-1/2">
                 <x-search placeholder="Search groups by name.." />
@@ -19,7 +22,7 @@
         </div>
 
         <div class="p-6 text-gray-900 dark:text-gray-100">
-            <x-table title="Data Users" :heads="$table_heads">
+            <x-table title="Data Groups" :heads="$table_heads">
                 @forelse ($groups as $key => $group)
                     <tr wire:key="user-{{ $group->id }}"
                         class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -31,20 +34,24 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="warning" type="button"
-                                    wire:click="edit({{ $group->id }})">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $group->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('edit group')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        wire:click="edit({{ $group->id }})">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+                                @can('delete group')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $group->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr class="bg-white dark:bg-gray-800">
-                        <td colspan="3"
+                        <td colspan="{{ count($table_heads) }}"
                             class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
                             {{ __('No data available') }}
                         </td>
@@ -61,7 +68,7 @@
         <form wire:submit="save" class="p-6">
 
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ $editId ? __('Edit Menu') : __('Create Menu') }}
+                {{ $editId ? __('Edit Group') : __('Create New Group') }}
             </h2>
 
             <div class="mt-6">
@@ -73,13 +80,21 @@
                 <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+            <div
+                class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3"">
+                <x-secondary-button type="button" @click="$dispatch('close')"
+                    class="w-full sm:w-auto justify-center px-6 py-3">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ $editId ? __('Update') : __('Create') }}
+                <x-danger-button type="submit" class="w-full sm:w-auto justify-center">
+                    <span wire:loading.remove wire:target="save">
+                        {{ $editId ? __('Update Group') : __('Create Group') }}
+                    </span>
+                    <span wire:loading wire:target="save" class="flex items-center gap-2">
+                        {{ __('Saving...') }}
+                    </span>
+                    <x-heroicon-s-arrow-path wire:loading wire:target="save" class="ml-2 h-4 w-4 animate-spin" />
                 </x-danger-button>
             </div>
         </form>
@@ -95,7 +110,7 @@
                 {{ __('This action cannot be undone.') }}
             </p>
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Please confirm that you want to delete this menu by clicking the button below.') }}
+                {{ __('Please confirm that you want to delete this group by clicking the button below.') }}
             </p>
 
             <div class="mt-6 flex justify-end">

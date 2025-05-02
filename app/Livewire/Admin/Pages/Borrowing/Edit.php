@@ -6,17 +6,23 @@ use App\Enums\BorrowingStatus;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Asset;
 use App\Models\Borrowing;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 class Edit extends Component
 {
+    use AuthorizesRequests;
+
     #[Layout('layouts.app')]
+
     public BorrowingForm $form;
 
     public function mount(Borrowing $borrowing)
     {
+        $this->authorize('access', 'admin.asset-borrowings.edit');
+
         $this->form->setBorrowing($borrowing);
     }
 
@@ -79,6 +85,8 @@ class Edit extends Component
 
     public function save()
     {
+        $this->authorize('access', 'admin.asset-borrowings.edit');
+
         $this->form->update();
 
         toastr()->success('Borrowing berhasil diperbarui');
@@ -92,6 +100,8 @@ class Edit extends Component
 
     public function render()
     {
+        $this->authorize('access', 'admin.asset-borrowings.edit');
+
         return view('livewire.admin.pages.borrowing.edit');
     }
 }

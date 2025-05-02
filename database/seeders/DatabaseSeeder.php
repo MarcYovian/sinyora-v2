@@ -17,17 +17,18 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        //     'password' => bcrypt('password'), // password
-        // ]);
-
         $this->call([
-            // MenuSeeder::class,
-            // AssetBorrowingSeeder::class
-            TagSeeder::class,
-            ArticleCategorySeeder::class
+            MenuSeeder::class,
+            RolePermissionSeeder::class,
         ]);
+
+        $user = User::factory()->create([
+            'name' => 'Test User',
+            'username' => 'test',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password'), // password
+        ]);
+
+        $user->assignRole('admin');
     }
 }

@@ -75,7 +75,7 @@
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
                                 <x-button size="sm" variant="primary"
-                                    href="{{ route('admin.event.show', $event) }}">
+                                    href="{{ route('admin.events.show', $event) }}">
                                     {{ __('Detail') }}
                                 </x-button>
                                 <x-button size="sm" variant="warning" type="button"

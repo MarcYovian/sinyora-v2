@@ -17,15 +17,18 @@ class OrganizationForm extends Form
     #[Validate('required')]
     public string $code = '';
     #[Validate('required')]
-    public bool $is_active = false;
+    public $is_active = 0;
 
     public function setOrganization(?Organization $organization)
     {
         $this->organization = $organization;
-        $this->name = $organization->name;
-        $this->description = $organization->description;
-        $this->code = $organization->code;
-        $this->is_active = $organization->is_active;
+
+        if ($this->organization) {
+            $this->name = $organization->name;
+            $this->description = $organization->description;
+            $this->code = $organization->code;
+            $this->is_active = $organization->is_active;
+        }
     }
 
     public function store()

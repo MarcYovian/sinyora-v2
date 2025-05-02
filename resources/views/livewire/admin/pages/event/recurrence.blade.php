@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <x-button variant="secondary" :href="route('admin.event.show', $event)">
+                <x-button variant="secondary" :href="route('admin.events.show', $event)">
                     Back to Event
                 </x-button>
             </div>

@@ -210,7 +210,7 @@
                         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Event Actions</h2>
                         <div class="space-y-2">
                             <x-button variant="primary" class="w-full"
-                                href="{{ route('admin.events.recurrences.edit', $event->id) }}">
+                                href="{{ route('admin.events.recurrences.index', $event) }}">
                                 Edit Event Details
                             </x-button>
 

@@ -7,13 +7,15 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
-                <span>{{ __('Create') }}</span>
-            </x-button>
+            @can('create asset')
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
             <div class="w-full md:w-1/2">
-                <x-search placeholder="Search asset by name.." wire:model.debounce.500ms="search" />
+                <x-search placeholder="Search asset by name.." />
             </div>
         </div>
 
@@ -45,14 +47,19 @@
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="warning" type="button"
-                                    wire:click="edit({{ $asset->id }})">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $asset->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('edit asset')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        wire:click="edit({{ $asset->id }})">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+
+                                @can('delete asset')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $asset->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -141,33 +148,43 @@
 
                 <!-- Right Column - Form Fields -->
                 <div class="md:col-span-2 space-y-4">
-                    <!-- Category -->
-                    <div>
-                        <x-input-label for="asset_category_id" value="{{ __('Category') }}" />
-                        <x-select wire:model="form.asset_category_id" id="asset_category_id" class="w-full mt-1">
-                            <option value="">{{ __('Select Category') }}</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </x-select>
-                        <x-input-error :messages="$errors->get('form.asset_category_id')" class="mt-2" />
-                    </div>
-
                     <!-- Name and Code -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <x-input-label for="name" value="{{ __('Asset Name') }}" />
-                            <x-text-input wire:model="form.name" id="name" type="text" class="w-full mt-1"
+                            <x-text-input wire:model.lazy="form.name" id="name" type="text" class="w-full mt-1"
                                 placeholder="{{ __('e.g. Projector, Laptop') }}" />
                             <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
                         </div>
+                        <div>
+                            <x-input-label for="slug" value="{{ __('Slug') }}" />
+                            <x-text-input wire:model="form.slug" id="slug" type="text" class="w-full mt-1"
+                                placeholder="{{ __('e.g. projector, laptop') }}" />
+                            <x-input-error :messages="$errors->get('form.slug')" class="mt-2" />
+                        </div>
+                    </div>
+
+                    <!-- Asset Code and Category -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <x-input-label for="code" value="{{ __('Asset Code') }}" />
                             <x-text-input wire:model="form.code" id="code" type="text" class="w-full mt-1"
                                 placeholder="{{ __('e.g. AST-001') }}" />
                             <x-input-error :messages="$errors->get('form.code')" class="mt-2" />
                         </div>
+                        <div>
+                            <x-input-label for="asset_category_id" value="{{ __('Category') }}" />
+                            <x-select wire:model="form.asset_category_id" id="asset_category_id" class="w-full mt-1">
+                                <option value="">{{ __('Select Category') }}</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </x-select>
+                            <x-input-error :messages="$errors->get('form.asset_category_id')" class="mt-2" />
+                        </div>
                     </div>
+
+
 
                     <!-- Description -->
                     <div>
@@ -198,16 +215,10 @@
                     <div>
                         <x-input-label value="{{ __('Status') }}" />
                         <div class="mt-2 flex items-center gap-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" wire:model="form.is_active" value="1"
-                                    class="h-5 w-5 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
-                                <span class="ml-2 text-gray-700 dark:text-gray-300">{{ __('Active') }}</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" wire:model="form.is_active" value="0"
-                                    class="h-5 w-5 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 border-gray-300 dark:border-gray-600">
-                                <span class="ml-2 text-gray-700 dark:text-gray-300">{{ __('Inactive') }}</span>
-                            </label>
+                            <x-select wire:model="form.is_active" id="is_active" class="w-full md:w-1/2 mt-1">
+                                <option value="1">{{ __('Active') }}</option>
+                                <option value="0">{{ __('Inactive') }}</option>
+                            </x-select>
                         </div>
                         <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
                     </div>
@@ -216,20 +227,20 @@
 
             <!-- Footer Buttons -->
             <div
-                class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                <x-secondary-button type="button" @click="$dispatch('close')"
-                    class="w-full sm:w-auto justify-center px-6 py-3">
+                class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t pt-4 dark:border-gray-700">
+                <x-secondary-button x-on:click="$dispatch('close')" class="w-full sm:w-auto justify-center">
                     {{ __('Cancel') }}
                 </x-secondary-button>
-                <x-primary-button type="submit"
-                    class="w-full sm:w-auto justify-center px-6 py-3 shadow-lg hover:shadow-xl transition-shadow">
-                    <span wire:loading.remove wire:target="save">
-                        {{ $editId ? __('Update Asset') : __('Create Asset') }}
-                    </span>
-                    <span wire:loading wire:target="save" class="flex items-center gap-2">
-                        <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
-                        {{ __('Saving...') }}
-                    </span>
+
+                <x-primary-button type="submit" class="w-full sm:w-auto justify-center" wire:loading.attr="disabled"
+                    wire:target="save">
+                    <x-heroicon-s-check class="w-5 h-5 mr-2" wire:loading.remove wire:target="save" />
+                    <div wire:loading wire:target="save"
+                        class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 dark:border-gray-400">
+                    </div>
+                    <span wire:loading.remove
+                        wire:target="save">{{ $editId ? __('Update Asset') : __('Save Asset') }}</span>
+                    <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
                 </x-primary-button>
             </div>
         </form>
@@ -250,13 +261,20 @@
                 {{ __('Please confirm that you want to delete this asset by clicking the button below.') }}
             </p>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+            <div
+                class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t pt-4 dark:border-gray-700">
+                <x-secondary-button x-on:click="$dispatch('close')" class="w-full sm:w-auto justify-center">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete') }}
+                <x-danger-button type="submit" class="w-full sm:w-auto justify-center" wire:loading.attr="disabled"
+                    wire:target="delete">
+                    <x-heroicon-s-check class="w-5 h-5 mr-2" wire:loading.remove wire:target="delete" />
+                    <div wire:loading wire:target="delete"
+                        class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 dark:border-gray-400">
+                    </div>
+                    <span wire:loading.remove wire:target="delete">{{ __('Delete Asset') }}</span>
+                    <span wire:loading wire:target="delete">{{ __('Deleting...') }}</span>
                 </x-danger-button>
             </div>
         </form>

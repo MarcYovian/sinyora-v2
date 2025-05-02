@@ -5,17 +5,23 @@ namespace App\Livewire\Admin\Pages\Borrowing;
 use App\Enums\BorrowingStatus;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Asset;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 class Create extends Component
 {
+    use AuthorizesRequests;
+
     #[Layout('layouts.app')]
+
     public BorrowingForm $form;
 
     public function mount()
     {
+        $this->authorize('access', 'admin.asset-borrowings.create');
+
         $this->form->reset();
     }
 
@@ -77,6 +83,8 @@ class Create extends Component
 
     public function store()
     {
+        $this->authorize('access', 'admin.asset-borrowings.create');
+
         $this->form->store();
 
         toastr()->success('Borrowing berhasil disimpan');
@@ -89,6 +97,8 @@ class Create extends Component
     }
     public function render()
     {
+        $this->authorize('access', 'admin.asset-borrowings.create');
+
         return view('livewire.admin.pages.borrowing.create');
     }
 }

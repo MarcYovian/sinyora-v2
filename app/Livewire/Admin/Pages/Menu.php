@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Forms\MenuForm;
 use App\Models\Menu as ModelsMenu;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -13,7 +14,7 @@ use Livewire\WithPagination;
 
 class Menu extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesRequests;
 
     #[Layout('layouts.app')]
 
@@ -52,6 +53,8 @@ class Menu extends Component
 
     public function mount()
     {
+        $this->authorize('access', 'admin.menus.index');
+
         $this->icons = $this->getHeroIcons();
         $routes = Route::getRoutes();
         $routeNames = [];
@@ -70,18 +73,24 @@ class Menu extends Component
 
     public function create()
     {
+        $this->authorize('access', 'admin.menus.create');
+
         $this->form->reset();
         $this->dispatch('open-modal', 'menu-modal');
     }
     public function save()
     {
         if ($this->editId) {
+            $this->authorize('access', 'admin.menus.edit');
+
             $this->form->update();
             $this->editId = null;
-            $this->dispatch('updateSuccess');
+            toastr()->success('Menu updated successfully');
         } else {
+            $this->authorize('access', 'admin.menus.create');
+
             $this->form->store();
-            $this->dispatch('createSuccess');
+            toastr()->success('Menu created successfully');
         }
         $this->dispatch('close-modal', 'menu-modal');
         $this->dispatch('menuUpdated');
@@ -89,6 +98,8 @@ class Menu extends Component
 
     public function edit($id)
     {
+        $this->authorize('access', 'admin.menus.edit');
+
         $menu = ModelsMenu::find($id);
         if ($menu) {
             $this->editId = $id;
@@ -101,6 +112,8 @@ class Menu extends Component
 
     public function confirmDelete($id)
     {
+        $this->authorize('access', 'admin.menus.destroy');
+
         $this->deleteId = $id;
         $menu = ModelsMenu::find($id);
         $this->form->setDataMenu($menu);
@@ -108,19 +121,30 @@ class Menu extends Component
     }
     public function delete()
     {
+        $this->authorize('access', 'admin.menus.destroy');
+
         $this->form->delete();
-        $this->dispatch('deleteSuccess');
         $this->deleteId = null;
+        toastr()->success('Menu deleted successfully');
         $this->dispatch('close-modal', 'delete-menu-confirmation');
+        $this->dispatch('menuUpdated');
     }
 
     public function render()
     {
+        $this->authorize('access', 'admin.menus.index');
+
         $table_heads = ['#', 'Main Menu', 'Menu', 'Route Name', 'Icon', 'Sort', 'Action'];
 
-        $menus = ModelsMenu::where('menu', 'like', '%' . $this->search . '%')
+        $menus = ModelsMenu::when($this->search, function ($query) {
+            $query->where(function ($q) {
+                $q->where('menu', 'like', '%' . $this->search . '%')
+                    ->orWhere('main_menu', 'like', '%' . $this->search . '%')
+                    ->orWhere('route_name', 'like', '%' . $this->search . '%');
+            });
+        })
             ->orderBy('sort')
-            ->paginate();
+            ->paginate(10);
 
         return view('livewire.admin.pages.menu', compact('table_heads', 'menus'));
     }

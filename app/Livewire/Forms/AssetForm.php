@@ -6,22 +6,24 @@ use App\Models\Asset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Form;
 use Livewire\WithFileUploads;
 
 class AssetForm extends Form
 {
     use WithFileUploads;
-    public ?Asset $asset;
+    public ?Asset $asset = null;
 
     public $image = null;
     public string $asset_category_id = '';
     public string $name = '';
+    public string $slug = '';
     public string $code = '';
     public string $description = '';
     public int $quantity = 0;
     public string $storage_location = '';
-    public bool $is_active = false;
+    public $is_active = 0;
     public ?string $existingImage = null;
 
     public function rules()
@@ -29,6 +31,7 @@ class AssetForm extends Form
         return [
             'asset_category_id' => ['required', 'exists:asset_categories,id'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('assets')->ignore($this->asset?->id)],
             'code' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'quantity' => ['required', 'integer'],
@@ -50,6 +53,7 @@ class AssetForm extends Form
         if ($asset) {
             $this->asset_category_id = $asset->asset_category_id;
             $this->name = $asset->name;
+            $this->slug = $asset->slug;
             $this->code = $asset->code;
             $this->description = $asset->description;
             $this->quantity = $asset->quantity;
@@ -63,13 +67,12 @@ class AssetForm extends Form
     {
         $this->validate();
 
-        $imagePath = $this->storeImage() ?? $this->existingImage;
-        $slug = Str::slug($this->name . ' ' . now()->timestamp);
+        $imagePath = $this->storeImage();
 
         Asset::create([
             'asset_category_id' => $this->asset_category_id,
             'name' => $this->name,
-            'slug' => $slug,
+            'slug' => $this->slug,
             'code' => $this->code,
             'description' => $this->description,
             'quantity' => $this->quantity,
@@ -87,12 +90,11 @@ class AssetForm extends Form
         $this->validate();
 
         $imagePath = $this->storeImage() ?? $this->existingImage;
-        $slug = Str::slug($this->name . ' ' . now()->timestamp);
 
         $this->asset->update([
             'asset_category_id' => $this->asset_category_id,
             'name' => $this->name,
-            'slug' => $slug,
+            'slug' => $this->slug,
             'code' => $this->code,
             'description' => $this->description,
             'quantity' => $this->quantity,

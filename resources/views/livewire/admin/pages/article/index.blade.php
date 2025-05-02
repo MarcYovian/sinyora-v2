@@ -7,12 +7,14 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" href="{{ route('admin.articles.create') }}"
-                class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create article')
+                <x-button type="button" variant="primary" href="{{ route('admin.articles.create') }}"
+                    class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
             <div class="w-full md:w-1/2">
                 <x-search placeholder="Search Articles by title.." />
@@ -52,18 +54,24 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="primary" wire:click="show({{ $article }})">
-                                    {{ __('Detail') }}
-                                </x-button>
-                                <x-button size="sm" variant="warning" type="button"
-                                    disabled="{{ $article->status === App\Enums\BorrowingStatus::APPROVED }}"
-                                    href="{{ route('admin.articles.edit', $article) }}">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $article->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('view article details', $post)
+                                    <x-button size="sm" variant="primary" wire:click="show({{ $article }})">
+                                        {{ __('Detail') }}
+                                    </x-button>
+                                @endcan
+                                @can('edit article')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        disabled="{{ $article->status === App\Enums\BorrowingStatus::APPROVED }}"
+                                        href="{{ route('admin.articles.edit', $article) }}">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+                                @can('delete article')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $article->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>

@@ -7,12 +7,14 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" href="{{ route('admin.asset-borrowings.create') }}"
-                class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create asset borrowing')
+                <x-button type="button" variant="primary" href="{{ route('admin.asset-borrowings.create') }}"
+                    class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
             <div class="w-full md:w-1/2">
                 <x-search placeholder="Search borrowings by date.." />
@@ -64,27 +66,40 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="primary" wire:click="show({{ $borrowing }})">
-                                    {{ __('Detail') }}
-                                </x-button>
-                                <x-button size="sm" variant="warning" type="button"
-                                    disabled="{{ $borrowing->status === App\Enums\BorrowingStatus::APPROVED }}"
-                                    href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $borrowing->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
-                                @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                    <x-button size="sm" variant="success" type="button"
-                                        wire:click="confirmApprove({{ $borrowing->id }})">
-                                        {{ __('Approve') }}
+                                @can('view asset borrowing details')
+                                    <x-button size="sm" variant="primary" wire:click="show({{ $borrowing }})">
+                                        {{ __('Detail') }}
                                     </x-button>
+                                @endcan
+
+                                @can('edit asset borrowing')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        disabled="{{ $borrowing->status === App\Enums\BorrowingStatus::APPROVED }}"
+                                        href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+
+                                @can('delete asset borrowing')
                                     <x-button size="sm" variant="danger" type="button"
-                                        wire:click="confirmReject({{ $borrowing->id }})">
-                                        {{ __('Reject') }}
+                                        wire:click="confirmDelete({{ $borrowing->id }})">
+                                        {{ __('Delete') }}
                                     </x-button>
+                                @endcan
+
+                                @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                    @can('asset borrowing approve')
+                                        <x-button size="sm" variant="success" type="button"
+                                            wire:click="confirmApprove({{ $borrowing->id }})">
+                                            {{ __('Approve') }}
+                                        </x-button>
+                                    @endcan
+                                    @can('asset borrowing reject')
+                                        <x-button size="sm" variant="danger" type="button"
+                                            wire:click="confirmReject({{ $borrowing->id }})">
+                                            {{ __('Reject') }}
+                                        </x-button>
+                                    @endcan
                                 @endif
                             </div>
                         </td>
@@ -293,27 +308,33 @@
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                                 <div class="space-y-3">
                                     @if ($this->borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                        <x-button variant="success" class="w-full"
-                                            wire:click="confirmApprove({{ $this->borrowing->id }})">
-                                            <x-heroicon-s-check class="h-5 w-5 mr-2" />
-                                            Approve Request
-                                        </x-button>
-                                        <x-button variant="danger" class="w-full"
-                                            wire:click="confirmReject({{ $this->borrowing->id }})">
-                                            <x-heroicon-s-x-mark class="h-5 w-5 mr-2" />
-                                            Reject Request
-                                        </x-button>
+                                        @can('asset borrowing approve')
+                                            <x-button variant="success" class="w-full"
+                                                wire:click="confirmApprove({{ $this->borrowing->id }})">
+                                                <x-heroicon-s-check class="h-5 w-5 mr-2" />
+                                                Approve Request
+                                            </x-button>
+                                        @endcan
+                                        @can('asset borrowing reject')
+                                            <x-button variant="danger" class="w-full"
+                                                wire:click="confirmReject({{ $this->borrowing->id }})">
+                                                <x-heroicon-s-x-mark class="h-5 w-5 mr-2" />
+                                                Reject Request
+                                            </x-button>
+                                        @endcan
                                     @endif
 
-                                    <x-button variant="secondary" class="w-full" href="#">
-                                        <x-heroicon-s-pencil class="h-5 w-5 mr-2" />
-                                        Edit Request
-                                    </x-button>
+                                    @can('edit asset borrowing')
+                                        <x-button variant="secondary" class="w-full" href="#">
+                                            <x-heroicon-s-pencil class="h-5 w-5 mr-2" />
+                                            Edit Request
+                                        </x-button>
+                                    @endcan
 
-                                    <x-button variant="secondary" class="w-full" onclick="window.print()">
+                                    {{-- <x-button variant="secondary" class="w-full" onclick="window.print()">
                                         <x-heroicon-s-printer class="h-5 w-5 mr-2" />
                                         Print Details
-                                    </x-button>
+                                    </x-button> --}}
                                 </div>
                             </div>
                         </div>

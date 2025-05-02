@@ -7,14 +7,16 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create permission')
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
             <div class="w-full md:w-1/2">
-                <x-search placeholder="Search groups by name.." />
+                <x-search placeholder="Search permissions by group, name, route name, and default.." />
             </div>
         </div>
 
@@ -40,14 +42,18 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="warning" type="button"
-                                    wire:click="edit({{ $permission->id }})">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $permission->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('edit permission')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        wire:click="edit({{ $permission->id }})">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+                                @can('delete permission')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $permission->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -118,13 +124,20 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                <x-secondary-button x-on:click="$dispatch('close')" class="w-full sm:w-auto justify-center">
+            <div
+                class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <x-secondary-button type="button" @click="$dispatch('close')"
+                    class="w-full sm:w-auto justify-center px-6 py-3">
                     {{ __('Cancel') }}
                 </x-secondary-button>
-
                 <x-primary-button type="submit" class="w-full sm:w-auto justify-center">
-                    {{ $editId ? __('Update') : __('Create') }}
+                    <span wire:loading.remove wire:target="save">
+                        {{ $editId ? __('Update Permission') : __('Create Permission') }}
+                    </span>
+                    <span wire:loading wire:target="save" class="flex items-center gap-2">
+                        {{ __('Saving...') }}
+                    </span>
+                    <x-heroicon-s-arrow-path wire:loading wire:target="save" class="ml-2 h-4 w-4 animate-spin" />
                 </x-primary-button>
             </div>
         </form>

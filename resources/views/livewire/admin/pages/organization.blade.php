@@ -7,13 +7,15 @@
 
     <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+            @can('create organization')
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Create') }}</span>
+                </x-button>
+            @endcan
 
-            <div class="w-full md:w-1/2">
+            <div class=" w-full md:w-1/2">
                 <x-search placeholder="Search organization by name or code..." />
             </div>
         </div>
@@ -37,19 +39,23 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <span
-                                class="w-2 h-2 rounded-full {{ $organization->is_active ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                                class="w-2 h-2 rounded-full {{ $organization->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}"></span>
                             {{ $organization->is_active ? 'Active' : 'Inactive' }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                <x-button size="sm" variant="warning" type="button"
-                                    wire:click="edit({{ $organization->id }})">
-                                    {{ __('Edit') }}
-                                </x-button>
-                                <x-button size="sm" variant="danger" type="button"
-                                    wire:click="confirmDelete({{ $organization->id }})">
-                                    {{ __('Delete') }}
-                                </x-button>
+                                @can('edit organization')
+                                    <x-button size="sm" variant="warning" type="button"
+                                        wire:click="edit({{ $organization->id }})">
+                                        {{ __('Edit') }}
+                                    </x-button>
+                                @endcan
+                                @can('delete organization')
+                                    <x-button size="sm" variant="danger" type="button"
+                                        wire:click="confirmDelete({{ $organization->id }})">
+                                        {{ __('Delete') }}
+                                    </x-button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -112,8 +118,8 @@
                     <div class="mt-1 relative">
                         <select wire:model="form.is_active" id="is_active" name="is_active"
                             class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
-                            <option value="1">{{ __('Active') }}</option>
-                            <option value="0">{{ __('Inactive') }}</option>
+                            <option value='1'>{{ __('Active') }}</option>
+                            <option value='0'>{{ __('Inactive') }}</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                             <x-heroicon-s-chevron-down class="h-5 w-5 text-gray-400" />

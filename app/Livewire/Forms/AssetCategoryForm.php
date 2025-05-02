@@ -4,23 +4,33 @@ namespace App\Livewire\Forms;
 
 use App\Models\AssetCategory;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class AssetCategoryForm extends Form
 {
-    public ?AssetCategory $category;
+    public ?AssetCategory $category = null;
 
-    #[Validate('required')]
     public string $name = '';
-    #[Validate('required')]
-    public bool $is_active = false;
+    public string $slug = '';
+    public $is_active = 0;
+
+    public function rules()
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('asset_categories')->ignore($this->category?->id)],
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function setCategory(?AssetCategory $category)
     {
         $this->category = $category;
         if ($category) {
             $this->name = $category->name;
+            $this->slug = $category->slug;
             $this->is_active = $category->is_active;
         }
     }
@@ -29,11 +39,9 @@ class AssetCategoryForm extends Form
     {
         $this->validate();
 
-        $slugName = Str::slug($this->name . ' ' . now()->timestamp);
-
         AssetCategory::create([
             'name' => $this->name,
-            'slug' => $slugName,
+            'slug' => $this->slug,
             'is_active' => $this->is_active,
         ]);
 
@@ -44,11 +52,9 @@ class AssetCategoryForm extends Form
     {
         $this->validate();
 
-        $slugName = Str::slug($this->name . ' ' . now()->timestamp);
-
         $this->category->update([
             'name' => $this->name,
-            'slug' => $slugName,
+            'slug' => $this->slug,
             'is_active' => $this->is_active,
         ]);
 

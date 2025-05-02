@@ -6,6 +6,7 @@ use App\Enums\EventApprovalStatus;
 use App\Models\Event;
 use App\Models\EventRecurrence;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -13,6 +14,8 @@ use Livewire\Component;
 
 class Recurrence extends Component
 {
+    use AuthorizesRequests;
+
     #[Layout('layouts.app')]
 
     public Event $event;
@@ -25,6 +28,8 @@ class Recurrence extends Component
 
     public function mount(Event $event)
     {
+        $this->authorize('access', 'admin.events.recurrences.index');
+
         $this->event = $event;
         $this->loadOccurrences();
         // dd($this->occurrences);
@@ -49,8 +54,9 @@ class Recurrence extends Component
 
     public function saveOccurrence($index)
     {
-        $data = $this->occurrences[$index];
+        $this->authorize('access', 'admin.events.recurrences.edit');
 
+        $data = $this->occurrences[$index];
 
         $validated = $this->validate([
             "occurrences.{$index}.date" => ['required', 'date'],
@@ -74,6 +80,8 @@ class Recurrence extends Component
 
     public function deleteOccurrence($id)
     {
+        $this->authorize('access', 'admin.events.recurrences.destroy');
+
         EventRecurrence::find($id)->delete();
         toastr()->success('Data has been deleted successfully!', ['timeOut' => 1500]);
         $this->loadOccurrences();
@@ -119,6 +127,8 @@ class Recurrence extends Component
 
     public function render()
     {
+        $this->authorize('access', 'admin.events.recurrences.index');
+
         return view('livewire.admin.pages.event.recurrence');
     }
 }

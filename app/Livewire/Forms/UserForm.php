@@ -4,23 +4,30 @@ namespace App\Livewire\Forms;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class UserForm extends Form
 {
-    public ?User $user;
+    public ?User $user = null;
 
     public $rolePermissions = [];
     public $directPermissions = [];
-
-    #[Validate('required|string|max:255')]
     public string $name = '';
-    #[Validate('required|email|max:255')]
+    public string $username = '';
     public string $email = '';
-
-    #[Validate('required|string|max:255')]
     public string $role = '';
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($this->user?->id)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($this->user?->id)],
+            'role' => ['required', 'string', 'max:255', Rule::exists('roles', 'name')],
+        ];
+    }
 
     public function setUser(?User $user): void
     {
@@ -28,6 +35,7 @@ class UserForm extends Form
 
         if ($user) {
             $this->name = $user->name;
+            $this->username = $user->username;
             $this->email = $user->email;
             $this->role =  $user->roles->isNotEmpty() ? $user->roles->first()->name : '';
         }
@@ -39,13 +47,14 @@ class UserForm extends Form
 
         $user = User::create([
             'name' => $this->name,
+            'username' => $this->username,
             'email' => $this->email,
             'password' => Hash::make('password'),
         ]);
 
         $user->assignRole($this->role);
 
-        $this->reset(['name', 'email', 'role']);
+        $this->reset();
     }
 
     public function update()
@@ -55,12 +64,13 @@ class UserForm extends Form
         if ($this->user) {
             $this->user->update([
                 'name' => $this->name,
+                'username' => $this->username,
                 'email' => $this->email,
             ]);
 
             $this->user->syncRoles([$this->role]);
         }
-        $this->reset(['name', 'email', 'role']);
+        $this->reset();
     }
     public function destroy()
     {
@@ -68,9 +78,7 @@ class UserForm extends Form
             $this->user->roles()->detach();
             $this->user->delete();
             $this->reset();
-            return true;
         }
-        return false;
     }
 
     public function resetPassword()

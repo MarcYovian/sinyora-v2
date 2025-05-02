@@ -13,6 +13,8 @@ class MenuSeeder extends Seeder
      */
     public function run(): void
     {
+        Menu::truncate();
+
         Menu::create([
             'main_menu' => 'Dashboard',
             'menu' => 'Dashboard',
@@ -21,67 +23,109 @@ class MenuSeeder extends Seeder
             'sort' => 1,
         ]);
         Menu::create([
+            'main_menu' => 'Articles',
+            'menu' => 'Articles',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.articles.index',
+            'sort' => 2,
+        ]);
+        Menu::create([
+            'main_menu' => 'Articles',
+            'menu' => 'Categories',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.articles.categories.index',
+            'sort' => 3,
+        ]);
+        Menu::create([
+            'main_menu' => 'Articles',
+            'menu' => 'Tags',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.articles.tags.index',
+            'sort' => 4,
+        ]);
+        Menu::create([
+            'main_menu' => 'Events',
+            'menu' => 'Events',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.events.index',
+            'sort' => 5,
+        ]);
+        Menu::create([
+            'main_menu' => 'Events',
+            'menu' => 'Categories',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.event-categories.index',
+            'sort' => 6,
+        ]);
+        Menu::create([
+            'main_menu' => 'Borrowings',
+            'menu' => 'Borrowings',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.asset-borrowings.index',
+            'sort' => 7,
+        ]);
+        Menu::create([
+            'main_menu' => 'Borrowings',
+            'menu' => 'Assets',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.assets.index',
+            'sort' => 8,
+        ]);
+        Menu::create([
+            'main_menu' => 'Borrowings',
+            'menu' => 'Asset Categories',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.asset-categories.index',
+            'sort' => 9,
+        ]);
+        Menu::create([
             'main_menu' => 'Users',
             'menu' => 'Users',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.users.index',
-            'sort' => 2,
+            'sort' => 10,
         ]);
         Menu::create([
-            'main_menu' => 'Roles Permissions',
+            'main_menu' => 'Users',
             'menu' => 'Roles',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.roles.index',
-            'sort' => 3,
+            'sort' => 11,
         ]);
         Menu::create([
-            'main_menu' => 'Roles Permissions',
+            'main_menu' => 'Users',
             'menu' => 'Permissions',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.permissions.index',
-            'sort' => 4,
+            'sort' => 12,
         ]);
         Menu::create([
             'main_menu' => 'Settings',
-            'menu' => 'Menu',
+            'menu' => 'Menus',
             'icon' => 'c-academic-cap',
-            'route_name' => 'admin.menu.index',
-            'sort' => 5,
+            'route_name' => 'admin.menus.index',
+            'sort' => 13,
         ]);
         Menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Groups',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.groups.index',
-            'sort' => 6,
+            'sort' => 14,
         ]);
         Menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Organizations',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.organizations.index',
-            'sort' => 7,
-        ]);
-        Menu::create([
-            'main_menu' => 'Masters',
-            'menu' => 'Event Category',
-            'icon' => 'c-academic-cap',
-            'route_name' => 'admin.event-category.index',
-            'sort' => 8,
+            'sort' => 15,
         ]);
         menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Locations',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.locations.index',
-            'sort' => 9,
-        ]);
-        Menu::create([
-            'main_menu' => 'Masters',
-            'menu' => 'Events',
-            'icon' => 'c-academic-cap',
-            'route_name' => 'admin.events.index',
-            'sort' => 10,
+            'sort' => 16,
         ]);
     }
 }

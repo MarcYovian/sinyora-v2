@@ -8,13 +8,14 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\Location;
 use App\Models\Organization;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesRequests;
 
     #[Layout('layouts.app')]
 
@@ -31,6 +32,8 @@ class Index extends Component
 
     public function mount()
     {
+        $this->authorize('access', 'admin.events.index');
+
         $this->categories = EventCategory::active()->get(['id', 'name']);
         $this->organizations = Organization::active()->get(['id', 'name']);
         $this->locations = Location::active()->get(['id', 'name']);
@@ -38,6 +41,8 @@ class Index extends Component
 
     public function create()
     {
+        $this->authorize('access', 'admin.events.create');
+
         $this->form->reset();
         $this->editId = null;
         $this->deleteId = null;
@@ -46,6 +51,8 @@ class Index extends Component
 
     public function edit($id)
     {
+        $this->authorize('access', 'admin.events.edit');
+
         $this->editId = $id;
         $event = Event::find($id);
         $this->form->setEvent($event);
@@ -55,10 +62,14 @@ class Index extends Component
     public function save()
     {
         if ($this->editId) {
+            $this->authorize('access', 'admin.events.edit');
+
             $this->form->update();
             $this->editId = null;
             $this->dispatch('updateSuccess');
         } else {
+            $this->authorize('access', 'admin.events.create');
+
             $this->form->store();
             $this->dispatch('createSuccess');
         }
@@ -67,6 +78,8 @@ class Index extends Component
 
     public function confirmDelete($id)
     {
+        $this->authorize('access', 'admin.events.destroy');
+
         $this->deleteId = $id;
         $event = Event::find($id);
         $this->form->setEvent($event);
@@ -75,6 +88,8 @@ class Index extends Component
 
     public function delete()
     {
+        $this->authorize('access', 'admin.events.destroy');
+
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
@@ -85,6 +100,8 @@ class Index extends Component
 
     public function confirmApprove($id)
     {
+        $this->authorize('access', 'admin.events.approve');
+
         $this->approveId = $id;
         $event = Event::find($id);
         $this->form->setEvent($event);
@@ -93,6 +110,8 @@ class Index extends Component
 
     public function approve()
     {
+        $this->authorize('access', 'admin.events.approve');
+
         if ($this->approveId) {
             $this->form->approve();
             $this->approveId = null;
@@ -104,6 +123,8 @@ class Index extends Component
 
     public function confirmReject($id)
     {
+        $this->authorize('access', 'admin.events.reject');
+
         $this->rejectId = $id;
         $event = Event::find($id);
         $this->form->setEvent($event);
@@ -112,6 +133,8 @@ class Index extends Component
 
     public function reject()
     {
+        $this->authorize('access', 'admin.events.reject');
+
         if ($this->rejectId) {
             $this->form->reject();
             $this->rejectId = null;
@@ -122,6 +145,8 @@ class Index extends Component
 
     public function render()
     {
+        $this->authorize('access', 'admin.events.index');
+
         // table heads
         $table_heads = ['No', 'Name', 'Recurrence Start', 'Recurrence End', 'Organization', 'Event Category', 'Locations', 'Recurrence Type', 'Status', 'Action'];
 
