@@ -39,30 +39,18 @@
                     </div>
                 @endforeach
             @else
-                <div class="text-center py-12">
-                    <div class="mx-auto w-24 h-24 text-[#FFD24C]">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                <div class="md:col-span-2 bg-white rounded-xl shadow-sm p-8 text-center">
+                    <div class="mx-auto w-24 h-24 text-[#FFD24C] mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                         </svg>
                     </div>
-                    <h3 class="mt-4 text-lg font-medium text-gray-900">Belum ada artikel tersedia</h3>
-                    <p class="mt-2 text-gray-500 max-w-md mx-auto">
+                    <h3 class="text-xl font-medium text-gray-900 mb-2">Belum ada artikel populer</h3>
+                    <p class="text-gray-500 mb-6 max-w-md mx-auto">
                         Kami belum mempublikasikan artikel terbaru. Silakan cek kembali nanti!
                     </p>
-                    <div class="mt-6">
-                        <button
-                            class="inline-flex items-center px-4 py-2 bg-[#FFD24C] text-[#825700] rounded-md hover:bg-[#FEC006] transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Muat Ulang
-                        </button>
-                    </div>
                 </div>
             @endif
         </div>
@@ -73,7 +61,6 @@
         <div class="bg-white rounded-xl p-6 shadow-md border border-gray-100">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Artikel Terbaru</h3>
             <div class="space-y-4">
-                {{-- New Article --}}
                 @if ($latestArticles->count() > 0)
                     @foreach ($latestArticles as $item)
                         <a href="#" class="group block">
@@ -97,15 +84,16 @@
                         </a>
                     @endforeach
                 @else
-                    <div class="flex items-start space-x-4">
-                        <div class="flex-shrink-0 bg-gray-200 p-2 rounded-lg h-12 w-12"></div>
-                        <div class="flex-1 space-y-2">
-                            <div class="h-4 w-3/4 bg-gray-200 rounded"></div>
-                            <div class="space-y-1">
-                                <div class="h-3 w-full bg-gray-200 rounded"></div>
-                                <div class="h-3 w-5/6 bg-gray-200 rounded"></div>
-                            </div>
+                    <div class="text-center py-8">
+                        <div class="mx-auto w-20 h-20 text-gray-300 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+                            </svg>
                         </div>
+                        <h4 class="text-lg font-medium text-gray-700 mb-1">Belum ada artikel terbaru</h4>
+                        <p class="text-gray-500 text-sm">Silakan kembali lagi nanti</p>
                     </div>
                 @endif
             </div>
@@ -125,6 +113,9 @@
                     Berlangganan
                 </button>
             </form>
+            <p class="text-xs text-white/60 mt-3">
+                Kami menghargai privasi Anda. Tidak ada spam.
+            </p>
         </div> --}}
     </div>
 </div>
