@@ -11,7 +11,7 @@ use Livewire\Component;
 class Index extends Component
 {
     #[Layout('components.layouts.app')]
-    #[Title('Event')]
+    #[Title('Kalender Kegiatan')]
 
     public $events = [];
     public function mount()

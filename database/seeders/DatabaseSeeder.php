@@ -23,7 +23,10 @@ class DatabaseSeeder extends Seeder
             // EventCategorySeeder::class,
             // LocationSeeder::class,
             // OrganizationSeeder::class,
-            EventSeeder::class,
+            // EventSeeder::class,
+            // ArticleCategorySeeder::class,
+            // TagSeeder::class,
+            ArticleSeeder::class,
         ]);
 
         // $user = User::factory()->create([

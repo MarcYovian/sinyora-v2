@@ -9,6 +9,12 @@ Route::get('/', \App\Livewire\Pages\Home\Index::class)
 Route::get('/event', \App\Livewire\Pages\Event\Index::class)
     ->name('events.index');
 
+Route::get('/articles', \App\Livewire\Pages\Article\Index::class)
+    ->name('articles.index');
+
+Route::get('/articles/{article:slug}', \App\Livewire\Pages\Article\Show::class)
+    ->name('articles.show');
+
 Route::redirect('/admin', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {

@@ -90,7 +90,7 @@
                             'text-[#825700] hover:text-[#FEC006]': scrolled && !openDropdown,
                             'text-white hover:text-[#FEC006]': !scrolled && !openDropdown
                         }"
-                        class="flex items-center space-x-1 text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#FEC006] focus:ring-offset-2 rounded-md px-3 py-2">
+                        class="flex items-center space-x-1 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#FEC006] focus:ring-offset-2 rounded-md px-3 py-2">
                         <span>{{ __('Kegiatan Kapel') }}</span>
                         <svg x-bind:class="{ 'rotate-180 text-[#FEC006]': openDropdown }"
                             class="w-4 h-4 transition-transform duration-200" xmlns="http://www.w3.org/2000/svg"
@@ -134,6 +134,14 @@
                         </x-dropdown-link>
                     </div>
                 </div>
+
+                <x-nav-link href="{{ route('articles.index') }}" wire:navigate
+                    x-bind:class="{
+                        'text-[#825700] hover:text-[#FEC006]': scrolled,
+                        'text-white hover:text-[#FEC006]': !scrolled
+                    }">
+                    {{ __('Artikel') }}
+                </x-nav-link>
 
                 <x-nav-link href="{{ route('home.index') }}#contact" wire:navigate
                     x-bind:class="{

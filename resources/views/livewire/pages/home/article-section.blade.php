@@ -112,7 +112,7 @@
         </div>
 
         <!-- Newsletter Subscription -->
-        <div class="bg-[#282834] rounded-xl p-6 text-white">
+        {{-- <div class="bg-[#282834] rounded-xl p-6 text-white">
             <h3 class="text-lg font-bold mb-2">Tetap Terhubung</h3>
             <p class="text-sm text-[#FFD24C] mb-4">
                 Dapatkan update terbaru langsung ke email Anda
@@ -125,6 +125,6 @@
                     Berlangganan
                 </button>
             </form>
-        </div>
+        </div> --}}
     </div>
 </div>

@@ -300,34 +300,51 @@
                 <!-- Contact Form -->
                 <div class="bg-white rounded-xl shadow-xl p-8">
                     <h3 class="text-2xl font-bold text-gray-800 mb-6">Kirim Pesan</h3>
-                    <form class="space-y-6">
+                    <form wire:submit="send" class="space-y-6">
                         <div>
                             <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama
                                 Lengkap</label>
-                            <input type="text" id="name" placeholder="Nama Anda"
+                            <input type="text" id="name" wire:model="contactForm.name"
+                                placeholder="Nama Anda"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition">
+                            @if ($errors->has('contactForm.name'))
+                                <span class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                            @endif
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="email"
                                     class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" id="email" placeholder="email@contoh.com"
+                                <input type="email" id="email" wire:model="contactForm.email"
+                                    placeholder="email@contoh.com"
                                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition">
+                                @if ($errors->has('contactForm.name'))
+                                    <span
+                                        class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                                @endif
                             </div>
 
                             <div>
                                 <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Nomor
                                     Telepon</label>
-                                <input type="tel" id="phone" placeholder="0812-3456-7890"
+                                <input type="tel" id="phone" wire:model="contactForm.phone"
+                                    placeholder="0812-3456-7890"
                                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition">
+                                @if ($errors->has('contactForm.name'))
+                                    <span
+                                        class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                                @endif
                             </div>
                         </div>
 
                         <div>
                             <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Pesan</label>
-                            <textarea id="message" rows="4" placeholder="Tulis pesan Anda..."
+                            <textarea id="message" rows="4" wire:model="contactForm.message" placeholder="Tulis pesan Anda..."
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition"></textarea>
+                            @if ($errors->has('contactForm.name'))
+                                <span class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                            @endif
                         </div>
 
                         <button type="submit"

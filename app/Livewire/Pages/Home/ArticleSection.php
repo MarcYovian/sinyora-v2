@@ -18,7 +18,7 @@ class ArticleSection extends Component
             ->take(2)
             ->get();
 
-        $this->latestArticles = Article::latest()->take(2)->get();
+        $this->latestArticles = Article::latest()->take(3)->get();
     }
 
     public function placeholder()
