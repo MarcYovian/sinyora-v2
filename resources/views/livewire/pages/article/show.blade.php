@@ -131,7 +131,7 @@
                                 <div class="mt-6 flex items-center">
                                     <div class="flex-shrink-0">
                                         <img class="h-10 w-10 rounded-full"
-                                            src="{{ $related->user->profile_photo_url }}"
+                                            src="{{ asset('storage/' . $related->user->avatar) }}" lazy
                                             alt="{{ $related->user->name }}">
                                     </div>
                                     <div class="ml-3">
@@ -156,7 +156,7 @@
     @endif
 
     <!-- Newsletter Subscription -->
-    <div class="bg-gray-900 py-16 sm:py-24">
+    {{-- <div class="bg-gray-900 py-16 sm:py-24">
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="relative py-16 px-8 bg-yellow-500 rounded-xl overflow-hidden">
                 <div class="absolute inset-0 opacity-10 mix-blend-multiply">
@@ -193,5 +193,5 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 </div>
