@@ -18,17 +18,21 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call([
-            MenuSeeder::class,
-            RolePermissionSeeder::class,
+            // MenuSeeder::class,
+            // RolePermissionSeeder::class,
+            // EventCategorySeeder::class,
+            // LocationSeeder::class,
+            // OrganizationSeeder::class,
+            EventSeeder::class,
         ]);
 
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'username' => 'test',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'), // password
-        ]);
+        // $user = User::factory()->create([
+        //     'name' => 'Test User',
+        //     'username' => 'test',
+        //     'email' => 'test@example.com',
+        //     'password' => bcrypt('password'), // password
+        // ]);
 
-        $user->assignRole('admin');
+        // $user->assignRole('admin');
     }
 }

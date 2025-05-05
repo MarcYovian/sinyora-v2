@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
+    use HasFactory;
     protected $table = 'events';
 
     protected $primaryKey = 'id';

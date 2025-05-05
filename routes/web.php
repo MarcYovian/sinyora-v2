@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', \App\Livewire\Pages\Home\Index::class)
     ->name('home.index');
 
+Route::get('/event', \App\Livewire\Pages\Event\Index::class)
+    ->name('events.index');
+
 Route::redirect('/admin', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {
