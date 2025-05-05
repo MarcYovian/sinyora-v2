@@ -3,7 +3,9 @@
 use App\Http\Controllers\TrixAttachmentController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin/dashboard', 301);
+Route::get('/', \App\Livewire\Pages\Home\Index::class)
+    ->name('home.index');
+
 Route::redirect('/admin', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {
@@ -88,7 +90,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], 
 
     Route::get('articles/tags', \App\Livewire\Admin\Pages\Article\Tag::class)
         ->name('articles.tags.index')
-        ->middleware(['permission:view article tag']);
+        ->middleware(['permission:view article tags']);
 
     Route::get('articles', \App\Livewire\Admin\Pages\Article\Index::class)
         ->name('articles.index')

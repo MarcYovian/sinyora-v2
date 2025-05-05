@@ -54,7 +54,7 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
-                                @can('view article details', $post)
+                                @can('view article details')
                                     <x-button size="sm" variant="primary" wire:click="show({{ $article }})">
                                         {{ __('Detail') }}
                                     </x-button>

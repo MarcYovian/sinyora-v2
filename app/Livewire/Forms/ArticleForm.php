@@ -18,6 +18,7 @@ class ArticleForm extends Form
     public string $title = '';
     public string $slug = '';
     public string $content = '';
+    public $reading_time = null;
     public string $excerpt = '';
     public string $featured_image = '';
     public string $user_id = '';
@@ -69,10 +70,13 @@ class ArticleForm extends Form
     {
         $this->validate();
 
+        $this->reading_time = $this->calculateReadingTime();
+
         $data = [
             'title' => $this->title,
             'slug' => $this->slug,
             'content' => $this->content,
+            'reading_time' => $this->reading_time['minutes'],
             'excerpt' => $this->excerpt,
             'user_id' => Auth::id(),
             'category_id' => $this->category_id,
@@ -200,5 +204,42 @@ class ArticleForm extends Form
                 Storage::disk('public')->delete($relativePath);
             }
         }
+    }
+
+    protected function calculateReadingTime()
+    {
+        $html = $this->content;
+
+        // Hitung kata
+        $text = strip_tags($html);
+        $wordCount = count(preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY));
+
+        // Count attachments and complex elements
+        $imageCount = substr_count($html, '<figure data-trix-attachment');
+        $attachmentCount = substr_count($html, '<figure data-trix-attachment');
+        $headingsCount = substr_count($html, '<h1') + substr_count($html, '<h2') + substr_count($html, '<h3');
+
+        // Base reading speed (words per minute)
+        $baseWPM = 200;
+
+        // Adjust for content complexity
+        $complexityFactor = 1 +
+            ($imageCount * 0.1) +
+            ($attachmentCount * 0.15) +
+            ($headingsCount * 0.05);
+
+        $adjustedWPM = $baseWPM / $complexityFactor;
+        $minutes = max(1, ceil($wordCount / $adjustedWPM));
+
+        return [
+            'minutes' => $minutes,
+            'seconds' => $wordCount % $adjustedWPM,
+            'words' => $wordCount,
+            'images' => $imageCount,
+            'attachments' => $attachmentCount,
+            'headings' => $headingsCount,
+            'wpm' => round($adjustedWPM),
+            'display' => $minutes > 1 ? "{$minutes} menit" : "1 menit"
+        ];
     }
 }

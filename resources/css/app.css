@@ -3,3 +3,7 @@
 @tailwind utilities;
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+.nav-link-hover {
+    @apply transition-colors duration-200 hover:text-[#825700];
+}

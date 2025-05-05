@@ -17,6 +17,7 @@ class Article extends Model
         'slug',
         'excerpt',
         'content',
+        'reading_time',
         'featured_image',
         'user_id',
         'category_id',
@@ -26,6 +27,7 @@ class Article extends Model
     ];
 
     protected $casts = [
+        'reading_time' => 'integer',
         'is_published' => 'boolean',
         'published_at' => 'datetime',
         'views' => 'integer',
