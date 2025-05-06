@@ -232,7 +232,7 @@
                 </div>
 
                 <!-- Newsletter Subscription -->
-                <div
+                {{-- <div
                     class="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl shadow-sm overflow-hidden p-6 text-center">
                     <h3 class="text-lg font-semibold text-white mb-2">Berlangganan Artikel</h3>
                     <p class="text-yellow-100 mb-4">Dapatkan artikel terbaru langsung ke email Anda</p>
@@ -247,7 +247,7 @@
                             </button>
                         </div>
                     </form>
-                </div>
+                </div> --}}
             </div>
         </div>
     </div>

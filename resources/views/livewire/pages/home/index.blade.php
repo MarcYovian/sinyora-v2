@@ -75,7 +75,7 @@
             <div class="relative">
                 <!-- Teks besar di belakang -->
                 <h1
-                    class="absolute -top-8 -left-4 text-gray-200 text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
+                    class="absolute -top-8 -left-4 text-gray-200 text-6xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
                     WELCOME
                 </h1>
 
@@ -118,7 +118,7 @@
             <div class="relative mb-16">
                 <!-- Teks besar di belakang -->
                 <h1
-                    class="absolute -top-16 left-0 text-gray-200 text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
+                    class="absolute -top-8 -left-4 md:-top-16 md:left-0 text-gray-200 text-6xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
                     JELAJAHI
                 </h1>
 
@@ -142,7 +142,7 @@
         <div class="relative mb-16">
             <!-- Teks besar di belakang -->
             <h1
-                class="absolute -top-16 left-0 text-gray-200 text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
+                class="absolute -top-8 -left-2 md:-top-16 md:left-0 text-gray-200 text-6xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
                 SINYORA
             </h1>
 
@@ -166,7 +166,7 @@
             <div class="relative mb-16">
                 <!-- Teks besar di belakang -->
                 <h1
-                    class="absolute -top-16 left-0 text-gray-200 text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
+                    class="absolute -top-8 -left-2 md:-top-16 md:left-0 text-gray-200 text-6xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
                     SERVICES
                 </h1>
 
@@ -182,7 +182,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="grid grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Service Card 1 -->
                     <div
                         class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -249,14 +249,16 @@
                 <div class="relative rounded-xl overflow-hidden shadow-2xl h-full">
                     <img src="{{ asset('images/about.jpg') }}" alt="Pelayanan Liturgi"
                         class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 sm:p-8">
                         <div class="text-white">
-                            <h3 class="text-2xl font-bold mb-2">Bergabunglah Dengan Kami</h3>
-                            <p class="mb-4">
+                            <h3 class="text-xl font-semibold sm:text-2xl sm:font-bold mb-2">Bergabunglah Dengan Kami
+                            </h3>
+                            <p class="mb-4 text-sm sm:text-base">
                                 Mari berpartisipasi dalam pelayanan liturgi Kapel St. Yohanes Rasul
                             </p>
                             <a href="#contact"
-                                class="inline-flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-[#825700] bg-[#FFD24C] hover:bg-[#FEC006]">
+                                class="inline-flex items-center px-2 py-1 border border-transparent text-xs sm:px-6 sm:py-2 sm:text-base font-medium rounded-md shadow-sm text-[#825700] bg-[#FFD24C] hover:bg-[#FEC006]">
                                 Hubungi Kami
                             </a>
                         </div>
@@ -272,7 +274,7 @@
             <div class="relative mb-16 text-center">
                 <!-- Teks besar di belakang -->
                 <h1
-                    class="absolute -top-16 left-1/2 transform -translate-x-1/2 text-[#FFD24C] text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-10 z-0">
+                    class="absolute -top-8 left-1/2 md:-top-16 transform -translate-x-1/2 text-[#FFD24C] text-6xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-10 z-0">
                     CONTACT
                 </h1>
 

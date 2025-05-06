@@ -229,6 +229,9 @@
             <x-mobile-nav-link href="{{ route('home.index') }}#contact" wire:navigate>
                 {{ __('Kontak') }}
             </x-mobile-nav-link>
+            <x-mobile-nav-link href="{{ route('articles.index') }}" wire:navigate>
+                {{ __('Artikel') }}
+            </x-mobile-nav-link>
         </div>
     </div>
 </nav>
