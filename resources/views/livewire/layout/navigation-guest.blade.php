@@ -217,7 +217,7 @@
                             <span>{{ __('Jadwal Misa') }}</span>
                         </div>
                     </x-mobile-nav-link>
-                    <x-mobile-nav-link href="#" wire:navigate class="pl-4">
+                    <x-mobile-nav-link href="{{ route('events.index') }}" wire:navigate class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
                             <span>{{ __('Jadwal Kegiatan') }}</span>
