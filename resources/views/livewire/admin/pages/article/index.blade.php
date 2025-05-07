@@ -221,4 +221,44 @@
             </div>
         @endif
     </x-modal>
+
+    {{-- Modal Delete Confirmation --}}
+    <x-modal name="delete-article-confirmation" :show="$errors->isNotEmpty()" focusable>
+        <form wire:submit="delete" class="p-6">
+
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ __('Are you sure you want to delete this article?') }}
+            </h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('This action cannot be undone.') }}
+            </p>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Please confirm that you want to delete this article by clicking the button below.') }}
+            </p>
+
+            <div class="mt-6 flex justify-end">
+                <x-button type="button" size="sm" variant="secondary" x-on:click="$dispatch('close')">
+                    {{ __('Cancel') }}
+                </x-button>
+
+                <x-button class="ms-3" size="sm" type="button" variant="danger" wire:click="forceDelete"
+                    wire:loading.attr="disabled" wire:target="forceDelete">
+                    <div wire:loading wire:target="forceDelete"
+                        class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 dark:border-gray-400">
+                    </div>
+                    <span wire:loading.remove wire:target="forceDelete">{{ __('Delete Permanently') }}</span>
+                    <span wire:loading wire:target="forceDelete">{{ __('Deleting...') }}</span>
+                </x-button>
+
+                <x-button class="ms-3" size="sm" type="submit" variant="primary"
+                    wire:loading.attr="disabled" wire:target="delete">
+                    <div wire:loading wire:target="delete"
+                        class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 dark:border-gray-400">
+                    </div>
+                    <span wire:loading.remove wire:target="delete">{{ __('Delete') }}</span>
+                    <span wire:loading wire:target="delete">{{ __('Deleting...') }}</span>
+                </x-button>
+            </div>
+        </form>
+    </x-modal>
 </div>
