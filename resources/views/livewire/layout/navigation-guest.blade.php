@@ -108,7 +108,7 @@
                         @mouseleave="openDropdown = false"
                         class="absolute z-10 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none py-2"
                         x-cloak>
-                        <x-dropdown-link href="{{ route('home.index') }}#jadwal-misa" wire:navigate class="group">
+                        <x-dropdown-link href="{{ route('home.index') }}#jadwal-misa" class="group">
                             <div class="flex items-center space-x-3">
                                 <div
                                     class="p-1 rounded-lg bg-[#FEC006]/10 group-hover:bg-[#FEC006]/20 transition-colors">
@@ -143,7 +143,7 @@
                     {{ __('Artikel') }}
                 </x-nav-link>
 
-                <x-nav-link href="{{ route('home.index') }}#contact" wire:navigate
+                <x-nav-link href="{{ route('home.index') }}/#contact"
                     x-bind:class="{
                         'text-[#825700] hover:text-[#FEC006]': scrolled,
                         'text-white hover:text-[#FEC006]': !scrolled
@@ -211,7 +211,7 @@
                 </button>
 
                 <div x-show="open" x-collapse class="pl-4 space-y-1">
-                    <x-mobile-nav-link href="{{ route('home.index') }}#jadwal-misa" wire:navigate class="pl-4">
+                    <x-mobile-nav-link href="{{ route('home.index') }}#jadwal-misa" class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-calendar class="h-5 w-5 text-[#FEC006]" />
                             <span>{{ __('Jadwal Misa') }}</span>
@@ -226,11 +226,11 @@
                 </div>
             </div>
 
-            <x-mobile-nav-link href="{{ route('home.index') }}#contact" wire:navigate>
-                {{ __('Kontak') }}
-            </x-mobile-nav-link>
             <x-mobile-nav-link href="{{ route('articles.index') }}" wire:navigate>
                 {{ __('Artikel') }}
+            </x-mobile-nav-link>
+            <x-mobile-nav-link href="{{ route('home.index') }}#contact">
+                {{ __('Kontak') }}
             </x-mobile-nav-link>
         </div>
     </div>
