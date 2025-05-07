@@ -115,7 +115,7 @@
         <section id="calendar-section" class="mb-20">
             <div class="relative mb-12">
                 <h1
-                    class="absolute -top-10 left-0 text-gray-200 text-7xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
+                    class="absolute -top-10 left-0 text-gray-200 text-5xl sm:text-8xl md:text-9xl font-bold tracking-wide opacity-20 z-0">
                     KALENDER
                 </h1>
                 <div class="relative z-10">
