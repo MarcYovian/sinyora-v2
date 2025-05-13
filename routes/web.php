@@ -17,7 +17,7 @@ Route::get('/articles/{article:slug}', \App\Livewire\Pages\Article\Show::class)
 
 Route::redirect('/admin', '/admin/dashboard', 301);
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth'], 'as' => 'admin.'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' => 'admin.'], function () {
     Route::view('dashboard', 'dashboard')
         ->name('dashboard.index')
         ->middleware(['permission:view dashboard']);
