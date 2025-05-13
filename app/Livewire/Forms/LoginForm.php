@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -55,19 +56,31 @@ class LoginForm extends Form
     public function authenticate(): void
     {
         $this->beforeValidation();
-        $this->validate();
+        try {
+            $this->validate();
 
-        $this->ensureIsNotRateLimited();
+            $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->getCredentials(), $this->remember)) {
-            RateLimiter::hit($this->throttleKey());
+            if (! Auth::attempt($this->getCredentials(), $this->remember)) {
+                RateLimiter::hit($this->throttleKey());
 
-            throw ValidationException::withMessages([
-                'form.id_user' => trans('auth.failed'),
+                throw ValidationException::withMessages([
+                    'form.id_user' => trans('auth.failed'),
+                ]);
+            }
+
+            RateLimiter::clear($this->throttleKey());
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Authentication error', [
+                'error' => $e->getMessage(),
+                'user' => $this->id_user,
+                'ip' => request()->ip()
             ]);
-        }
 
-        RateLimiter::clear($this->throttleKey());
+            throw $e;
+        }
     }
 
     protected function getCredentials(): array
