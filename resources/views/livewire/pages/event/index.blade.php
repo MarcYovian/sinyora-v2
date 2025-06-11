@@ -105,6 +105,16 @@
                             clip-rule="evenodd" />
                     </svg>
                 </a>
+                <button wire:click="create"
+                    class="inline-flex items-center px-6 py-3 bg-white hover:bg-gray-200 text-gray-800 font-semibold rounded-full shadow-lg transition-colors duration-300">
+                    Ajukan Kegiatan
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
             </div>
         </div>
     </section>
@@ -139,6 +149,12 @@
         <!-- All Events -->
         {{-- <livewire:pages.event.all-events /> --}}
     </div>
+
+    <x-modal name="proposal-modal" focusable>
+        <div class="p-4 sm:p-6">
+            <livewire:pages.event.proposal-form />
+        </div>
+    </x-modal>
 </div>
 
 @push('scripts')

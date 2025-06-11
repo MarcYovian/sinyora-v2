@@ -33,7 +33,7 @@ class Event extends Model
         'end_recurring',
         'status',
         'recurrence_type',
-        'created_by',
+        // 'created_by',
         'organization_id',
         'event_category_id',
     ];
@@ -44,6 +44,11 @@ class Event extends Model
         'status' => EventApprovalStatus::class,
         'recurrence_type' => EventRecurrenceType::class,
     ];
+
+    public function creator()
+    {
+        return $this->morphTo();
+    }
 
     public function eventRecurrences()
     {

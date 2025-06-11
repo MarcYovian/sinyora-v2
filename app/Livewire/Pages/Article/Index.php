@@ -28,7 +28,10 @@ class Index extends Component
     public function render()
     {
         $categories = ArticleCategory::all();
-        $popularCategories = ArticleCategory::withCount('articles')
+        $popularCategories = ArticleCategory::withCount(['articles' => function ($query) {
+            $query->published();
+        }])
+            ->having('articles_count', '>', 0)
             ->orderByDesc('articles_count')
             ->limit(5)
             ->get();

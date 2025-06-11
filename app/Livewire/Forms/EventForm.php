@@ -61,29 +61,42 @@ class EventForm extends Form
                 $dates = $event->eventRecurrences()->orderBy('date')->get();
 
                 // Pastikan setidaknya ada 1 recurrence
+                if ($dates->isEmpty()) {
+                    return; // Keluar jika koleksi kosong untuk menghindari error
+                }
+
                 $startDate = $dates->first();
                 $endDate = $startDate;
 
                 // Cari rentang tanggal berurutan
                 foreach ($dates as $key => $date) {
-                    if ($key === 0) continue; // Lewatkan yang pertama
+                    if ($key === 0) {
+                        continue; // Lewatkan item pertama
+                    }
 
-                    $prevDate = Carbon::parse($dates[$key - 1]->date);
-                    $currentDate = Carbon::parse($date->date);
+                    // PERBAIKAN 1: Tidak perlu Carbon::parse() lagi karena $casts sudah menjadikannya objek Carbon.
+                    $prevDateObject = $dates[$key - 1]->date;
+                    $currentDateObject = $date->date;
 
-                    // Jika tanggal saat ini adalah besok dari tanggal sebelumnya
-                    if ($prevDate->addDay()->equalTo($currentDate) && $date->time_start === '00:00:00' && $dates[$key - 1]->time_end === '23:59:59') {
+                    // PERBAIKAN 2: Gunakan copy() agar tidak mengubah objek asli saat pengecekan.
+                    // Gunakan isSameDay() untuk perbandingan tanggal yang lebih aman.
+                    $isConsecutive = $prevDateObject->copy()->addDay()->isSameDay($currentDateObject);
+
+                    // PERBAIKAN 3: Bandingkan waktu dengan memformatnya terlebih dahulu, karena ini adalah objek Carbon.
+                    $isFullDayEvent = $date->time_start->format('H:i:s') === '00:00:00'
+                        && $dates[$key - 1]->time_end->format('H:i:s') === '23:59:59';
+
+                    if ($isConsecutive && $isFullDayEvent) {
                         $endDate = $date; // Update end date
                     } else {
-                        break; // Berhenti jika tidak berurutan
+                        break; // Berhenti jika urutan tanggal terputus atau bukan event sehari penuh
                     }
                 }
 
-                // Format datetime
-                $this->start_datetime = Carbon::parse($startDate->date . ' ' . $startDate->time_start)
-                    ->format('Y-m-d\TH:i');
-                $this->end_datetime = Carbon::parse($endDate->date . ' ' . $endDate->time_end)
-                    ->format('Y-m-d\TH:i');
+                // PERBAIKAN 4: Gunakan metode objek Carbon untuk mengatur waktu, BUKAN penggabungan string.
+                // Ini adalah perbaikan utama untuk error "Double date specification".
+                $this->start_datetime = $startDate->date->copy()->setTimeFrom($startDate->time_start)->format('Y-m-d\TH:i');
+                $this->end_datetime = $endDate->date->copy()->setTimeFrom($endDate->time_end)->format('Y-m-d\TH:i');
             }
         }
     }
@@ -93,17 +106,20 @@ class EventForm extends Form
         $this->validate();
 
         DB::transaction(function () {
-            $event = Event::create([
+            $admin = Auth::user();
+
+            $event = new Event([
                 'name' => $this->name,
                 'description' => $this->description,
                 'start_recurring' => Carbon::parse($this->start_datetime)->format('Y-m-d'),
                 'end_recurring' => $this->getRecurrenceEndDate(),
                 'status' => EventApprovalStatus::PENDING,
-                'created_by' => Auth::id(),
                 'recurrence_type' => $this->recurrence_type,
                 'organization_id' => $this->organization_id,
                 'event_category_id' => $this->event_category_id,
             ]);
+
+            $admin->events()->save($event);
 
             $event->locations()->sync($this->locations);
             $this->handleRecurrence($event);

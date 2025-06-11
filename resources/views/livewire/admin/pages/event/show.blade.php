@@ -179,7 +179,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Created By</p>
-                                <p class="mt-1 text-gray-900 dark:text-gray-100">{{ $event->created_by }}</p>
+                                <p class="mt-1 text-gray-900 dark:text-gray-100">{{ $event->creator->name }}</p>
                             </div>
                         </div>
                     </div>
