@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('document_path');
             $table->string('original_file_name');
             $table->string('mime_type');
+            $table->longText('analysis_result')->nullable();
             $table->string('status')->default('pending');
             $table->foreignId('processed_by')->nullable()->constrained('users');
             $table->timestamp('processed_at')->nullable();

@@ -35,6 +35,7 @@ class RolePermissionSeeder extends Seeder
             'Group',
             'Organization',
             'location',
+            'Document'
         ];
 
         foreach ($groups as $group) {
@@ -548,6 +549,48 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'delete location', // hapus ruangan (pengurus kapel)
                 'group' => Group::where('name', 'Location')->first()->id,
                 'route_name' => 'admin.locations.destroy',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'view documents', // lihat daftar ruangan (all users)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.index',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'create document', // buat ruangan (pengurus kapel)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.create',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'view document details', // lihat ruangan (all users)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.show',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'edit document', // edit ruangan (pengurus kapel)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.edit',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'delete document', // hapus ruangan (pengurus kapel)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.destroy',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'process document', // hapus ruangan (pengurus kapel)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.process',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'add document', // hapus ruangan (pengurus kapel)
+                'group' => Group::where('name', 'Document')->first()->id,
+                'route_name' => 'admin.documents.add',
                 'default' => 'Non-Default',
             ],
         ];

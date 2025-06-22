@@ -113,6 +113,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
     Route::get('articles/{id}/edit', \App\Livewire\Admin\Pages\Article\Form::class)
         ->name('articles.edit')
         ->middleware(['permission:edit article']);
+
+    Route::get('documents', \App\Livewire\Admin\Pages\Document::class)
+        ->name('documents.index')
+        ->middleware(['permission:view documents']);
 });
 
 Route::post('/trix-attachments', [TrixAttachmentController::class, 'store'])

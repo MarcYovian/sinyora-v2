@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'bert_api' => [
+        'url' => env('BERT_API_URL', 'https://api.example.com/bert'),
+        'key' => env('BERT_API_KEY', 'your-bert-api-key'),
+    ],
 ];

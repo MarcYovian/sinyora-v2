@@ -107,25 +107,32 @@ class MenuSeeder extends Seeder
             'sort' => 13,
         ]);
         Menu::create([
+            'main_menu' => 'Documents',
+            'menu' => 'Documents',
+            'icon' => 'c-academic-cap',
+            'route_name' => 'admin.documents.index',
+            'sort' => 14,
+        ]);
+        Menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Groups',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.groups.index',
-            'sort' => 14,
+            'sort' => 15,
         ]);
         Menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Organizations',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.organizations.index',
-            'sort' => 15,
+            'sort' => 16,
         ]);
         menu::create([
             'main_menu' => 'Masters',
             'menu' => 'Locations',
             'icon' => 'c-academic-cap',
             'route_name' => 'admin.locations.index',
-            'sort' => 16,
+            'sort' => 17,
         ]);
     }
 }

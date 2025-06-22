@@ -13,6 +13,23 @@ class LocationSeeder extends Seeder
      */
     public function run(): void
     {
-        Location::factory(10)->create();
+        Location::create([
+            'name' => 'Kapel St Yohanes Rasul Lantai 1',
+            'description' => 'Kapel St Yohanes Rasul Lantai 1',
+            'image' => 'https://placehold.co/600x400?text=Hello+World',
+            'is_active' => 1,
+        ]);
+        Location::create([
+            'name' => 'Kapel St Yohanes Rasul Lantai 2',
+            'description' => 'Kapel St Yohanes Rasul Lantai 2',
+            'image' => 'https://placehold.co/600x400?text=Hello+World',
+            'is_active' => 1,
+        ]);
+        Location::create([
+            'name' => 'Halaman Kapel St Yohanes Rasul',
+            'description' => 'Halaman Kapel St Yohanes Rasul',
+            'image' => 'https://placehold.co/600x400?text=Hello+World',
+            'is_active' => 1,
+        ]);
     }
 }
