@@ -49,7 +49,7 @@
                                         {{ __('Detail') }}
                                     </x-button>
                                 @endcan
-                                @can('delete documents')
+                                @can('delete document')
                                     <x-button size="sm" variant="danger" type="button"
                                         wire:click="confirmDelete({{ $document->id }})">
                                         {{ __('Delete') }}

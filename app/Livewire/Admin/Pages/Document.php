@@ -63,7 +63,7 @@ class Document extends Component
                 ]);
             }
 
-            $this->dispatch('close-modal', 'add-document-modal')->to(Document::class);
+            $this->dispatch('close-modal', 'add-document-modal');
         });
     }
 
