@@ -40,11 +40,11 @@
                                         <dt class="text-slate-500 dark:text-slate-400 mb-1">Organisasi</dt>
                                         @if ($isEditing)
                                             <div class="space-y-2">
-                                                @foreach ($analysisResult['data']['informasi_umum_dokumen']['organisasi'] ?? [] as $organizationIndex => $organization)
+                                                @foreach ($analysisResult['data']['document_information']['emitter_organizations'] ?? [] as $organizationIndex => $organization)
                                                     <div class="flex items-center gap-2"
                                                         wire:key="Organization-{{ $organizationIndex }}">
                                                         <x-text-input type="text" class="w-full text-sm"
-                                                            wire:model.defer="analysisResult.data.informasi_umum_dokumen.organisasi.{{ $organizationIndex }}.nama" />
+                                                            wire:model.defer="analysisResult.data.document_information.emitter_organizations.{{ $organizationIndex }}.name" />
                                                         <button type="button"
                                                             wire:click="removeOrganization({{ $organizationIndex }})"
                                                             class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 rounded-full">
@@ -57,7 +57,7 @@
                                                         </button>
                                                     </div>
                                                     <x-input-error :messages="$errors->get(
-                                                        'analysisResult.data.informasi_umum_dokumen.organisasi.{{ $organizationIndex }}.nama',
+                                                        'analysisResult.data.document_information.emitter_organizations.{{ $organizationIndex }}.name',
                                                     )" class="mt-2" />
                                                 @endforeach
                                                 <x-button type="button" variant="primary" size="sm"
@@ -68,8 +68,8 @@
                                         @else
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
                                                 <ul class="list-disc list-inside">
-                                                    @forelse ($analysisResult['data']['informasi_umum_dokumen']['organisasi'] ?? [] as $organization)
-                                                        <li>{{ $organization['nama'] }}</li>
+                                                    @forelse ($analysisResult['data']['document_information']['emitter_organizations'] ?? [] as $organization)
+                                                        <li>{{ $organization['name'] }}</li>
                                                     @empty
                                                         <li>N/A</li>
                                                     @endforelse
@@ -78,19 +78,71 @@
                                         @endif
                                     </div>
                                     <div class="col-span-2">
+                                        <dt class="text-slate-500 dark:text-slate-400">Perihal</dt>
                                         @if ($isEditing)
-                                            <dt class="text-slate-500 dark:text-slate-400">Perihal</dt>
+                                            <div class="space-y-2">
+                                                @foreach ($analysisResult['data']['document_information']['subjects'] ?? [] as $index => $subject)
+                                                    <div class="flex items-center gap-2"
+                                                        wire:key="subject-{{ $index }}">
+                                                        <x-text-input type="text" class="mt-1 block w-full"
+                                                            wire:model.defer="analysisResult.data.document_information.subjects.{{ $index }}" />
+                                                        <button type="button"
+                                                            wire:click="removeSubject({{ $index }})"
+                                                            class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 rounded-full">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5"
+                                                                viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fill-rule="evenodd"
+                                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
+                                                                    clip-rule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <x-input-error :messages="$errors->get(
+                                                        'analysisResult.data.document_information.subjects.{{ $index }}',
+                                                    )" class="mt-2" />
+                                                @endforeach
+                                                <x-button type="button" variant="primary" size="sm"
+                                                    wire:click="addSubject()">
+                                                    + Tambah Perihal
+                                                </x-button>
+                                            </div>
+                                        @else
+                                            <dd class="font-medium text-slate-800 dark:text-slate-200">
+                                                {{ implode(', ', $analysisResult['data']['document_information']['subjects'] ?? []) ?: 'N/A' }}
+                                            </dd>
+                                        @endif
+                                    </div>
+                                    <div class="col-span-2">
+                                        @if ($isEditing)
+                                            <dt class="text-slate-500 dark:text-slate-400">Email</dt>
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
                                                 <x-text-input type="text" class="mt-1 block w-full"
-                                                    wire:model.defer="analysisResult.data.informasi_umum_dokumen.perihal_surat" />
+                                                    wire:model.defer="analysisResult.data.document_information.emitter_email" />
                                                 <x-input-error :messages="$errors->get(
-                                                    'analysisResult.data.informasi_umum_dokumen.perihal_surat',
+                                                    'analysisResult.data.document_information.emitter_email',
                                                 )" class="mt-2" />
                                             </dd>
                                         @else
-                                            <dt class="text-slate-500 dark:text-slate-400">Perihal</dt>
+                                            <dt class="text-slate-500 dark:text-slate-400">Email</dt>
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
-                                                {{ $analysisResult['data']['informasi_umum_dokumen']['perihal_surat'] ?? 'N/A' }}
+                                                {{ $analysisResult['data']['document_information']['emitter_email'] ?? 'N/A' }}
+                                            </dd>
+                                        @endif
+                                    </div>
+                                    <div class="col-span-2">
+                                        @if ($isEditing)
+                                            <dt class="text-slate-500 dark:text-slate-400">Kota</dt>
+                                            <dd class="font-medium text-slate-800 dark:text-slate-200">
+                                                <x-text-input type="text" class="mt-1 block w-full"
+                                                    wire:model.defer="analysisResult.data.document_information.document_city" />
+                                                <x-input-error :messages="$errors->get(
+                                                    'analysisResult.data.document_information.document_city',
+                                                )" class="mt-2" />
+                                            </dd>
+                                        @else
+                                            <dt class="text-slate-500 dark:text-slate-400">Kota</dt>
+                                            <dd class="font-medium text-slate-800 dark:text-slate-200">
+                                                {{ $analysisResult['data']['document_information']['document_city'] ?? 'N/A' }}
                                             </dd>
                                         @endif
                                     </div>
@@ -99,14 +151,14 @@
                                         @if ($isEditing)
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
                                                 <x-text-input type="text" class="mt-1 block w-full"
-                                                    wire:model.defer="analysisResult.data.informasi_umum_dokumen.nomor_surat" />
+                                                    wire:model.defer="analysisResult.data.document_information.document_number" />
                                                 <x-input-error :messages="$errors->get(
-                                                    'analysisResult.data.informasi_umum_dokumen.nomor_surat',
+                                                    'analysisResult.data.document_information.document_number',
                                                 )" class="mt-2" />
                                             </dd>
                                         @else
                                             <dd class="text-slate-800 dark:text-slate-200">
-                                                {{ $analysisResult['data']['informasi_umum_dokumen']['nomor_surat'] ?? 'N/A' }}
+                                                {{ $analysisResult['data']['document_information']['document_number'] ?? 'N/A' }}
                                             </dd>
                                         @endif
                                     </div>
@@ -114,13 +166,15 @@
                                         <dt class="text-slate-500 dark:text-slate-400">Tanggal Surat</dt>
                                         @if ($isEditing)
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
-                                                <x-text-input type="date" class="mt-1 block w-full"
-                                                    wire:model.defer="editableData.doc_date" />
-                                                <x-input-error :messages="$errors->get('editableData.doc_date')" class="mt-2" />
+                                                <x-text-input type="text" class="mt-1 block w-full"
+                                                    wire:model.defer="analysisResult.data.document_information.document_date" />
+                                                <x-input-error :messages="$errors->get(
+                                                    'analysisResult.data.document_information.document_date',
+                                                )" class="mt-2" />
                                             </dd>
                                         @else
                                             <dd class="text-slate-800 dark:text-slate-200">
-                                                {{ $analysisResult['data']['informasi_umum_dokumen']['tanggal_surat_dokumen'] ?? 'N/A' }}
+                                                {{ $analysisResult['data']['document_information']['document_date'] ?? 'N/A' }}
                                             </dd>
                                         @endif
                                     </div>
@@ -128,11 +182,11 @@
                                         <dt class="text-slate-500 dark:text-slate-400 mb-1">Penerima Surat</dt>
                                         @if ($isEditing)
                                             <div class="space-y-2">
-                                                @foreach ($analysisResult['data']['informasi_umum_dokumen']['penerima_surat'] ?? [] as $recipientIndex => $penerima)
+                                                @foreach ($analysisResult['data']['document_information']['recipients'] ?? [] as $recipientIndex => $penerima)
                                                     <div class="flex items-center gap-2"
                                                         wire:key="recipient-{{ $recipientIndex }}">
                                                         <x-text-input type="text" class="w-full text-sm"
-                                                            wire:model.defer="analysisResult.data.informasi_umum_dokumen.penerima_surat.{{ $recipientIndex }}.name" />
+                                                            wire:model.defer="analysisResult.data.document_information.recipients.{{ $recipientIndex }}.name" />
                                                         <button type="button"
                                                             wire:click="removeRecipient({{ $recipientIndex }})"
                                                             class="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 rounded-full">
@@ -145,7 +199,7 @@
                                                         </button>
                                                     </div>
                                                     <x-input-error :messages="$errors->get(
-                                                        'analysisResult.data.informasi_umum_dokumen.penerima_surat.{{ $recipientIndex }}.name',
+                                                        'analysisResult.data.document_information.recipients.{{ $recipientIndex }}.name',
                                                     )" class="mt-2" />
                                                 @endforeach
                                                 <x-button type="button" variant="primary" size="sm"
@@ -156,7 +210,7 @@
                                         @else
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
                                                 <ul class="list-disc list-inside">
-                                                    @forelse ($analysisResult['data']['informasi_umum_dokumen']['penerima_surat'] ?? [] as $penerima)
+                                                    @forelse ($analysisResult['data']['document_information']['recipients'] ?? [] as $penerima)
                                                         <li>{{ $penerima['name'] }}</li>
                                                     @empty
                                                         <li>N/A</li>
@@ -281,7 +335,7 @@
                                 @elseif ($analysisResult)
                                     {{-- Loop untuk setiap kegiatan --}}
                                     <div class="mt-2 space-y-4">
-                                        @forelse ($analysisResult['data']['detail_kegiatan'] ?? [] as $index => $kegiatan)
+                                        @forelse ($analysisResult['data']['events'] ?? [] as $index => $kegiatan)
                                             <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"
                                                 x-data="{ currentAiTab: 'detail' }">
                                                 <div class="flex justify-between items-start mb-2">
@@ -289,11 +343,7 @@
                                                         class="font-bold text-md text-slate-800 dark:text-slate-200 pr-2">
                                                         Kegiatan #{{ $loop->iteration }}:
                                                         {{-- Saat edit, ambil dari editableKegiatan agar judul ikut terupdate --}}
-                                                        @if ($isEditing)
-                                                            {{ $editableKegiatan[$index]['nama_kegiatan_utama'] ?? 'Tanpa Nama' }}
-                                                        @else
-                                                            {{ $kegiatan['nama_kegiatan_utama'] ?? 'Tanpa Nama' }}
-                                                        @endif
+                                                        {{ $kegiatan['eventName'] ?? 'Tanpa Nama' }}
                                                     </h4>
                                                     @if ($isEditing)
                                                         <button type="button"
@@ -339,155 +389,364 @@
                                                                     <x-text-input
                                                                         id="kegiatan-nama-{{ $index }}"
                                                                         type="text" class="mt-1 block w-full"
-                                                                        wire:model.defer="editableKegiatan.{{ $index }}.nama_kegiatan_utama" />
+                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.eventName" />
                                                                     <x-input-error :messages="$errors->get(
-                                                                        'editableKegiatan.' .
-                                                                            $index .
-                                                                            '.nama_kegiatan_utama',
+                                                                        'analysisResult.data.events.{{ $index }}.eventName',
                                                                     )" class="mt-2" />
                                                                 </div>
-                                                                <div class="col-span-1 md:col-span-2 mt-4">
-                                                                    <label
-                                                                        class="block font-medium text-sm text-gray-700 dark:text-gray-300">
-                                                                        Jadwal Kegiatan
-                                                                    </label>
+                                                                <div>
+                                                                    <div class="flex items-center space-x-2">
+                                                                        <x-input-label
+                                                                            for="tanggal-kegiatan-{{ $index }}"
+                                                                            value="{{ __('Tanggal Kegiatan') }}" />
 
-                                                                    {{-- Container untuk semua baris jadwal, dengan jarak vertikal antar baris --}}
-                                                                    <div class="mt-2 space-y-3">
-                                                                        @forelse ($editableKegiatan[$index]['dates'] ?? [] as $dateIndex => $datePair)
-                                                                            {{-- div pembungkus untuk satu baris jadwal --}}
-                                                                            <div class="p-3 border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50"
-                                                                                wire:key="date-{{ $index }}-{{ $dateIndex }}">
-                                                                                <div class="flex flex-col space-y-4">
-                                                                                    {{-- Input Start DateTime --}}
-                                                                                    <div>
-                                                                                        <x-input-label
-                                                                                            for="start-{{ $index }}-{{ $dateIndex }}"
-                                                                                            value="{{ __('Mulai') }}"
-                                                                                            class="text-xs" />
-                                                                                        <x-text-input
-                                                                                            id="start-{{ $index }}-{{ $dateIndex }}"
-                                                                                            type="datetime-local"
-                                                                                            class="mt-1 block w-full"
-                                                                                            wire:model.defer="editableKegiatan.{{ $index }}.dates.{{ $dateIndex }}.start" />
-                                                                                        <x-input-error :messages="$errors->get(
-                                                                                            'editableKegiatan.' .
-                                                                                                $index .
-                                                                                                '.dates.' .
-                                                                                                $dateIndex .
-                                                                                                '.start',
-                                                                                        )"
-                                                                                            class="mt-2" />
-                                                                                    </div>
+                                                                        {{-- IKON BANTUAN DENGAN POPOVER --}}
+                                                                        <div class="relative" x-data="{ open: false }">
+                                                                            <button @mouseenter="open = true"
+                                                                                @mouseleave="open = false"
+                                                                                type="button"
+                                                                                class="text-gray-400 hover:text-gray-600">
+                                                                                {{-- Gunakan ikon SVG tanda tanya --}}
+                                                                                <svg class="w-4 h-4" fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg">
+                                                                                    <path stroke-linecap="round"
+                                                                                        stroke-linejoin="round"
+                                                                                        stroke-width="2"
+                                                                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                                                    </path>
+                                                                                </svg>
+                                                                            </button>
 
-                                                                                    {{-- Input End DateTime --}}
-                                                                                    <div>
-                                                                                        <x-input-label
-                                                                                            for="end-{{ $index }}-{{ $dateIndex }}"
-                                                                                            value="{{ __('Selesai') }}"
-                                                                                            class="text-xs" />
-                                                                                        <x-text-input
-                                                                                            id="end-{{ $index }}-{{ $dateIndex }}"
-                                                                                            type="datetime-local"
-                                                                                            class="mt-1 block w-full"
-                                                                                            wire:model.defer="editableKegiatan.{{ $index }}.dates.{{ $dateIndex }}.end" />
-                                                                                        <x-input-error :messages="$errors->get(
-                                                                                            'editableKegiatan.' .
-                                                                                                $index .
-                                                                                                '.dates.' .
-                                                                                                $dateIndex .
-                                                                                                '.end',
-                                                                                        )"
-                                                                                            class="mt-2" />
-                                                                                    </div>
-
-                                                                                    {{-- Tombol Hapus Jadwal --}}
-                                                                                    <div class="self-end">
-                                                                                        <button type="button"
-                                                                                            wire:click.prevent="removeDate({{ $index }}, {{ $dateIndex }})"
-                                                                                            class="text-red-500 hover:text-red-700 transition flex items-center text-sm">
-                                                                                            <svg class="h-4 w-4 mr-1"
-                                                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                                                fill="none"
-                                                                                                viewBox="0 0 24 24"
-                                                                                                stroke-width="2"
-                                                                                                stroke="currentColor">
-                                                                                                <path
-                                                                                                    stroke-linecap="round"
-                                                                                                    stroke-linejoin="round"
-                                                                                                    d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                                            </svg>
-                                                                                            <span>Hapus Jadwal</span>
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
+                                                                            <div x-show="open" x-transition
+                                                                                class="absolute z-10 w-64 p-2 mt-2 -ml-24 text-sm text-white bg-gray-800 rounded-lg shadow-lg">
+                                                                                <h4 class="font-bold">Contoh format
+                                                                                    yang didukung:</h4>
+                                                                                <ul class="mt-1 list-disc list-inside">
+                                                                                    <li>7 Juli 2025</li>
+                                                                                    <li>Sabtu - Minggu, 5 - 6 Juli 2025
+                                                                                    </li>
+                                                                                    <li>Jumat, 31 Mei dan Minggu, 2 Juni
+                                                                                        2024</li>
+                                                                                </ul>
                                                                             </div>
-                                                                        @empty
-                                                                            {{-- [UI BARU] Tampilan ketika tidak ada jadwal --}}
-                                                                            <div
-                                                                                class="p-4 border border-dashed rounded-md dark:border-gray-600 text-center bg-gray-50 dark:bg-gray-900/50">
-                                                                                <p
-                                                                                    class="text-sm text-gray-500 dark:text-gray-400">
-                                                                                    Belum ada jadwal untuk kegiatan ini.
-                                                                                    <br> Silakan tambahkan jadwal baru.
-                                                                                </p>
-                                                                            </div>
-                                                                        @endforelse
+                                                                        </div>
                                                                     </div>
+                                                                    <x-text-input
+                                                                        id="tanggal-kegiatan-{{ $index }}"
+                                                                        type="text" class="mt-1 block w-full"
+                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.date" />
+                                                                    <x-input-error :messages="$errors->get(
+                                                                        'analysisResult.data.events.{{ $index }}.date',
+                                                                    )" class="mt-2" />
+                                                                </div>
+                                                                <div>
+                                                                    <div class="flex items-center space-x-2">
+                                                                        <x-input-label
+                                                                            for="waktu-kegiatan-{{ $index }}"
+                                                                            value="{{ __('Waktu Kegiatan') }}" />
+                                                                        <div class="relative" x-data="{ open: false }">
+                                                                            <button @mouseenter="open = true"
+                                                                                @mouseleave="open = false"
+                                                                                type="button"
+                                                                                class="text-gray-400 hover:text-gray-600">
+                                                                                {{-- Gunakan ikon SVG tanda tanya --}}
+                                                                                <svg class="w-4 h-4" fill="none"
+                                                                                    stroke="currentColor"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    xmlns="http://www.w3.org/2000/svg">
+                                                                                    <path stroke-linecap="round"
+                                                                                        stroke-linejoin="round"
+                                                                                        stroke-width="2"
+                                                                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                                                    </path>
+                                                                                </svg>
+                                                                            </button>
 
-                                                                    {{-- Tombol Tambah Jadwal Baru --}}
-                                                                    <div class="mt-3">
-                                                                        <x-secondary-button type="button"
-                                                                            wire:click.prevent="addDate({{ $index }})">
-                                                                            <svg class="h-5 w-5 mr-2"
-                                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                                fill="none" viewBox="0 0 24 24"
-                                                                                stroke-width="1.5"
-                                                                                stroke="currentColor">
-                                                                                <path stroke-linecap="round"
-                                                                                    stroke-linejoin="round"
-                                                                                    d="M12 6v12m6-6H6" />
-                                                                            </svg>
-                                                                            Tambah Jadwal
-                                                                        </x-secondary-button>
+                                                                            <div x-show="open" x-transition
+                                                                                class="absolute z-10 w-64 p-2 mt-2 -ml-24 text-sm text-white bg-gray-800 rounded-lg shadow-lg">
+                                                                                <h4 class="font-bold">Contoh format
+                                                                                    yang didukung:</h4>
+                                                                                <ul class="mt-1 list-disc list-inside">
+                                                                                    <li>19.30 WIB - selesai</li>
+                                                                                    <li>09:00 - 15:00 WIB</li>
+                                                                                    <li>19.00 WIB</li>
+                                                                                </ul>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
+                                                                    <x-text-input
+                                                                        id="waktu-kegiatan-{{ $index }}"
+                                                                        type="text" class="mt-1 block w-full"
+                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.time" />
+                                                                    <x-input-error :messages="$errors->get(
+                                                                        'analysisResult.data.events.{{ $index }}.time',
+                                                                    )" class="mt-2" />
                                                                 </div>
                                                                 <div>
                                                                     <x-input-label for="lokasi-{{ $index }}"
                                                                         value="{{ __('Lokasi Kegiatan') }}" />
                                                                     <x-text-input id="lokasi-{{ $index }}"
                                                                         type="text" class="mt-1 block w-full"
-                                                                        wire:model.defer="editableKegiatan.{{ $index }}.lokasi_kegiatan" />
+                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.location" />
                                                                     <x-input-error :messages="$errors->get(
-                                                                        'editableKegiatan.' .
-                                                                            $index .
-                                                                            '.lokasi_kegiatan',
+                                                                        'analysisResult.data.events.{{ $index }}.location',
                                                                     )" class="mt-2" />
                                                                 </div>
-                                                                <div>
-                                                                    <x-input-label
-                                                                        for="kegiatan-pj-{{ $index }}"
-                                                                        value="{{ __('Nama Penanggung Jawab') }}" />
-                                                                    <x-text-input id="kegiatan-pj-{{ $index }}"
-                                                                        type="text" class="mt-1 block w-full"
-                                                                        wire:model.defer="analysisResult.data.detail_kegiatan.{{ $index }}.penanggung_jawab" />
-                                                                    <x-input-error :messages="$errors->get(
-                                                                        'editableKegiatan.' .
-                                                                            $index .
-                                                                            '.penanggung_jawab',
-                                                                    )" class="mt-2" />
+                                                                <div class="space-y-4">
+                                                                    <x-input-label for="organizer-{{ $index }}"
+                                                                        value="{{ __('Penanggung Jawab') }}" />
+                                                                    @forelse ($analysisResult['data']['events'][$index]['organizers'] ?? [] as $organizerIndex => $organizer)
+                                                                        <div wire:key="organizer-{{ $organizerIndex }}"
+                                                                            class="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700">
+                                                                            <div
+                                                                                class="flex items-start justify-between gap-4">
+                                                                                {{-- Bagian Kiri: Form Input --}}
+                                                                                <div class="flex-grow space-y-3">
+                                                                                    {{-- Input untuk Nama Penanggung Jawab --}}
+                                                                                    <div>
+                                                                                        <x-input-label
+                                                                                            for="organizer_name_{{ $organizerIndex }}"
+                                                                                            :value="__(
+                                                                                                'Nama Penanggung Jawab',
+                                                                                            )" />
+                                                                                        <x-text-input type="text"
+                                                                                            id="organizer_name_{{ $organizerIndex }}"
+                                                                                            class="w-full mt-1 text-sm"
+                                                                                            wire:model.defer="analysisResult.data.events.{{ $index }}.organizers.{{ $organizerIndex }}.name" />
+                                                                                        <x-input-error
+                                                                                            :messages="$errors->get(
+                                                                                                'analysisResult.data.events.' .
+                                                                                                    $index .
+                                                                                                    '.organizers.' .
+                                                                                                    $organizerIndex .
+                                                                                                    '.name',
+                                                                                            )"
+                                                                                            class="mt-2" />
+                                                                                    </div>
+
+                                                                                    {{-- Input untuk Kontak Penanggung Jawab --}}
+                                                                                    <div>
+                                                                                        <x-input-label
+                                                                                            for="organizer_contact_{{ $organizerIndex }}"
+                                                                                            :value="__(
+                                                                                                'Kontak (No. HP/Email)',
+                                                                                            )" />
+                                                                                        <x-text-input type="text"
+                                                                                            id="organizer_contact_{{ $organizerIndex }}"
+                                                                                            class="w-full mt-1 text-sm"
+                                                                                            wire:model.defer="analysisResult.data.events.{{ $index }}.organizers.{{ $organizerIndex }}.contact" />
+                                                                                        <x-input-error
+                                                                                            :messages="$errors->get(
+                                                                                                'analysisResult.data.events.' .
+                                                                                                    $index .
+                                                                                                    '.organizers.' .
+                                                                                                    $organizerIndex .
+                                                                                                    '.contact',
+                                                                                            )"
+                                                                                            class="mt-2" />
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {{-- Bagian Kanan: Tombol Hapus --}}
+                                                                                <div>
+                                                                                    <x-button type="button"
+                                                                                        variant="danger"
+                                                                                        size="icon"
+                                                                                        title="Hapus Penanggung Jawab"
+                                                                                        wire:click="removeOrganizer({{ $index }}, {{ $organizerIndex }})">
+                                                                                        {{-- Ikon tempat sampah (SVG) --}}
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                            class="w-5 h-5"
+                                                                                            viewBox="0 0 20 20"
+                                                                                            fill="currentColor">
+                                                                                            <path fill-rule="evenodd"
+                                                                                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z"
+                                                                                                clip-rule="evenodd" />
+                                                                                        </svg>
+                                                                                    </x-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    @empty
+                                                                        <div
+                                                                            class="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700">
+                                                                            <p
+                                                                                class="text-sm text-slate-500 dark:text-slate-400">
+                                                                                Tidak ada penanggung jawab yang
+                                                                                ditambahkan.
+                                                                            </p>
+                                                                        </div>
+                                                                    @endforelse
+                                                                    <x-button type="button" variant="primary"
+                                                                        size="sm"
+                                                                        wire:click="addOrganizers({{ $index }})">
+                                                                        + Tambah Penanggung Jawab
+                                                                    </x-button>
                                                                 </div>
-                                                                <div>
-                                                                    <x-input-label
-                                                                        for="kegiatan-kontak-{{ $index }}"
-                                                                        value="{{ __('Kontak Penanggung Jawab') }}" />
-                                                                    <x-text-input
-                                                                        id="kegiatan-kontak-{{ $index }}"
-                                                                        type="text" class="mt-1 block w-full"
-                                                                        wire:model.defer="analysisResult.data.detail_kegiatan.{{ $index }}.kontak_pj" />
-                                                                    <x-input-error :messages="$errors->get(
-                                                                        'editableKegiatan.' . $index . '.kontak_pj',
-                                                                    )" class="mt-2" />
+
+                                                                {{-- Schedules --}}
+                                                                <div class="space-y-4">
+                                                                    @php
+                                                                        $schedule =
+                                                                            $analysisResult['data']['events'][$index][
+                                                                                'schedule'
+                                                                            ] ?? [];
+
+                                                                        $showTimeColumn = collect($schedule)->contains(
+                                                                            function ($item) {
+                                                                                return !empty($item['startTime']) ||
+                                                                                    !empty($item['endTime']);
+                                                                            },
+                                                                        );
+                                                                    @endphp
+                                                                    <div class="flex items-center space-x-2">
+                                                                        <x-input-label
+                                                                            for="schedules-{{ $index }}"
+                                                                            value="{{ __('Lokasi Kegiatan') }}" />
+                                                                        @if ($showTimeColumn)
+                                                                            <div class="relative"
+                                                                                x-data="{ open: false }">
+                                                                                <button @mouseenter="open = true"
+                                                                                    @mouseleave="open = false"
+                                                                                    type="button"
+                                                                                    class="text-gray-400 hover:text-gray-600">
+                                                                                    {{-- Gunakan ikon SVG tanda tanya --}}
+                                                                                    <svg class="w-4 h-4"
+                                                                                        fill="none"
+                                                                                        stroke="currentColor"
+                                                                                        viewBox="0 0 24 24"
+                                                                                        xmlns="http://www.w3.org/2000/svg">
+                                                                                        <path stroke-linecap="round"
+                                                                                            stroke-linejoin="round"
+                                                                                            stroke-width="2"
+                                                                                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                                                        </path>
+                                                                                    </svg>
+                                                                                </button>
+
+                                                                                <div x-show="open" x-transition
+                                                                                    class="absolute z-10 w-64 p-2 mt-2 -ml-24 text-sm text-white bg-gray-800 rounded-lg shadow-lg">
+                                                                                    <h4 class="font-bold">Contoh format
+                                                                                        yang didukung untuk waktu pada
+                                                                                        agenda:</h4>
+                                                                                    <ul
+                                                                                        class="mt-1 list-disc list-inside">
+                                                                                        <li>17.00</li>
+                                                                                        <li>17:00</li>
+                                                                                    </ul>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div
+                                                                        class="p-4 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg">
+                                                                        <div class="overflow-x-auto">
+                                                                            <table
+                                                                                class="w-full text-sm text-left text-slate-700 dark:text-slate-400">
+                                                                                <thead
+                                                                                    class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                                                                                    <tr>
+                                                                                        @if ($showTimeColumn)
+                                                                                            <th class="px-3 py-2">Waktu
+                                                                                            </th>
+                                                                                        @endif
+                                                                                        <th class="px-3 py-2">Susunan
+                                                                                            Acara
+                                                                                        </th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody
+                                                                                    class="bg-white dark:bg-slate-800">
+                                                                                    @forelse ($analysisResult['data']['events'][$index]['schedule'] as $scheduleIndex => $item)
+                                                                                        {{-- wire:key wajib ada untuk tracking DOM yang benar oleh Livewire --}}
+                                                                                        <tr wire:key="schedule-{{ $index }}"
+                                                                                            class="border-b border-slate-200 dark:border-slate-700">
+                                                                                            {{-- Kolom Waktu --}}
+                                                                                            <td class="p-2 align-top">
+                                                                                                <div
+                                                                                                    class="flex items-center gap-2">
+                                                                                                    <x-text-input
+                                                                                                        type="text"
+                                                                                                        class="w-full text-sm"
+                                                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.schedule.{{ $scheduleIndex }}.startTime" />
+                                                                                                    <span>-</span>
+                                                                                                    <x-text-input
+                                                                                                        type="text"
+                                                                                                        class="w-full text-sm"
+                                                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.schedule.{{ $scheduleIndex }}.endTime" />
+                                                                                                </div>
+                                                                                                <x-input-error
+                                                                                                    :messages="$errors->get(
+                                                                                                        'analysisResult.data.events.' .
+                                                                                                            $index .
+                                                                                                            '.startTime',
+                                                                                                    )"
+                                                                                                    class="mt-1" />
+                                                                                                <x-input-error
+                                                                                                    :messages="$errors->get(
+                                                                                                        'analysisResult.data.events.' .
+                                                                                                            $index .
+                                                                                                            '.endTime',
+                                                                                                    )"
+                                                                                                    class="mt-1" />
+                                                                                            </td>
+
+                                                                                            {{-- Kolom Deskripsi --}}
+                                                                                            <td class="p-2 align-top">
+                                                                                                <x-text-input
+                                                                                                    type="text"
+                                                                                                    class="w-full text-sm"
+                                                                                                    placeholder="Deskripsi acara..."
+                                                                                                    wire:model.defer="analysisResult.data.events.{{ $index }}.schedule.{{ $scheduleIndex }}.description" />
+                                                                                                <x-input-error
+                                                                                                    :messages="$errors->get(
+                                                                                                        'analysisResult.data.events.' .
+                                                                                                            $index .
+                                                                                                            '.description',
+                                                                                                    )"
+                                                                                                    class="mt-1" />
+                                                                                            </td>
+
+                                                                                            {{-- Kolom Aksi (Tombol Hapus) --}}
+                                                                                            <td
+                                                                                                class="p-2 align-top text-center">
+                                                                                                <x-button
+                                                                                                    type="button"
+                                                                                                    variant="danger"
+                                                                                                    size="icon"
+                                                                                                    wire:click="removeScheduleItem({{ $index }},{{ $scheduleIndex }})"
+                                                                                                    title="Hapus baris">
+                                                                                                    <svg class="w-5 h-5"
+                                                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                                                        viewBox="0 0 20 20"
+                                                                                                        fill="currentColor">
+                                                                                                        <path
+                                                                                                            fill-rule="evenodd"
+                                                                                                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z"
+                                                                                                            clip-rule="evenodd" />
+                                                                                                    </svg>
+                                                                                                </x-button>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    @empty
+                                                                                        <tr>
+                                                                                            <td colspan="{{ $showTimeColumn ? 3 : 2 }}"
+                                                                                                class="text-center text-slate-500 dark:text-slate-400 py-4">
+                                                                                                Tidak ada jadwal
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    @endforelse
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                    <x-button type="button" variant="primary"
+                                                                        size="sm"
+                                                                        wire:click="addScheduleItem({{ $index }})">
+                                                                        + Tambah Jadwal
+                                                                    </x-button>
                                                                 </div>
                                                             </div>
                                                         @else
@@ -509,11 +768,11 @@
                                                                     <div>
                                                                         <p
                                                                             class="font-semibold text-slate-800 dark:text-slate-200">
-                                                                            {{ $kegiatan['tanggal_kegiatan'] ?? 'N/A' }}
+                                                                            {{ $kegiatan['date'] ?? 'N/A' }}
                                                                         </p>
                                                                         <p
                                                                             class="text-sm text-slate-500 dark:text-slate-400">
-                                                                            {{ $kegiatan['jam_kegiatan'] ?? 'Jam tidak ditentukan' }}
+                                                                            {{ $kegiatan['time'] ?? 'Jam tidak ditentukan' }}
                                                                         </p>
                                                                     </div>
                                                                 </div>
@@ -538,14 +797,13 @@
                                                                     <div>
                                                                         <p
                                                                             class="font-semibold text-slate-800 dark:text-slate-200">
-                                                                            {{ $kegiatan['lokasi_kegiatan'] ?? 'N/A' }}
+                                                                            {{ $kegiatan['location'] ?? 'N/A' }}
                                                                         </p>
                                                                         <p
                                                                             class="text-sm text-slate-500 dark:text-slate-400">
                                                                             Lokasi Acara</p>
                                                                     </div>
                                                                 </div>
-                                                                {{-- Penanggung Jawab --}}
                                                                 <div
                                                                     class="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                                                     <div
@@ -563,13 +821,120 @@
                                                                     <div>
                                                                         <p
                                                                             class="font-semibold text-slate-800 dark:text-slate-200">
-                                                                            {{ !empty($kegiatan['penanggung_jawab']) ? $kegiatan['penanggung_jawab'] : 'N/A' }}
+                                                                            {{ !empty($kegiatan['attendees']) ? $kegiatan['attendees'] : 'N/A' }}
                                                                         </p>
                                                                         <p
                                                                             class="text-sm text-slate-500 dark:text-slate-400">
-                                                                            {{ !empty($kegiatan['kontak_pj']) ? $kegiatan['kontak_pj'] : 'Kontak tidak tersedia' }}
-                                                                        </p>
+                                                                            Peserta</p>
                                                                     </div>
+                                                                </div>
+                                                                {{-- Penanggung Jawab --}}
+                                                                <div class="space-y-3">
+                                                                    @forelse ($kegiatan['organizers'] ?? [] as $organizer)
+                                                                        <div
+                                                                            class="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                                                            <div
+                                                                                class="flex-shrink-0 text-blue-500 dark:text-blue-400 mt-0.5">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                    class="w-5 h-5"
+                                                                                    viewBox="0 0 20 20"
+                                                                                    fill="currentColor">
+                                                                                    <path fill-rule="evenodd"
+                                                                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                                                        clip-rule="evenodd" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <div>
+                                                                                <p
+                                                                                    class="font-semibold text-slate-800 dark:text-slate-200">
+                                                                                    {{ $organizer['name'] ?? 'N/A' }}
+                                                                                </p>
+                                                                                <p
+                                                                                    class="text-sm text-slate-500 dark:text-slate-400">
+                                                                                    {{ $organizer['contact'] ?? 'Kontak tidak tersedia' }}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    @empty
+                                                                        <div
+                                                                            class="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                                                            <div
+                                                                                class="flex-shrink-0 text-slate-400 dark:text-slate-500 mt-0.5">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                    class="w-5 h-5"
+                                                                                    viewBox="0 0 20 20"
+                                                                                    fill="currentColor">
+                                                                                    <path fill-rule="evenodd"
+                                                                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                                                        clip-rule="evenodd" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <p
+                                                                                class="text-sm text-slate-500 dark:text-slate-400">
+                                                                                Informasi penanggung jawab tidak
+                                                                                tersedia.
+                                                                            </p>
+                                                                        </div>
+                                                                    @endforelse
+                                                                </div>
+                                                                {{-- Schedules --}}
+                                                                <div
+                                                                    class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                                                    @php
+                                                                        $schedule = $kegiatan['schedule'] ?? [];
+
+                                                                        $showTimeColumn = collect($schedule)->contains(
+                                                                            function ($item) {
+                                                                                return !empty($item['startTime']) ||
+                                                                                    !empty($item['endTime']);
+                                                                            },
+                                                                        );
+                                                                    @endphp
+                                                                    <table
+                                                                        class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                                                        <thead class="bg-slate-50 dark:bg-slate-800">
+                                                                            <tr>
+                                                                                @if ($showTimeColumn)
+                                                                                    <th
+                                                                                        class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                                                                                        Waktu
+                                                                                    </th>
+                                                                                @endif
+                                                                                <th
+                                                                                    class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                                                                                    Susunan Acara
+                                                                                </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody
+                                                                            class="divide-y divide-slate-200 dark:divide-slate-700">
+                                                                            {{-- Ganti $index menjadi $kegiatanIndex juga di sini --}}
+                                                                            @forelse ($kegiatan['schedule'] ?? [] as $schedule)
+                                                                                <tr
+                                                                                    class="odd:bg-white dark:odd:bg-slate-800/50 even:bg-slate-50 dark:even:bg-slate-800">
+                                                                                    @if ($showTimeColumn)
+                                                                                        <td
+                                                                                            class="px-3 py-2 font-medium whitespace-nowrap">
+                                                                                            {{-- Tampilkan waktu jika ada, jika tidak, tampilkan strip --}}
+                                                                                            {{ $schedule['startTime'] ?? '' }}
+                                                                                            {{ !empty($schedule['startTime']) && !empty($schedule['endTime']) ? '-' : '' }}
+                                                                                            {{ $schedule['endTime'] ?? '' }}
+                                                                                        </td>
+                                                                                    @endif
+                                                                                    <td class="px-3 py-2 font-medium">
+                                                                                        {{ $schedule['description'] }}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            @empty
+                                                                                <tr>
+                                                                                    <td class="p-3 text-center text-slate-500"
+                                                                                        colspan="{{ $showTimeColumn ? 2 : 1 }}">
+                                                                                        Tidak ada susunan acara.
+                                                                                    </td>
+                                                                                </tr>
+                                                                            @endforelse
+                                                                        </tbody>
+                                                                    </table>
                                                                 </div>
                                                             </div>
                                                         @endif
@@ -590,25 +955,24 @@
                                                                     <tbody
                                                                         class="divide-y divide-slate-200 dark:divide-slate-700">
                                                                         {{-- Ganti $index menjadi $kegiatanIndex untuk kejelasan --}}
-                                                                        @forelse ($analysisResult['data']['detail_kegiatan'][$index]['barang_dipinjam'] ?? [] as $itemIndex => $item)
+                                                                        @forelse ($analysisResult['data']['events'][$index]['equipment'] ?? [] as $itemIndex => $item)
                                                                             <tr
                                                                                 wire:key="kegiatan-{{ $index }}-item-{{ $itemIndex }}">
                                                                                 <td class="p-1">
                                                                                     <x-text-input type="text"
                                                                                         class="w-full text-sm"
-                                                                                        wire:model.defer="analysisResult.data.detail_kegiatan.{{ $index }}.barang_dipinjam.{{ $itemIndex }}.item" />
+                                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.equipment.{{ $itemIndex }}.item" />
                                                                                     <x-input-error :messages="$errors->get(
-                                                                                        'analysisResult.data.detail_kegiatan.{{ $index }}.barang_dipinjam.{{ $itemIndex }}.item',
+                                                                                        'analysisResult.data.events.{{ $index }}.equipment.{{ $itemIndex }}.item',
                                                                                     )"
                                                                                         class="mt-2" />
                                                                                 </td>
                                                                                 <td class="p-1">
-                                                                                    <x-text-input type="number"
+                                                                                    <x-text-input type="text"
                                                                                         class="w-full text-sm"
-                                                                                        min="1"
-                                                                                        wire:model.defer="analysisResult.data.detail_kegiatan.{{ $index }}.barang_dipinjam.{{ $itemIndex }}.jumlah" />
+                                                                                        wire:model.defer="analysisResult.data.events.{{ $index }}.equipment.{{ $itemIndex }}.quantity" />
                                                                                     <x-input-error :messages="$errors->get(
-                                                                                        'analysisResult.data.detail_kegiatan.{{ $index }}.barang_dipinjam.{{ $itemIndex }}.jumlah',
+                                                                                        'analysisResult.data.events.{{ $index }}.equipment.{{ $itemIndex }}.quantity',
                                                                                     )"
                                                                                         class="mt-2" />
                                                                                 </td>
@@ -668,13 +1032,13 @@
                                                                     <tbody
                                                                         class="divide-y divide-slate-200 dark:divide-slate-700">
                                                                         {{-- Ganti $index menjadi $kegiatanIndex juga di sini --}}
-                                                                        @forelse ($analysisResult['data']['detail_kegiatan'][$index]['barang_dipinjam'] ?? [] as $item)
+                                                                        @forelse ($kegiatan['equipment'] ?? [] as $item)
                                                                             <tr
                                                                                 class="odd:bg-white dark:odd:bg-slate-800/50 even:bg-slate-50 dark:even:bg-slate-800">
                                                                                 <td class="px-3 py-2 font-medium">
                                                                                     {{ $item['item'] }}</td>
                                                                                 <td class="px-3 py-2">
-                                                                                    {{ $item['jumlah'] }}</td>
+                                                                                    {{ $item['quantity'] }}</td>
                                                                             </tr>
                                                                         @empty
                                                                             <tr>
@@ -704,7 +1068,7 @@
 
                                             @if ($isEditing)
                                                 <div class="space-y-3">
-                                                    @foreach ($analysisResult['data']['blok_penanda_tangan'] ?? [] as $signerIndex => $signer)
+                                                    @foreach ($analysisResult['data']['signature_blocks'] ?? [] as $signerIndex => $signer)
                                                         <div wire:key="signer-{{ $signerIndex }}"
                                                             class="p-2 rounded-md border border-slate-200 dark:border-slate-700">
                                                             <div class="flex items-center justify-end">
@@ -725,11 +1089,12 @@
                                                                     <x-input-label
                                                                         for="signer-nama-{{ $signerIndex }}"
                                                                         value="Nama" />
-                                                                    <x-text-input id="signer-nama-{{ $signerIndex }}"
+                                                                    <x-text-input
+                                                                        id="signer-nama-{{ $signerIndex }}"
                                                                         type="text" class="mt-1 w-full text-sm"
-                                                                        wire:model.defer="analysisResult.data.blok_penanda_tangan.{{ $signerIndex }}.nama" />
+                                                                        wire:model.defer="analysisResult.data.signature_blocks.{{ $signerIndex }}.name" />
                                                                     <x-input-error :messages="$errors->get(
-                                                                        'analysisResult.data.blok_penanda_tangan.{{ $signerIndex }}.nama',
+                                                                        'analysisResult.data.signature_blocks.{{ $signerIndex }}.name',
                                                                     )" class="mt-2" />
                                                                 </div>
                                                                 <div>
@@ -739,9 +1104,9 @@
                                                                     <x-text-input
                                                                         id="signer-jabatan-{{ $signerIndex }}"
                                                                         type="text" class="mt-1 w-full text-sm"
-                                                                        wire:model.defer="analysisResult.data.blok_penanda_tangan.{{ $signerIndex }}.jabatan" />
+                                                                        wire:model.defer="analysisResult.data.signature_blocks.{{ $signerIndex }}.position" />
                                                                     <x-input-error :messages="$errors->get(
-                                                                        'analysisResult.data.blok_penanda_tangan.{{ $signerIndex }}.jabatan',
+                                                                        'analysisResult.data.signature_blocks.{{ $signerIndex }}.position',
                                                                     )" class="mt-2" />
                                                                 </div>
                                                             </div>
@@ -757,13 +1122,13 @@
                                                 </div>
                                             @else
                                                 <ul class="space-y-3">
-                                                    @forelse ($analysisResult['data']['blok_penanda_tangan'] ?? [] as $signer)
+                                                    @forelse ($analysisResult['data']['signature_blocks'] ?? [] as $signer)
                                                         <li>
                                                             <p
                                                                 class="font-semibold text-slate-800 dark:text-slate-200">
-                                                                {{ $signer['nama'] }}</p>
+                                                                {{ $signer['name'] }}</p>
                                                             <p class="text-slate-500 dark:text-slate-400">
-                                                                {{ Str::title($signer['jabatan']) }}</p>
+                                                                {{ Str::title($signer['position']) }}</p>
                                                         </li>
                                                     @empty
                                                         <li>Tidak ada data penanda tangan.</li>
@@ -793,22 +1158,25 @@
                             <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                                 <x-secondary-button wire:click="closeModal"
                                     class="w-full sm:w-auto justify-center">Tutup</x-secondary-button>
-                                <x-primary-button wire:click="save" wire:loading.attr="disabled"
-                                    class="w-full sm:w-auto justify-center">
-                                    <div wire:loading wire:target="save"
-                                        class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                    @if ($analysisResult)
-                                        @if ($analysisResult['data']['type'] === 'peminjaman')
-                                            {{ __('Simpan & Buat Peminjaman') }}
-                                        @elseif ($analysisResult['data']['type'] === 'perizinan')
-                                            {{ __('Simpan & Buat Perizinan') }}
-                                        @elseif ($analysisResult['data']['type'] === 'undangan')
-                                            {{ __('Simpan & Buat Undangan') }}
+                                @if ($doc->status !== 'done')
+                                    <x-primary-button wire:click="save" wire:loading.attr="disabled"
+                                        class="w-full sm:w-auto justify-center">
+                                        <div wire:loading wire:target="save"
+                                            class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2">
+                                        </div>
+                                        @if ($analysisResult)
+                                            @if ($analysisResult['data']['type'] === 'peminjaman')
+                                                {{ __('Simpan & Buat Peminjaman') }}
+                                            @elseif ($analysisResult['data']['type'] === 'perizinan')
+                                                {{ __('Simpan & Buat Perizinan') }}
+                                            @elseif ($analysisResult['data']['type'] === 'undangan')
+                                                {{ __('Simpan & Buat Undangan') }}
+                                            @endif
+                                        @else
+                                            {{ __('Simpan Data Dokumen') }}
                                         @endif
-                                    @else
-                                        {{ __('Simpan Data Dokumen') }}
-                                    @endif
-                                </x-primary-button>
+                                    </x-primary-button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -816,13 +1184,11 @@
 
                 <div class="lg:col-span-7 bg-slate-200 dark:bg-black rounded-r-lg flex items-center justify-center overflow-hidden"
                     style="background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
-                    <div class="w-full h-full backdrop-blur-sm flex items-center justify-center p-4">
+                    <div class="w-full h-full backdrop-blur-sm flex items-center justify-center">
                         @if (Str::startsWith($this->doc->mime_type, 'image/'))
-                            <img src="{{ Storage::url($this->doc->document_path) }}" alt="Pratinjau Dokumen"
+                            <img src="{{ Storage::url($this->doc->document_path) }}" width="100%"
+                                alt="Pratinjau Dokumen"
                                 class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
-                        @elseif ($this->doc->mime_type === 'application/pdf')
-                            <iframe src="{{ Storage::url($this->doc->document_path) }}" width="100%"
-                                height="100%" class="border-0 rounded-lg shadow-2xl bg-white"></iframe>
                         @else
                             <iframe src="{{ Storage::url($this->doc->document_path) }}" width="100%"
                                 height="100%" class="border-0 rounded-lg shadow-2xl bg-white"></iframe>

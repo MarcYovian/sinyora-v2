@@ -57,7 +57,25 @@ class Event extends Model
 
     public function locations()
     {
-        return $this->belongsToMany(Location::class);
+        return $this->morphedByMany(
+            Location::class,
+            'locatable',
+            'event_locatables'
+        );
+    }
+
+    public function customLocations()
+    {
+        return $this->morphedByMany(
+            CustomLocation::class,
+            'locatable',
+            'event_locatables'
+        );
+    }
+
+    public function document_typable()
+    {
+        return $this->morphTo();
     }
 
     public function eventCategory()
@@ -73,6 +91,11 @@ class Event extends Model
     public function borrowings()
     {
         return $this->hasMany(Borrowing::class);
+    }
+
+    public function schedules()
+    {
+        return $this->morphMany(Schedules::class, 'describable');
     }
 
     #[Scope]

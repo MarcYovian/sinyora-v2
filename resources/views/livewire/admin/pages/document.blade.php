@@ -33,7 +33,7 @@
                             {{ $document->submitter->name }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $document->document_path }}
+                            {{ $document->original_file_name }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             {{ $document->mime_type }}
@@ -94,7 +94,8 @@
                     <div x-data="{ isUploading: false, progress: 0, fileName: '', isDragging: false }" x-on:livewire-upload-start="isUploading = true"
                         x-on:livewire-upload-finish="isUploading = false; progress = 0;"
                         x-on:livewire-upload-error="isUploading = false; progress = 0;"
-                        x-on:livewire-upload-progress="progress = $event.detail.progress">
+                        x-on:livewire-upload-progress="progress = $event.detail.progress"
+                        x-on:reset-file-input.window="fileName = ''; $refs.fileInput.value = null;">
 
                         {{-- Input File Tersembunyi --}}
                         <input wire:model="attachment" id="proposal_document" type="file" class="hidden"
@@ -203,6 +204,7 @@
     <livewire:admin.pages.document.document-modal />
     <livewire:admin.pages.document.event-modal />
 
+    <livewire:admin.pages.document.data-document-modal />
     <livewire:admin.pages.document.borrowing />
     <livewire:admin.pages.document.organization />
     <livewire:admin.pages.document.location />

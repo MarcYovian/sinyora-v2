@@ -42,6 +42,11 @@ class Document extends Model
         return $this->morphedByMany(BorrowingDocument::class, 'detailable');
     }
 
+    public function signatures()
+    {
+        return $this->hasMany(Signature::class);
+    }
+
     public function processedBy()
     {
         return $this->belongsTo(User::class, 'processed_by');

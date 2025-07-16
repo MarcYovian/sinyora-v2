@@ -117,6 +117,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
     Route::get('documents', \App\Livewire\Admin\Pages\Document::class)
         ->name('documents.index')
         ->middleware(['permission:view documents']);
+
+    Route::get('documents/invitation', \App\Livewire\Admin\Pages\Document\InvitationDocument::class)
+        ->name('documents.invitation.index');
+    // ->middleware(['permission:view invitation documents']);
 });
 
 Route::post('/trix-attachments', [TrixAttachmentController::class, 'store'])

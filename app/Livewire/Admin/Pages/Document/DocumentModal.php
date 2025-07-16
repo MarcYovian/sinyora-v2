@@ -2,13 +2,16 @@
 
 namespace App\Livewire\Admin\Pages\Document;
 
+use App\Exceptions\ParsingFailedException;
 use App\Models\Asset;
 use App\Models\Document as ModelsDocument;
 use App\Models\EventCategory;
 use App\Models\Location as ModelsLocation;
 use App\Models\Organization as ModelsOrganization;
+use App\Services\DateParserService;
 use Atomescrochus\StringSimilarities\Compare;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -36,6 +39,7 @@ class DocumentModal extends Component
     public bool $isWrongDataAsset = false;
     public bool $isWrongDataOrganization = false;
     public bool $isWrongDataLocation = false;
+    public bool $isWrongDateTime = false;
 
     public $masterAssets;
     public $masterOrganizations;
@@ -44,30 +48,111 @@ class DocumentModal extends Component
     public function rules()
     {
         return [
+            // Validasi untuk tipe dokumen yang diedit
+            'analysisResult.data.type' => 'required|string|in:undangan,peminjaman,perizinan',
+
             // Validasi data umum yang diedit
-            'editableData.doc_date' => 'required|date_format:Y-m-d',
-            'analysisResult.data.informasi_umum_dokumen.perihal_surat' => 'required|string|max:255',
-            'analysisResult.data.informasi_umum_dokumen.nomor_surat' => 'required|string',
-            'analysisResult.data.type' => 'required|string',
-            'analysisResult.data.informasi_umum_dokumen.penerima_surat' => 'required|array|min:1',
-            'analysisResult.data.informasi_umum_dokumen.penerima_surat.*.name' => 'required|string',
-            'analysisResult.data.informasi_umum_dokumen.penerima_surat.*.position' => 'nullable|string',
+            'analysisResult.data.document_information.city' => 'nullable|string',
+            'analysisResult.data.document_information.document_date' => 'required|string',
+            'analysisResult.data.document_information.document_number' => 'nullable|string',
+            'analysisResult.data.document_information.emitter_email' => 'nullable|string',
+            'analysisResult.data.document_information.emitter_organizations' => 'required|array|min:1',
+            'analysisResult.data.document_information.emitter_organizations.*.name' => 'required|string',
+            'analysisResult.data.document_information.recipients' => 'required|array|min:1',
+            'analysisResult.data.document_information.recipients.*.name' => 'required|string',
+            'analysisResult.data.document_information.recipients.*.position' => 'nullable|string',
+            'analysisResult.data.document_information.subjects' => 'required|array|min:1',
+            'analysisResult.data.document_information.subjects.*' => 'required|string',
 
             // Validasi untuk setiap kegiatan yang diedit
-            'editableKegiatan.*.nama_kegiatan_utama' => 'required|string',
-            'editableKegiatan.*.lokasi_kegiatan' => 'required|string',
-            'editableKegiatan.*.dates.*.start' => 'required|date_format:Y-m-d\TH:i',
-            'editableKegiatan.*.dates.*.end' => 'required|date_format:Y-m-d\TH:i|after_or_equal:editableKegiatan.*.dates.*.start',
-
-            // Validasi untuk item yang dipinjam (data dinamis di analysisResult)
-            'analysisResult.data.detail_kegiatan.*.barang_dipinjam' => 'nullable|array',
-            'analysisResult.data.detail_kegiatan.*.barang_dipinjam.*.item' => 'required|string',
-            'analysisResult.data.detail_kegiatan.*.barang_dipinjam.*.jumlah' => 'required|integer|min:1',
+            'analysisResult.data.events.*.attendees' => 'nullable|string',
+            'analysisResult.data.events.*.date' => 'required|string',
+            'analysisResult.data.events.*.equipment' => 'nullable|array',
+            'analysisResult.data.events.*.equipment.*.item' => 'nullable|string',
+            'analysisResult.data.events.*.equipment.*.quantity' => 'nullable|string',
+            'analysisResult.data.events.*.eventName' => 'required|string',
+            'analysisResult.data.events.*.location' => 'required|string',
+            'analysisResult.data.events.*.organizers' => 'nullable|array',
+            'analysisResult.data.events.*.organizers.*.name' => 'required|string',
+            'analysisResult.data.events.*.organizers.*.contact' => 'required|string',
+            'analysisResult.data.events.*.schedule' => 'nullable|array',
+            'analysisResult.data.events.*.schedule.*.description' => 'required|string',
+            'analysisResult.data.events.*.schedule.*.duration' => 'nullable|string',
+            'analysisResult.data.events.*.schedule.*.startTime' => 'nullable|string',
+            'analysisResult.data.events.*.schedule.*.endTime' => 'nullable|string',
+            'analysisResult.data.events.*.time' => 'required|string',
 
             // Validasi untuk penanda tangan (data dinamis di analysisResult)
-            'analysisResult.data.blok_penanda_tangan' => 'required|array|min:1',
-            'analysisResult.data.blok_penanda_tangan.*.nama' => 'required|string',
-            'analysisResult.data.blok_penanda_tangan.*.jabatan' => 'required|string',
+            'analysisResult.data.signature_blocks' => 'required|array|min:1',
+            'analysisResult.data.signature_blocks.*.name' => 'required|string',
+            'analysisResult.data.signature_blocks.*.position' => 'required|string',
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            // Pesan untuk Tipe Dokumen
+            'analysisResult.data.type.required' => 'Tipe dokumen wajib diisi.',
+            'analysisResult.data.type.string' => 'Tipe dokumen harus berupa teks.',
+            'analysisResult.data.type.in' => 'Tipe dokumen harus salah satu dari: undangan, peminjaman, perizinan.',
+
+            // Pesan untuk Informasi Umum Dokumen
+            'analysisResult.data.document_information.city.string' => 'Kota dokumen harus berupa teks.',
+            'analysisResult.data.document_information.document_date.required' => 'Tanggal dokumen wajib diisi.',
+            'analysisResult.data.document_information.document_date.string' => 'Tanggal dokumen harus berupa teks.',
+            'analysisResult.data.document_information.document_number.string' => 'Nomor dokumen harus berupa teks.',
+            'analysisResult.data.document_information.emitter_email.string' => 'Email pengirim harus berupa teks.',
+            'analysisResult.data.document_information.emitter_organizations.required' => 'Organisasi pengirim wajib diisi.',
+            'analysisResult.data.document_information.emitter_organizations.array' => 'Organisasi pengirim harus berupa daftar.',
+            'analysisResult.data.document_information.emitter_organizations.min' => 'Minimal ada satu organisasi pengirim.',
+            'analysisResult.data.document_information.emitter_organizations.*.name.required' => 'Nama organisasi pengirim wajib diisi.',
+            'analysisResult.data.document_information.emitter_organizations.*.name.string' => 'Nama organisasi pengirim harus berupa teks.',
+            'analysisResult.data.document_information.recipients.required' => 'Penerima wajib diisi.',
+            'analysisResult.data.document_information.recipients.array' => 'Penerima harus berupa daftar.',
+            'analysisResult.data.document_information.recipients.min' => 'Minimal ada satu penerima.',
+            'analysisResult.data.document_information.recipients.*.name.required' => 'Nama penerima wajib diisi.',
+            'analysisResult.data.document_information.recipients.*.name.string' => 'Nama penerima harus berupa teks.',
+            'analysisResult.data.document_information.recipients.*.position.string' => 'Jabatan penerima harus berupa teks.',
+            'analysisResult.data.document_information.subjects.required' => 'Perihal wajib diisi.',
+            'analysisResult.data.document_information.subjects.array' => 'Perihal harus berupa daftar.',
+            'analysisResult.data.document_information.subjects.min' => 'Minimal ada satu perihal.',
+            'analysisResult.data.document_information.subjects.*.required' => 'Setiap perihal wajib diisi.',
+            'analysisResult.data.document_information.subjects.*.string' => 'Perihal harus berupa teks.',
+
+            // Pesan untuk Setiap Kegiatan (Events)
+            'analysisResult.data.events.*.attendees.string' => 'Peserta harus berupa teks.',
+            'analysisResult.data.events.*.date.required' => 'Tanggal kegiatan wajib diisi.',
+            'analysisResult.data.events.*.date.string' => 'Tanggal kegiatan harus berupa teks.',
+            'analysisResult.data.events.*.equipment.array' => 'Daftar peralatan harus berupa daftar.',
+            'analysisResult.data.events.*.equipment.*.item.string' => 'Nama peralatan harus berupa teks.',
+            'analysisResult.data.events.*.equipment.*.quantity.string' => 'Kuantitas peralatan harus berupa teks.', // Catatan: Jika ini seharusnya numerik, ubah di rules() dan pesan ini
+            'analysisResult.data.events.*.eventName.required' => 'Nama kegiatan wajib diisi.',
+            'analysisResult.data.events.*.eventName.string' => 'Nama kegiatan harus berupa teks.',
+            'analysisResult.data.events.*.location.required' => 'Lokasi kegiatan wajib diisi.',
+            'analysisResult.data.events.*.location.string' => 'Lokasi kegiatan harus berupa teks.',
+            'analysisResult.data.events.*.organizers.array' => 'Daftar penanggung jawab harus berupa daftar.',
+            'analysisResult.data.events.*.organizers.*.name.required' => 'Nama penanggung jawab wajib diisi.',
+            'analysisResult.data.events.*.organizers.*.name.string' => 'Nama penanggung jawab harus berupa teks.',
+            'analysisResult.data.events.*.organizers.*.contact.required' => 'Kontak penanggung jawab wajib diisi.',
+            'analysisResult.data.events.*.organizers.*.contact.string' => 'Kontak penanggung jawab harus berupa teks.',
+            'analysisResult.data.events.*.schedule.array' => 'Daftar jadwal harus berupa daftar.',
+            'analysisResult.data.events.*.schedule.*.description.required' => 'Deskripsi jadwal wajib diisi.',
+            'analysisResult.data.events.*.schedule.*.description.string' => 'Deskripsi jadwal harus berupa teks.',
+            'analysisResult.data.events.*.schedule.*.duration.string' => 'Durasi jadwal harus berupa teks.',
+            'analysisResult.data.events.*.schedule.*.startTime.string' => 'Waktu mulai jadwal harus berupa teks.',
+            'analysisResult.data.events.*.schedule.*.endTime.string' => 'Waktu selesai jadwal harus berupa teks.',
+            'analysisResult.data.events.*.time.required' => 'Waktu kegiatan wajib diisi.',
+            'analysisResult.data.events.*.time.string' => 'Waktu kegiatan harus berupa teks.',
+
+            // Pesan untuk Penanda Tangan
+            'analysisResult.data.signature_blocks.required' => 'Penanda tangan wajib diisi.',
+            'analysisResult.data.signature_blocks.array' => 'Penanda tangan harus berupa daftar.',
+            'analysisResult.data.signature_blocks.min' => 'Minimal ada satu penanda tangan.',
+            'analysisResult.data.signature_blocks.*.name.required' => 'Nama penanda tangan wajib diisi.',
+            'analysisResult.data.signature_blocks.*.name.string' => 'Nama penanda tangan harus berupa teks.',
+            'analysisResult.data.signature_blocks.*.position.required' => 'Jabatan penanda tangan wajib diisi.',
+            'analysisResult.data.signature_blocks.*.position.string' => 'Jabatan penanda tangan harus berupa teks.',
         ];
     }
 
@@ -76,29 +161,44 @@ class DocumentModal extends Component
     {
         $this->authorize('access', 'admin.documents.show');
 
-        $this->doc = null;
-        $this->analysisResult = null;
-        $this->processingStatus = '';
-        $this->isProcessing = false;
-        $this->isEditing = false;
-        $this->editableKegiatan = [];
-        $this->editableData = [];
-        $this->isSave = false;
-        $this->isWrongDataAsset = false;
+        $this->reset([
+            'doc',
+            'analysisResult',
+            'processingStatus',
+            'isProcessing',
+            'isEditing',
+            'editableKegiatan',
+            'editableData',
+            'isSave',
+            'isWrongDataAsset'
+        ]);
 
         $this->doc = ModelsDocument::with(['submitter'])
             ->where('id', $documentId)
             ->first();
 
-        if ($this->doc->status === 'processed' && !empty($this->doc->analysis_result)) {
-            $this->analysisResult = json_decode($this->doc->analysis_result, true);
-            if (!isset($this->analysisResult['data']['id'])) {
-                $this->analysisResult['data']['id'] = $this->doc->id;
-            }
-            $this->processingStatus = 'Analisis telah selesai sebelumnya.';
+        if (!$this->doc) {
+            toastr()->error('Dokumen tidak ditemukan.');
+            return;
         }
 
-        // dd($this->analysisResult);
+        $isProcessed = in_array($this->doc->status, ['processed', 'done']);
+
+        if ($isProcessed && !empty($this->doc->analysis_result)) {
+            $decodedResult = json_decode($this->doc->analysis_result, true);
+            if (is_array($decodedResult)) {
+                $this->analysisResult = $decodedResult;
+
+                if (!data_get($this->analysisResult, 'data.id')) {
+                    data_set($this->analysisResult, 'data.id', $this->doc->id);
+                }
+
+                $this->processingStatus = 'Analisis telah selesai sebelumnya.';
+            } else {
+                $this->processingStatus = 'Gagal memuat hasil analisis (format tidak valid).';
+                Log::error('Gagal melakukan json_decode pada analysis_result untuk dokumen ID: ' . $this->doc->id);
+            }
+        }
     }
 
     public function closeModal()
@@ -204,21 +304,6 @@ class DocumentModal extends Component
     public function editAnalysis()
     {
         $this->isEditing = true;
-        // dd(json_encode($this->analysisResult['data']['detail_kegiatan']));
-
-        $this->editableData['doc_date'] = $this->getDate($this->analysisResult['data']['informasi_umum_dokumen']['tanggal_surat_dokumen'] ?? null);
-
-        $this->editableKegiatan = []; // Reset
-
-        foreach ($this->analysisResult['data']['detail_kegiatan'] ?? [] as $index => $kegiatan) {
-            $datetime = $this->combineDateTime($kegiatan['tanggal_kegiatan'], $kegiatan['jam_kegiatan']);
-            // dd($datetime);
-            $this->editableKegiatan[$index] = [
-                'nama_kegiatan_utama' => $kegiatan['nama_kegiatan_utama'],
-                'lokasi_kegiatan'     => $kegiatan['lokasi_kegiatan'],
-                'dates'               => $datetime,
-            ];
-        }
     }
 
     /**
@@ -241,31 +326,6 @@ class DocumentModal extends Component
         // Langkah 1: Validasi data dari form
         $this->validate();
 
-        // Update tanggal surat dokumen
-        $this->analysisResult['data']['informasi_umum_dokumen']['tanggal_surat_dokumen'] = $this->setDateFormat($this->editableData['doc_date']);
-
-        // Update setiap detail kegiatan
-        foreach ($this->editableKegiatan as $index => $editedKegiatan) {
-            // Ambil array 'dates' yang sudah diedit oleh pengguna
-            $editedDates = $editedKegiatan['dates'];
-
-            // Panggil helper baru untuk merekonstruksi string tanggal dan jam
-            $reconstructedTanggal = $this->reconstructDateString($editedDates);
-            $reconstructedJam = $this->reconstructTimeString($editedDates);
-
-            // Update data di analysisResult
-            $this->analysisResult['data']['detail_kegiatan'][$index]['nama_kegiatan_utama'] = $editedKegiatan['nama_kegiatan_utama'];
-            $this->analysisResult['data']['detail_kegiatan'][$index]['lokasi_kegiatan'] = $editedKegiatan['lokasi_kegiatan'];
-
-            // Simpan kembali string tanggal dan jam yang sudah direkonstruksi
-            $this->analysisResult['data']['detail_kegiatan'][$index]['tanggal_kegiatan'] = $reconstructedTanggal;
-            $this->analysisResult['data']['detail_kegiatan'][$index]['jam_kegiatan'] = $reconstructedJam;
-
-            // Simpan juga data terstruktur 'dates' hasil editan, ini bisa berguna untuk proses lain
-            // (misalnya saat menyimpan ke tabel Event utama)
-            $this->analysisResult['data']['detail_kegiatan'][$index]['dates'] = $editedDates;
-        }
-
         // Langkah 3: Simpan data yang sudah final ke database
         $this->doc->update(['analysis_result' => json_encode($this->analysisResult)]);
 
@@ -274,45 +334,18 @@ class DocumentModal extends Component
         toastr()->success('Hasil analisis berhasil diperbarui.');
     }
 
-    public function addDate($kegiatanIndex)
-    {
-        if (!$this->isEditing) return;
-
-        // Tambahkan pasangan start/end kosong ke array 'dates'
-        $this->editableKegiatan[$kegiatanIndex]['dates'][] = [
-            'start' => '',
-            'end' => ''
-        ];
-    }
-
-    public function removeDate($kegiatanIndex, $dateIndex)
-    {
-        if (!$this->isEditing) return;
-
-        if (isset($this->editableKegiatan[$kegiatanIndex]['dates'][$dateIndex])) {
-            unset($this->editableKegiatan[$kegiatanIndex]['dates'][$dateIndex]);
-            // Re-index array untuk menjaga konsistensi
-            $this->editableKegiatan[$kegiatanIndex]['dates'] = array_values($this->editableKegiatan[$kegiatanIndex]['dates']);
-        }
-    }
-
-    /**
-     * [BARU] Menambahkan item barang kosong ke daftar peminjaman.
-     *
-     * @param int $kegiatanIndex Index dari kegiatan yang akan ditambahkan item.
-     */
     public function addItem($kegiatanIndex)
     {
         if (!$this->isEditing) return;
 
         // Pastikan 'barang_dipinjam' ada dan merupakan array
-        if (!isset($this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam']) || !is_array($this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'])) {
-            $this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'] = [];
+        if (!isset($this->analysisResult['data']['events'][$kegiatanIndex]['equipment']) || !is_array($this->analysisResult['data']['events'][$kegiatanIndex]['equipment'])) {
+            $this->analysisResult['data']['events'][$kegiatanIndex]['equipment'] = [];
         }
 
-        $this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'][] = [
+        $this->analysisResult['data']['events'][$kegiatanIndex]['equipment'][] = [
             'item' => 'Barang Baru',
-            'jumlah' => 1,
+            'quantity' => 1,
         ];
     }
 
@@ -326,10 +359,10 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (isset($this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'][$itemIndex])) {
-            unset($this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'][$itemIndex]);
+        if (isset($this->analysisResult['data']['events'][$kegiatanIndex]['equipment'][$itemIndex])) {
+            unset($this->analysisResult['data']['events'][$kegiatanIndex]['equipment'][$itemIndex]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam'] = array_values($this->analysisResult['data']['detail_kegiatan'][$kegiatanIndex]['barang_dipinjam']);
+            $this->analysisResult['data']['events'][$kegiatanIndex]['equipment'] = array_values($this->analysisResult['data']['events'][$kegiatanIndex]['equipment']);
         }
     }
 
@@ -338,15 +371,39 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Hapus dari data utama yang akan disimpan
-        if (isset($this->analysisResult['data']['detail_kegiatan'][$index])) {
-            unset($this->analysisResult['data']['detail_kegiatan'][$index]);
-            $this->analysisResult['data']['detail_kegiatan'] = array_values($this->analysisResult['data']['detail_kegiatan']);
+        if (isset($this->analysisResult['data']['events'][$index])) {
+            unset($this->analysisResult['data']['events'][$index]);
+            $this->analysisResult['data']['events'] = array_values($this->analysisResult['data']['events']);
+        }
+    }
+
+    public function addSubject()
+    {
+        if (!$this->isEditing) return;
+
+        if (!isset($this->analysisResult['data']['document_information']['subjects']) || !is_array($this->analysisResult['data']['document_information']['subjects'])) {
+            $this->analysisResult['data']['document_information']['subjects'] = [];
         }
 
-        // Hapus juga dari array yang digunakan untuk binding form edit
-        if (isset($this->editableKegiatan[$index])) {
-            unset($this->editableKegiatan[$index]);
-            $this->editableKegiatan = array_values($this->editableKegiatan);
+        // Tambahkan subjek baru
+        $this->analysisResult['data']['document_information']['subjects'][] = '';
+    }
+
+    public function removeSubject($index)
+    {
+        if (!$this->isEditing) return;
+
+        // Pastikan 'subjek' ada dan merupakan array
+        if (!isset($this->analysisResult['data']['document_information']['subjects'][$index]) || !is_array($this->analysisResult['data']['document_information']['subjects'])) {
+            // Jika tidak ada subjek, inisialisasi sebagai array kosong
+            $this->analysisResult['data']['document_information']['subjects'] = [];
+        }
+
+        // Hapus subjek berdasarkan index
+        if (isset($this->analysisResult['data']['document_information']['subjects'][$index])) {
+            unset($this->analysisResult['data']['document_information']['subjects'][$index]);
+            // Re-index array untuk menghindari masalah di sisi frontend
+            $this->analysisResult['data']['document_information']['subjects'] = array_values($this->analysisResult['data']['document_information']['subjects']);
         }
     }
 
@@ -355,16 +412,16 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'][$index]) || !is_array($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'])) {
+        if (!isset($this->analysisResult['data']['document_information']['recipients'][$index]) || !is_array($this->analysisResult['data']['document_information']['recipients'])) {
             // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'] = [];
+            $this->analysisResult['data']['document_information']['recipients'] = [];
         }
 
         // Hapus penerima berdasarkan index
-        if (isset($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'][$index])) {
-            unset($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'][$index]);
+        if (isset($this->analysisResult['data']['document_information']['recipients'][$index])) {
+            unset($this->analysisResult['data']['document_information']['recipients'][$index]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'] = array_values($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat']);
+            $this->analysisResult['data']['document_information']['recipients'] = array_values($this->analysisResult['data']['document_information']['recipients']);
         }
     }
 
@@ -372,12 +429,12 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (!isset($this->analysisResult['data']['informasi_umum_dokumen']['organisasi']) || !is_array($this->analysisResult['data']['informasi_umum_dokumen']['organisasi'])) {
-            $this->analysisResult['data']['informasi_umum_dokumen']['organisasi'] = [];
+        if (!isset($this->analysisResult['data']['document_information']['emitter_organizations']) || !is_array($this->analysisResult['data']['document_information']['emitter_organizations'])) {
+            $this->analysisResult['data']['document_information']['emitter_organizations'] = [];
         }
 
         // Tambahkan penerima baru
-        $this->analysisResult['data']['informasi_umum_dokumen']['organisasi'][] = [
+        $this->analysisResult['data']['document_information']['emitter_organizations'][] = [
             'nama' => '',
         ];
     }
@@ -387,16 +444,40 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->analysisResult['data']['informasi_umum_dokumen']['organisasi'][$index]) || !is_array($this->analysisResult['data']['informasi_umum_dokumen']['organisasi'])) {
+        if (!isset($this->analysisResult['data']['document_information']['emitter_organizations'][$index]) || !is_array($this->analysisResult['data']['document_information']['emitter_organizations'])) {
             // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->analysisResult['data']['informasi_umum_dokumen']['organisasi'] = [];
+            $this->analysisResult['data']['document_information']['emitter_organizations'] = [];
         }
 
         // Hapus penerima berdasarkan index
-        if (isset($this->analysisResult['data']['informasi_umum_dokumen']['organisasi'][$index])) {
-            unset($this->analysisResult['data']['informasi_umum_dokumen']['organisasi'][$index]);
+        if (isset($this->analysisResult['data']['document_information']['emitter_organizations'][$index])) {
+            unset($this->analysisResult['data']['document_information']['emitter_organizations'][$index]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->analysisResult['data']['informasi_umum_dokumen']['organisasi'] = array_values($this->analysisResult['data']['informasi_umum_dokumen']['organisasi']);
+            $this->analysisResult['data']['document_information']['emitter_organizations'] = array_values($this->analysisResult['data']['document_information']['emitter_organizations']);
+        }
+    }
+
+    public function addOrganizers(int $eventIndex)
+    {
+        // Pastikan array 'organizers' ada sebelum menambahkan
+        if (!isset($this->analysisResult['data']['events'][$eventIndex]['organizers'])) {
+            $this->analysisResult['data']['events'][$eventIndex]['organizers'] = [];
+        }
+
+        $this->analysisResult['data']['events'][$eventIndex]['organizers'][] = [
+            'name' => '',
+            'contact' => '',
+        ];
+    }
+
+    public function removeOrganizer(int $eventIndex, int $organizerIndex)
+    {
+        if (isset($this->analysisResult['data']['events'][$eventIndex]['organizers'][$organizerIndex])) {
+            unset($this->analysisResult['data']['events'][$eventIndex]['organizers'][$organizerIndex]);
+            // Re-index array agar tidak ada "lubang"
+            $this->analysisResult['data']['events'][$eventIndex]['organizers'] = array_values(
+                $this->analysisResult['data']['events'][$eventIndex]['organizers']
+            );
         }
     }
 
@@ -405,24 +486,60 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'penerima_surat' ada dan merupakan array
-        if (!isset($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat']) || !is_array($this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'])) {
-            $this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'] = [];
+        if (!isset($this->analysisResult['data']['document_information']['recipients']) || !is_array($this->analysisResult['data']['document_information']['recipients'])) {
+            $this->analysisResult['data']['document_information']['recipients'] = [];
         }
 
         // Tambahkan penerima baru
-        $this->analysisResult['data']['informasi_umum_dokumen']['penerima_surat'][] = [
+        $this->analysisResult['data']['document_information']['recipients'][] = [
             'name' => '',
             'position' => '',
         ];
+    }
+
+    public function addScheduleItem($eventIndex)
+    {
+        if (!$this->isEditing) return;
+
+        // Pastikan 'jadwal' ada dan merupakan array
+        if (!isset($this->analysisResult['data']['events'][$eventIndex]['schedule']) || !is_array($this->analysisResult['data']['events'][$eventIndex]['schedule'])) {
+            $this->analysisResult['data']['events'][$eventIndex]['schedule'] = [];
+        }
+
+        // Tambahkan item jadwal baru
+        $this->analysisResult['data']['events'][$eventIndex]['schedule'][] = [
+            'description' => '',
+            'duration' => '',
+            'startTime' => '',
+            'endTime' => '',
+        ];
+    }
+
+    public function removeScheduleItem($eventIndex, $itemIndex)
+    {
+        if (!$this->isEditing) return;
+
+        // Pastikan 'jadwal' ada dan merupakan array
+        if (!isset($this->analysisResult['data']['events'][$eventIndex]['schedule']) || !is_array($this->analysisResult['data']['events'][$eventIndex]['schedule'])) {
+            // Jika tidak ada jadwal, inisialisasi sebagai array kosong
+            $this->analysisResult['data']['events'][$eventIndex]['schedule'] = [];
+        }
+
+        // Hapus item jadwal berdasarkan index
+        if (isset($this->analysisResult['data']['events'][$eventIndex]['schedule'][$itemIndex])) {
+            unset($this->analysisResult['data']['events'][$eventIndex]['schedule'][$itemIndex]);
+            // Re-index array untuk menghindari masalah di sisi frontend
+            $this->analysisResult['data']['events'][$eventIndex]['schedule'] = array_values($this->analysisResult['data']['events'][$eventIndex]['schedule']);
+        }
     }
 
     public function removeSigner($index)
     {
         if (!$this->isEditing) return;
 
-        if (isset($this->analysisResult['data']['blok_penanda_tangan'][$index])) {
-            unset($this->analysisResult['data']['blok_penanda_tangan'][$index]);
-            $this->analysisResult['data']['blok_penanda_tangan'] = array_values($this->analysisResult['data']['blok_penanda_tangan']);
+        if (isset($this->analysisResult['data']['signature_blocks'][$index])) {
+            unset($this->analysisResult['data']['signature_blocks'][$index]);
+            $this->analysisResult['data']['signature_blocks'] = array_values($this->analysisResult['data']['signature_blocks']);
         }
     }
 
@@ -430,13 +547,13 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (!isset($this->analysisResult['data']['blok_penanda_tangan']) || !is_array($this->analysisResult['data']['blok_penanda_tangan'])) {
-            $this->analysisResult['data']['blok_penanda_tangan'] = [];
+        if (!isset($this->analysisResult['data']['signature_blocks']) || !is_array($this->analysisResult['data']['signature_blocks'])) {
+            $this->analysisResult['data']['signature_blocks'] = [];
         }
 
-        $this->analysisResult['data']['blok_penanda_tangan'][] = [
-            'nama' => '',
-            'jabatan' => '',
+        $this->analysisResult['data']['signature_blocks'][] = [
+            'name' => '',
+            'position' => '',
         ];
     }
 
@@ -444,63 +561,71 @@ class DocumentModal extends Component
     {
         // Pastikan ada data untuk diproses
         if (empty($this->analysisResult['data'])) {
-            // Handle error, mungkin dengan notifikasi
+            toastr()->error('Tidak ada data untuk disimpan.');
             return;
         }
 
         $data = $this->analysisResult['data'];
         $type = $data['type'] ?? null;
 
-        if (isset($data['detail_kegiatan'])) {
-            $this->categorizeEvents(events: $data['detail_kegiatan']);
-            $this->AllEventDateTime(events: $data['detail_kegiatan']);
+        try {
+            $parseDate = DateParserService::parse(
+                text: $data['document_information']['document_date'],
+                fieldType: 'date'
+            );
+            if ($parseDate['type'] !== 'single') {
+                $data['document_information']['document_date'] = [
+                    'status' => 'error',
+                    'type' => $parseDate['type'],
+                    'date' => $data['document_information']['document_date'],
+                    'messages' => "Tanggal dokumen wajib berupa tanggal tunggal, bukan rentang atau format lain.",
+                ];
+            } else {
+                $data['document_information']['document_date'] = [
+                    'status' => 'success',
+                    'type' => $parseDate['type'],
+                    'date' => $parseDate['date'],
+                    'messages' => '',
+                ];
+            }
+        } catch (ParsingFailedException $e) {
+            $data['document_information']['document_date'] = [
+                'status' => 'error',
+                'type' => 'invalid',
+                'date' => $data['document_information']['document_date'],
+                'messages' => $e->getMessage(),
+            ];
+            $this->isWrongDateTime = true;
+        }
+        if (isset($data['events'])) {
+            $this->categorizeEvents(events: $data['events']);
+            $this->AllEventDateTime(events: $data['events']);
         }
 
-        $normalizedEventDetails = $this->normalizeAssetNamesFuzzy($data['detail_kegiatan']);
+        $normalizedEventDetails = $this->normalizeAssetNamesFuzzy($data['events']);
         $normalizedLocationDetails = $this->normalizeLocationNamesFuzzy($normalizedEventDetails);
-        $normalizedOrganizations = $this->normalizeOrganizationNamesFuzzy($data['informasi_umum_dokumen']['organisasi']);
+        $normalizedOrganizations = $this->normalizeOrganizationNamesFuzzy($data['document_information']['emitter_organizations']);
 
-        $this->analysisResult['data']['detail_kegiatan'] = $normalizedLocationDetails;
-        $this->analysisResult['data']['informasi_umum_dokumen']['organisasi'] = $normalizedOrganizations;
+        $data['events'] = $normalizedLocationDetails;
+        $data['document_information']['emitter_organizations'] = $normalizedOrganizations;
+        // dd(json_encode($data, JSON_PRETTY_PRINT));
 
-        if ($type === 'peminjaman' && isset($data['detail_kegiatan'])) {
-            if ($this->isWrongDataAsset) {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForBorrowing', borrowingData: $this->analysisResult['data'])->to(Borrowing::class);
-                $this->dispatch('open-modal', 'borrowing-modal');
-            } else {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForEvent', data: $this->analysisResult['data'])->to(EventModal::class);
-                $this->dispatch('open-modal', 'event-modal');
-            }
-        } else if ($type === 'perizinan') {
-            if ($this->isWrongDataAsset) {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForBorrowing', borrowingData: $this->analysisResult['data'])->to(Borrowing::class);
-                $this->dispatch('open-modal', 'borrowing-modal');
-            } elseif ($this->isWrongDataOrganization) {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForOrganization', data: $this->analysisResult['data'])->to(Organization::class);
-                $this->dispatch('open-modal', 'organization-modal');
-            } elseif ($this->isWrongDataLocation) {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForLocation', data: $this->analysisResult['data'])->to(Location::class);
-                $this->dispatch('open-modal', 'location-modal');
-            } else {
-                $this->dispatch('close-modal', 'document-modal');
-                $this->dispatch('setDataForEvent', data: $this->analysisResult['data'])->to(EventModal::class);
-                $this->dispatch('open-modal', 'event-modal');
-            }
-        } else if ($type === 'undangan') {
+        if ($this->isWrongDateTime || $this->isWrongDataAsset || $this->isWrongDataOrganization || $this->isWrongDataLocation) {
+            Log::error('Data tidak valid ditemukan saat menyimpan dokumen.', [
+                'isWrongDateTime' => $this->isWrongDateTime,
+                'isWrongDataAsset' => $this->isWrongDataAsset,
+                'isWrongDataOrganization' => $this->isWrongDataOrganization,
+                'isWrongDataLocation' => $this->isWrongDataLocation,
+            ]);
             $this->dispatch('close-modal', 'document-modal');
-            $this->dispatch('setDataForEvent', data: $this->analysisResult['data'])->to(EventModal::class);
+            $this->dispatch('setDataDocument', data: $data)->to(DataDocumentModal::class);
+            $this->dispatch('open-modal', 'document-data-modal');
+            return;
+        } else {
+            $this->dispatch('close-modal', 'document-modal');
+            $this->dispatch('setDataForEvent', data: $data)->to(EventModal::class);
             $this->dispatch('open-modal', 'event-modal');
         }
-    }
-
-    public function storePerizinan()
-    {
-        $form = new \App\Livewire\Forms\EventForm();
     }
 
     public function render()
@@ -512,10 +637,10 @@ class DocumentModal extends Component
     {
         $comparison = new Compare();
         $this->masterOrganizations = ModelsOrganization::active()->get(['id', 'name']);
-        $similarityThreshold = 0.8;
+        $similarityThreshold = 0.6;
         foreach ($orgs as &$org) {
-            $org['original_name'] = $org['nama'];
-            $extractedName = strtolower(trim($org['nama']));
+            $org['original_name'] = $org['name'];
+            $extractedName = strtolower(trim($org['name']));
             $bestMatch = null;
             $highestScore = 0;
 
@@ -538,11 +663,15 @@ class DocumentModal extends Component
                 $org['nama_organisasi_id'] = null;
                 $org['match_status'] = 'unmatched';
                 $org['similarity_score'] = round($highestScore, 2);
-                $this->isWrongDataOrganization = true;
             }
         }
         unset($org);
 
+        $matchedOrgs = array_filter($orgs, function ($org) {
+            return $org['match_status'] === 'matched';
+        });
+        $matchedCount = count($matchedOrgs);
+        $this->isWrongDataOrganization = $matchedCount !== 1;
         return $orgs;
     }
 
@@ -554,11 +683,14 @@ class DocumentModal extends Component
 
 
         foreach ($events as &$event) {
-            foreach ($event['barang_dipinjam'] as &$asset) {
+            foreach ($event['equipment'] as &$asset) {
                 // Pastikan format aset benar
                 if (!isset($asset['item'])) {
                     continue;
                 }
+
+                $numericQuantity = preg_replace('/[^0-9]/', '', $asset['quantity']);
+                $asset['quantity'] = (int) $numericQuantity;
 
                 $asset['original_name'] = $asset['item'];
                 $extractedName = strtolower(trim($asset['item']));
@@ -597,19 +729,19 @@ class DocumentModal extends Component
     {
         $comparison = new Compare();
         $this->masterLocations = ModelsLocation::active()->get(['id', 'name']);
-        $similarityThreshold = 0.7;
+        $similarityThreshold = 0.75;
         // dd($events);
 
         foreach ($events as $index => &$event) {
             // Pastikan format aset benar
-            if (!isset($event['lokasi_kegiatan'])) {
+            if (!isset($event['location'])) {
                 continue;
             }
 
             $finalLocations = [];
 
             // 1. Jalankan ekspansi angka terlebih dahulu
-            $potentiallyExpanded = $this->expandNumericRange($event['lokasi_kegiatan']);
+            $potentiallyExpanded = $this->expandNumericRange($event['location']);
 
             // 2. Untuk setiap hasilnya, jalankan pemisahan berdasarkan kata kunci 'dan', '&', ','
             foreach ($potentiallyExpanded as $locationPart) {
@@ -660,7 +792,7 @@ class DocumentModal extends Component
         return $events;
     }
 
-    private function getDate($date)
+    private function getDateFormat($date)
     {
         if (empty($date)) return null;
 
@@ -719,14 +851,107 @@ class DocumentModal extends Component
     private function AllEventDateTime(array &$events)
     {
         foreach ($events as &$event) {
-            $datetime = $this->combineDateTime($event['tanggal_kegiatan'], $event['jam_kegiatan']);
+            // 1. Proses tanggal dan waktu utama acara
+            $this->processMainEventDateTime(event: $event);
 
-            $event['dates'] = $datetime;
+            // 2. Proses waktu untuk setiap item dalam jadwal (rundown)
+            $this->processScheduleTimes(event: $event);
         }
 
         unset($event);
     }
 
+    private function processMainEventDateTime(array &$event)
+    {
+        // Panggil helper untuk menggabungkan tanggal dan waktu
+        $datetimeResult = $this->combineDateTime($event['date'], $event['time']);
+
+        if (is_null($datetimeResult)) {
+            // Jika gagal, catat error dan set flag
+            $event['dates'][] = [
+                'start' => null,
+                'end' => null,
+                'status' => 'error',
+                'messages' => "Format tanggal atau waktu utama tidak valid untuk event '{$event['eventName']}'"
+            ];
+            $this->isWrongDateTime = true;
+        } else {
+            // Jika berhasil, isi key 'dates' dengan hasilnya
+            $event['dates'] = $datetimeResult;
+        }
+    }
+
+    /**
+     * Melakukan iterasi pada setiap jadwal dalam sebuah event dan memproses waktunya.
+     */
+    private function processScheduleTimes(array &$event)
+    {
+        if (empty($event['schedule'])) {
+            return;
+        }
+
+        foreach ($event['schedule'] as &$scheduleItem) {
+            // Gunakan helper yang sama untuk startTime dan endTime untuk menghindari duplikasi
+            if (!empty($scheduleItem['startTime']) && !empty($scheduleItem['endTime'])) {
+                $scheduleItem['startTime_processed'] = $this->parseSingleTime($scheduleItem['startTime']);
+                $scheduleItem['endTime_processed'] = $this->parseSingleTime($scheduleItem['endTime']);
+
+                // Jika salah satu gagal, set flag error utama
+                if ($scheduleItem['startTime_processed']['status'] === 'error' || $scheduleItem['endTime_processed']['status'] === 'error') {
+                    $this->isWrongDateTime = true;
+                }
+            } else {
+                // Jika tidak ada waktu, set sebagai null
+                $scheduleItem['startTime_processed'] = [
+                    'status' => 'success',
+                    'type' => 'single',
+                    'time' => null,
+                    'messages' => ''
+                ];
+                $scheduleItem['endTime_processed'] = [
+                    'status' => 'success',
+                    'type' => 'single',
+                    'time' => null,
+                    'messages' => ''
+                ];
+            }
+        }
+        unset($scheduleItem);
+    }
+
+    /**
+     * Helper untuk mem-parsing satu string waktu dan mengembalikan struktur array yang konsisten.
+     * Menghilangkan duplikasi blok try-catch.
+     */
+    private function parseSingleTime(string $timeString): array
+    {
+        try {
+            $parsedTime = DateParserService::parse(text: $timeString, fieldType: 'time');
+
+            // Logika ini bisa disederhanakan, karena kita hanya mengharapkan 'single' time
+            // Namun untuk keamanan, kita cek tipenya.
+            if (in_array($parsedTime['type'], ['single', 'range', 'range_open_end'])) {
+                return [
+                    'status' => 'success',
+                    'type' => $parsedTime['type'],
+                    // Ambil waktu pertama yang relevan dari hasil parse
+                    'time' => $parsedTime['time'] ?? $parsedTime['start_time'],
+                    'messages' => ''
+                ];
+            }
+
+            // Jika tipe tidak terduga
+            throw new Exception("Tipe waktu tidak terduga: {$parsedTime['type']}");
+        } catch (ParsingFailedException | Exception $e) {
+            Log::error("Gagal mem-parsing waktu untuk '{$timeString}'. Error: " . $e->getMessage());
+            return [
+                'status' => 'error',
+                'type' => 'invalid',
+                'time' => $timeString, // Kembalikan nilai asli
+                'messages' => $e->getMessage()
+            ];
+        }
+    }
 
     /**
      * [CORE LOGIC] Helper cerdas untuk menggabungkan berbagai format tanggal & waktu.
@@ -739,97 +964,79 @@ class DocumentModal extends Component
         }
 
         try {
-            // --- LANGKAH 1: PARSE WAKTU ---
-            // Gunakan preg_match_all untuk menemukan semua waktu (HH:MM atau HH.MM)
-            preg_match_all('/(\d{1,2})[.:](\d{2})/', $timeStr, $timeMatches, PREG_SET_ORDER);
+            // --- LANGKAH 1: PARSE TANGGAL & WAKTU DENGAN SERVICE ---
+            // Panggil service untuk membedah string tanggal dan waktu.
+            $parsedDate = DateParserService::parse($dateStr, 'date');
+            $parsedTime = DateParserService::parse($timeStr, 'time');
 
-            $startTime = Carbon::createFromTime(0, 0); // Default start time
-            $endTime = Carbon::createFromTime(23, 59, 59); // Default end time
+            // --- LANGKAH 2: PROSES HASIL PARSING WAKTU ---
+            $startTime = Carbon::createFromTime(0, 0); // Default waktu mulai
+            $endTime = Carbon::createFromTime(23, 59, 59); // Default waktu selesai
 
-            if (count($timeMatches) >= 1) {
-                // Ambil waktu pertama sebagai waktu mulai
-                $startHour = intval($timeMatches[0][1]);
-                $startMinute = intval($timeMatches[0][2]);
-                $startTime->setTime($startHour, $startMinute);
-
-                if (count($timeMatches) >= 2) {
-                    // Jika ada waktu kedua, gunakan sebagai waktu selesai
-                    $endHour = intval($timeMatches[1][1]);
-                    $endMinute = intval($timeMatches[1][2]);
-                    $endTime->setTime($endHour, $endMinute);
-                } else {
-                    // Jika hanya ada satu waktu, waktu selesai adalah waktu mulai + 3 jam
-                    $endTime = $startTime->copy()->addHours(3);
+            if ($parsedTime) {
+                switch ($parsedTime['type']) {
+                    case 'single':
+                        $startTime = Carbon::parse($parsedTime['time']);
+                        // Jika hanya satu waktu, asumsikan durasi 3 jam (sesuai logika awal)
+                        $endTime = $startTime->copy()->addHours(3);
+                        break;
+                    case 'range':
+                        $startTime = Carbon::parse($parsedTime['start_time']);
+                        $endTime = Carbon::parse($parsedTime['end_time']);
+                        break;
+                    case 'range_open_end': // Format "19:00 - selesai"
+                        $startTime = Carbon::parse($parsedTime['start_time']);
+                        // Asumsikan durasi 3 jam jika "selesai"
+                        $endTime = $startTime->copy()->addHours(3);
+                        break;
                 }
             }
 
-            // --- LANGKAH 2: PARSE TANGGAL (LOGIKA UTAMA) ---
-            $indonesianMonths = [
-                'januari' => 'january',
-                'februari' => 'february',
-                'maret' => 'march',
-                'april' => 'april',
-                'mei' => 'may',
-                'juni' => 'june',
-                'juli' => 'july',
-                'agustus' => 'august',
-                'september' => 'september',
-                'oktober' => 'october',
-                'november' => 'november',
-                'desember' => 'december'
-            ];
-            $dateStrEnglish = str_ireplace(array_keys($indonesianMonths), array_values($indonesianMonths), $dateStr);
-
-
-            $parsedDates = [];
-
-            // A. Ekstrak Konteks: Bulan dan Tahun. Ambil yang terakhir jika ada beberapa.
-            $month = null;
-            $year = null;
-            if (preg_match('/([a-zA-Z]+)\s+(\d{4})/', $dateStrEnglish, $monthYearMatches)) {
-                $month = $monthYearMatches[1];
-                $year = $monthYearMatches[2];
-            }
-
-            // B. Ekstrak Aktor: Semua angka yang merupakan hari.
-            preg_match_all('/\b(\d{1,2})\b/', $dateStrEnglish, $dayMatches);
-
-            // C. Gabungkan Kembali
-            if ($month && $year && count($dayMatches[1]) > 0) {
-                foreach ($dayMatches[1] as $day) {
-                    $fullDateStr = "$day $month $year";
-                    try {
-                        $parsedDates[] = Carbon::parse($fullDateStr);
-                    } catch (Exception $e) {
-                        // Abaikan jika ada angka yang bukan tanggal, misal nomor urut 'D7'
-                        continue;
-                    }
+            // --- LANGKAH 3: PROSES HASIL PARSING TANGGAL ---
+            $eventDates = [];
+            if ($parsedDate) {
+                switch ($parsedDate['type']) {
+                    case 'single':
+                        $eventDates[] = Carbon::parse($parsedDate['date']);
+                        break;
+                    case 'list':
+                        foreach ($parsedDate['dates'] as $date) {
+                            $eventDates[] = Carbon::parse($date);
+                        }
+                        break;
+                    case 'range':
+                        // Buat periode dari tanggal mulai hingga selesai
+                        $period = CarbonPeriod::create($parsedDate['start_date'], $parsedDate['end_date']);
+                        foreach ($period as $date) {
+                            $eventDates[] = $date;
+                        }
+                        break;
                 }
             } else {
-                // Fallback jika formatnya sangat sederhana atau tidak terduga
-                $cleanedPart = preg_replace('/^\w+,\s*/', '', trim($dateStrEnglish));
-                $parsedDates[] = Carbon::parse($cleanedPart);
+                // Jika tanggal tidak bisa diparsing, tidak ada yang bisa diproses.
+                throw new Exception("Format tanggal '{$dateStr}' tidak valid.");
             }
 
-            // --- LANGKAH 3: GABUNGKAN SETIAP TANGGAL DENGAN WAKTU ---
+
+            // --- LANGKAH 4: GABUNGKAN SETIAP TANGGAL DENGAN WAKTU ---
             $result = [];
-            foreach ($parsedDates as $date) {
+            foreach ($eventDates as $date) {
                 $startDateTime = $date->copy()->setTimeFrom($startTime);
                 $endDateTime = $date->copy()->setTimeFrom($endTime);
 
-                // Handle kasus jika waktu selesai melewati tengah malam (misal: 22:00-01:00)
+                // Handle kasus jika waktu selesai melewati tengah malam (misal: 22:00 - 01:00)
                 if ($endDateTime->lt($startDateTime)) {
                     $endDateTime->addDay();
                 }
 
                 $result[] = [
-                    'start' => $startDateTime->format('Y-m-d\TH:i'),
+                    'start' => $startDateTime->format('Y-m-d\TH:i'), // Format standar: YYYY-MM-DDTHH:MM
                     'end'   => $endDateTime->format('Y-m-d\TH:i'),
                 ];
             }
 
             return $result;
-        } catch (Exception $e) {
+        } catch (ParsingFailedException | Exception $e) {
             Log::error("Gagal mem-parsing datetime untuk '{$dateStr}' & '{$timeStr}'. Error: " . $e->getMessage());
             return null;
         }
@@ -958,12 +1165,9 @@ class DocumentModal extends Component
             $categoryId = EventCategory::where('name', $category)->pluck('id')->first();
 
             // Gabungkan nama dan deskripsi kegiatan untuk pencarian keyword
-            $namaKegiatan = strtolower($event['nama_kegiatan_utama'] ?? '');
-            $deskripsiKegiatan = is_array($event['deskripsi_tambahan_kegiatan'])
-                ? strtolower(implode(' ', $event['deskripsi_tambahan_kegiatan']))
-                : strtolower($event['deskripsi_tambahan_kegiatan'] ?? '');
+            $namaKegiatan = strtolower($event['eventName'] ?? '');
 
-            $searchText = $namaKegiatan . ' ' . $deskripsiKegiatan;
+            $searchText = $namaKegiatan;
 
             // Cari keyword yang cocok
             $found = false;
@@ -983,7 +1187,7 @@ class DocumentModal extends Component
             }
 
             // Tambahkan key baru ke array kegiatan
-            $event['kategori_pancatugas'] = [
+            $event['fivetask_categories'] = [
                 'nama' => $category,
                 'id' => $categoryId
             ];

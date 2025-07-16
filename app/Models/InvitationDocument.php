@@ -16,11 +16,16 @@ class InvitationDocument extends Model
 
     public function documents()
     {
-        $this->morphToMany(Document::class, 'detailable');
+        return $this->morphToMany(Document::class, 'detailable');
     }
 
     public function recipients()
     {
         return $this->hasMany(Recipient::class);
+    }
+
+    public function schedules()
+    {
+        return $this->morphMany(Schedules::class, 'describable');
     }
 }

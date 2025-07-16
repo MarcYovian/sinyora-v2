@@ -19,7 +19,7 @@ class Location extends Model
 
     public function events()
     {
-        return $this->belongsToMany(Event::class);
+        return $this->morphedByMany(Event::class, 'locatable', 'event_locatables');
     }
 
     #[Scope]

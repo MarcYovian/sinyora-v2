@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\CustomPermission;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -37,6 +38,15 @@ class AppServiceProvider extends ServiceProvider
             return $user->roles()->whereHas('permissions', function ($query) use ($routeName) {
                 $query->where('route_name', $routeName);
             })->exists();
+        });
+
+        Collection::macro('toRecursive', function () {
+            return $this->map(function ($item) {
+                if (is_array($item)) {
+                    return collect($item)->toRecursive();
+                }
+                return $item;
+            });
         });
     }
 }

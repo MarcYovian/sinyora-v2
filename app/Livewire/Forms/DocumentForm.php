@@ -5,13 +5,16 @@ namespace App\Livewire\Forms;
 use App\Enums\BorrowingStatus;
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
+use App\Livewire\Admin\Pages\User;
 use App\Models\Borrowing;
 use App\Models\BorrowingDocument;
+use App\Models\CustomLocation;
 use App\Models\Document;
 use App\Models\Event;
 use App\Models\EventRecurrence;
 use App\Models\InvitationDocument;
 use App\Models\LicensingDocument;
+use App\Models\User as ModelsUser;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -33,36 +36,41 @@ class DocumentForm extends Form
     public function storeDocument()
     {
         $data = $this->data;
-        $organizationId = collect($data['informasi_umum_dokumen']['organisasi'])->whereNotNull('nama_organisasi_id')->pluck('nama_organisasi_id')->first();
+
+        $organizationId = $data['document_information']['final_organization_id'] ?? collect($data['document_information']['emitter_organizations'])->whereNotNull('nama_organisasi_id')->pluck('nama_organisasi_id')->first();
         $type = $data['type'];
-        // dd($data);
-        // dd(Document::findOrFail($data['id']));
 
         DB::transaction(function () use ($data, $type, $organizationId) {
             $document = Document::findOrFail($data['id']);
-            $date = $this->getDate($data['informasi_umum_dokumen']['tanggal_surat_dokumen']);
             $document->update([
-                'email' => $data['informasi_umum_dokumen']['email_pengirim'],
-                'subject' => $data['informasi_umum_dokumen']['perihal_surat'],
-                'city' => $data['informasi_umum_dokumen']['kota_surat'],
-                'doc_date' => $date,
-                'doc_num' => $data['informasi_umum_dokumen']['nomor_surat'],
+                'email' => $data['document_information']['emitter_email'],
+                'subject' => implode(', ', $data['document_information']['subjects'] ?? []),
+                'city' => $data['document_information']['document_city'],
+                'doc_date' => $data['document_information']['document_date']['date'],
+                'doc_num' => $data['document_information']['document_number'],
                 'status' => 'done',
                 'processed_by' => Auth::id(),
                 'processed_at' => now(),
             ]);
 
+            foreach ($data['signature_blocks'] as $signatureData) {
+                $document->signatures()->create([
+                    'name' => $signatureData['name'],
+                    'position' => $signatureData['position'],
+                ]);
+            }
+
             if ($type === 'perizinan') {
-                foreach ($data['detail_kegiatan'] as $eventData) {
+                foreach ($data['events'] as $eventData) {
                     $this->storeEvent($eventData, $organizationId, $document, $type);
                 }
             } else if ($type === 'peminjaman') {
-                foreach ($data['detail_kegiatan'] as $eventData) {
+                foreach ($data['events'] as $eventData) {
                     $this->storeBorrowing($eventData, $document);
                 }
             } else if ($type === 'undangan') {
-                foreach ($data['detail_kegiatan'] as $eventData) {
-                    $this->storeInvitation($eventData, $document, $data['informasi_umum_dokumen']);
+                foreach ($data['events'] as $eventData) {
+                    $this->storeInvitation($eventData, $document, $data['document_information']);
                 }
             }
         });
@@ -70,8 +78,10 @@ class DocumentForm extends Form
 
     private function storeEvent(array $dataEvent, int $organizationId, Document $document, string $type)
     {
-        $admin = Auth::user();
-        $locationIds = collect($dataEvent['location_data'])->pluck('location_id')->all();
+        $admin = ModelsUser::find(Auth::id());
+        $matchedLocations = collect($dataEvent['location_data'])
+            ->where('match_status', 'matched')
+            ->whereNotNull('location_id');
 
         $docRelationId = [];
 
@@ -81,49 +91,59 @@ class DocumentForm extends Form
 
             // 1. Buat satu record Event untuk setiap jadwal
             $event = new Event([
-                'name' => $dataEvent['nama_kegiatan_utama'],
-                'description' => $dataEvent['catatan_tambahan'],
+                'name' => $dataEvent['eventName'],
                 'start_recurring' => $startDateTime->format('Y-m-d'),
                 'end_recurring' => $endDateTime->format('Y-m-d'),
                 'status' => EventApprovalStatus::PENDING,
                 'recurrence_type' => EventRecurrenceType::DAILY, // atau tipe lain sesuai kebutuhan
                 'organization_id' => $organizationId,
-                'event_category_id' => $dataEvent['kategori_pancatugas']['id'],
+                'event_category_id' => $dataEvent['fivetask_categories']['id'],
             ]);
             $admin->events()->save($event);
 
             // Hubungkan lokasi ke event yang baru dibuat
-            $event->locations()->sync($locationIds);
+            if ($matchedLocations->isNotEmpty()) {
+                $locationIds = $matchedLocations->pluck('location_id')->all();
+                $event->locations()->sync($locationIds);
+            } elseif (!empty($dataEvent['location'])) {
+                $location = CustomLocation::firstOrCreate([
+                    'name' => $dataEvent['location'],
+                ]);
+
+                $event->customLocations()->sync([$location->id]);
+            }
+
+            if ($type === 'perizinan') {
+                $licensing = LicensingDocument::create([
+                    'description' => $dataEvent['eventName'],
+                    'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
+                    'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
+                ]);
+
+                $licensing->events()->save($event);
+
+                $docRelationId[] = $licensing->id;
+            }
 
             // 2. Buat record peminjaman jika ada barang
-            if (!empty($dataEvent['barang_dipinjam'])) {
+            if (!empty($dataEvent['equipment'])) {
                 $borrowing = Borrowing::create([
                     'created_by' => Auth::id(),
                     'event_id' => $event->id,
                     'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                     'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                    'borrower' => $dataEvent['penanggung_jawab'],
-                    'borrower_phone' => $dataEvent['kontak_pj'],
+                    'borrower' => $dataEvent['organizers'][0]['name'],
+                    'borrower_phone' => $dataEvent['organizers'][0]['contact'],
                     'status' => BorrowingStatus::PENDING
                 ]);
-                $assetIds = collect($dataEvent['barang_dipinjam'])->map(function ($asset) {
+                $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
                     return [
                         'asset_id' => $asset['item_id'],
-                        'quantity' => $asset['jumlah'],
+                        'quantity' => $asset['quantity'],
                     ];
                 });
                 $borrowing->assets()->sync($assetIds);
-            }
-
-            // 3. Buat record perizinan
-            if ($type === 'perizinan') {
-                $licensing = LicensingDocument::create([
-                    'description' => $dataEvent['deskripsi_tambahan_kegiatan'],
-                    'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
-                    'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                ]);
-
-                $docRelationId[] = $licensing->id;
+                $licensing->borrowings()->save($borrowing);
             }
 
             // 4. Handle pembuatan jadwal perulangan (recurrence)
@@ -141,33 +161,34 @@ class DocumentForm extends Form
             $startDateTime = Carbon::parse($datePair['start']);
             $endDateTime = Carbon::parse($datePair['end']);
 
-            // 2. Buat record peminjaman jika ada barang
-            if (!empty($dataEvent['barang_dipinjam'])) {
-                $borrowing = Borrowing::create([
-                    'created_by' => Auth::id(),
-                    'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
-                    'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                    'borrower' => $dataEvent['penanggung_jawab'],
-                    'borrower_phone' => $dataEvent['kontak_pj'],
-                    'status' => BorrowingStatus::PENDING
-                ]);
-                $assetIds = collect($dataEvent['barang_dipinjam'])->map(function ($asset) {
-                    return [
-                        'asset_id' => $asset['item_id'],
-                        'quantity' => $asset['jumlah'],
-                    ];
-                });
-                $borrowing->assets()->sync($assetIds);
-            }
-
             // 3. Buat record peminjaman
-            $borrowing = BorrowingDocument::create([
-                'description' => $dataEvent['deskripsi_tambahan_kegiatan'],
+            $borrowingDocument = BorrowingDocument::create([
                 'start_borrowing' => $startDateTime->format('Y-m-d H:i:s'),
                 'end_borrowing' => $endDateTime->format('Y-m-d H:i:s'),
             ]);
 
-            $docRelationId[] = $borrowing->id;
+            $docRelationId[] = $borrowingDocument->id;
+
+            // 2. Buat record peminjaman jika ada barang
+            if (!empty($dataEvent['equipment'])) {
+                $borrowing = Borrowing::create([
+                    'created_by' => Auth::id(),
+                    'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
+                    'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
+                    'borrower' => $dataEvent['organizers'][0]['name'],
+                    'borrower_phone' => $dataEvent['organizers'][0]['contact'],
+                    'status' => BorrowingStatus::PENDING
+                ]);
+                $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
+                    return [
+                        'asset_id' => $asset['item_id'],
+                        'quantity' => $asset['quantity'],
+                    ];
+                });
+                $borrowing->assets()->sync($assetIds);
+
+                $borrowingDocument->borrowings()->save($borrowing);
+            }
         }
 
         $document->licensingDocuments()->attach($docRelationId);
@@ -183,17 +204,37 @@ class DocumentForm extends Form
 
             // Buat record undangna
             $invitation = InvitationDocument::create([
-                'event' => $dataEvent['nama_kegiatan_utama'],
+                'event' => $dataEvent['eventName'],
                 'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                 'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                'location' => $dataEvent['lokasi_kegiatan'],
-                'description' => $dataEvent['deskripsi_tambahan_kegiatan']
+                'location' => $dataEvent['location'],
             ]);
 
-            foreach ($information['penerima_surat'] as $recipient) {
+            foreach ($information['recipients'] as $recipient) {
                 $invitation->recipients()->create([
                     'recipient' => $recipient['name'],
                     'recipient_position' => $recipient['position'],
+                ]);
+            }
+
+            foreach ($dataEvent['schedule'] as $schedule) {
+                $duration = null;
+                if (!empty($schedule['startTime_processed']['time']) && !empty($schedule['endTime_processed']['time'])) {
+                    try {
+                        $startTime = Carbon::parse($schedule['startTime_processed']['time']);
+                        $endTime = Carbon::parse($schedule['endTime_processed']['time']);
+                        $duration = $startTime->diffInMinutes($endTime) . "'";
+                    } catch (Exception $e) {
+                        // Jika format waktu salah, durasi akan tetap null.
+                        // Ini adalah fallback yang aman.
+                        Log::warning('Gagal menghitung durasi jadwal: ' . $e->getMessage());
+                    }
+                }
+                $invitation->schedules()->create([
+                    'description' => $schedule['description'],
+                    'start_time' => $schedule['startTime_processed']['time'],
+                    'end_time' => $schedule['endTime_processed']['time'],
+                    'duration' => $duration,
                 ]);
             }
 

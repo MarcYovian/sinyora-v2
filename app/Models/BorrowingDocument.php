@@ -15,4 +15,9 @@ class BorrowingDocument extends Model
     {
         return $this->morphToMany(Document::class, 'detailable');
     }
+
+    public function borrowings()
+    {
+        return $this->morphMany(Borrowing::class, 'document_typable');
+    }
 }

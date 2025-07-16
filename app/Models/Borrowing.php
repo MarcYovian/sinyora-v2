@@ -50,6 +50,10 @@ class Borrowing extends Model
         return $this->belongsTo(Event::class);
     }
 
+    public function document_typable()
+    {
+        return $this->morphTo();
+    }
 
     public function scopeApproved($query)
     {

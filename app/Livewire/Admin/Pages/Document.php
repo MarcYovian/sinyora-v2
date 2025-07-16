@@ -4,9 +4,11 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Admin\Pages\Document\DocumentModal;
 use App\Models\Document as ModelsDocument;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -34,6 +36,8 @@ class Document extends Component
 
     public function add()
     {
+        $this->attachment = null;
+        $this->dispatch('reset-file-input');
         $this->dispatch('open-modal', 'add-document-modal');
     }
 
@@ -50,15 +54,16 @@ class Document extends Component
 
         DB::transaction(function () {
             // Simpan data submitter
-            $user = Auth::user();
+            $user = User::find(Auth::id());
 
             // Simpan attachment
             if ($this->attachment) {
                 $path = $this->attachment->store('documents/proposals', 'public');
+                $mimeType = Storage::disk('public')->mimeType($path);
                 $user->documents()->create([
                     'document_path' => $path,
                     'original_file_name' => $this->attachment->getClientOriginalName(),
-                    'mime_type' => $this->attachment->getClientMimeType(),
+                    'mime_type' => $mimeType,
                     'status' => 'pending',
                 ]);
             }
@@ -69,7 +74,7 @@ class Document extends Component
 
     public function render()
     {
-        $table_heads = ['#', 'Submitters', 'Path', 'Mime Type', 'Status', 'Actions'];
+        $table_heads = ['#', 'Submitters', 'Filename', 'Mime Type', 'Status', 'Actions'];
 
         $documents = ModelsDocument::with(['submitter'])
             ->orderBy('created_at', 'desc')
