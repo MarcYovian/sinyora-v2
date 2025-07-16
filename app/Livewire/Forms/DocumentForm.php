@@ -39,21 +39,22 @@ class DocumentForm extends Form
 
         $organizationId = $data['document_information']['final_organization_id'] ?? collect($data['document_information']['emitter_organizations'])->whereNotNull('nama_organisasi_id')->pluck('nama_organisasi_id')->first();
         $type = $data['type'];
+        $userId = Auth::id();
 
-        DB::transaction(function () use ($data, $type, $organizationId) {
+        DB::transaction(function () use ($data, $type, $organizationId, $userId) {
             $document = Document::findOrFail($data['id']);
             $document->update([
-                'email' => $data['document_information']['emitter_email'],
-                'subject' => implode(', ', $data['document_information']['subjects'] ?? []),
-                'city' => $data['document_information']['document_city'],
-                'doc_date' => $data['document_information']['document_date']['date'],
-                'doc_num' => $data['document_information']['document_number'],
+                'email' => data_get($data, 'document_information.emitter_email'),
+                'subject' => implode(', ', data_get($data, 'document_information.subjects', [])),
+                'city' => data_get($data, 'document_information.document_city'),
+                'doc_date' => data_get($data, 'document_information.document_date.date'),
+                'doc_num' => data_get($data, 'document_information.document_number'),
                 'status' => 'done',
-                'processed_by' => Auth::id(),
+                'processed_by' => $userId,
                 'processed_at' => now(),
             ]);
 
-            foreach ($data['signature_blocks'] as $signatureData) {
+            foreach (data_get($data, 'signature_blocks', []) as $signatureData) {
                 $document->signatures()->create([
                     'name' => $signatureData['name'],
                     'position' => $signatureData['position'],
@@ -132,8 +133,8 @@ class DocumentForm extends Form
                     'event_id' => $event->id,
                     'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                     'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                    'borrower' => $dataEvent['organizers'][0]['name'],
-                    'borrower_phone' => $dataEvent['organizers'][0]['contact'],
+                    'borrower' => data_get($dataEvent, 'organizers.0.name', 'N/A'),
+                    'borrower_phone' => data_get($dataEvent, 'organizers.0.contact', 'N/A'),
                     'status' => BorrowingStatus::PENDING
                 ]);
                 $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
@@ -175,8 +176,8 @@ class DocumentForm extends Form
                     'created_by' => Auth::id(),
                     'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                     'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                    'borrower' => $dataEvent['organizers'][0]['name'],
-                    'borrower_phone' => $dataEvent['organizers'][0]['contact'],
+                    'borrower' => $dataEvent['organizers'][0]['name'] ?? 'N/A',
+                    'borrower_phone' => $dataEvent['organizers'][0]['contact'] ?? 'N/A',
                     'status' => BorrowingStatus::PENDING
                 ]);
                 $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
@@ -204,38 +205,39 @@ class DocumentForm extends Form
 
             // Buat record undangna
             $invitation = InvitationDocument::create([
-                'event' => $dataEvent['eventName'],
+                'event' => $dataEvent['eventName'] ?? 'N/A',
                 'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                 'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
-                'location' => $dataEvent['location'],
+                'location' => $dataEvent['location'] ?? 'N/A',
             ]);
 
             foreach ($information['recipients'] as $recipient) {
                 $invitation->recipients()->create([
                     'recipient' => $recipient['name'],
-                    'recipient_position' => $recipient['position'],
+                    'recipient_position' => $recipient['position'] ?? null,
                 ]);
             }
 
             foreach ($dataEvent['schedule'] as $schedule) {
                 $duration = null;
+                $scheduleData = [
+                    'description' => $schedule['description']
+                ];
                 if (!empty($schedule['startTime_processed']['time']) && !empty($schedule['endTime_processed']['time'])) {
                     try {
                         $startTime = Carbon::parse($schedule['startTime_processed']['time']);
                         $endTime = Carbon::parse($schedule['endTime_processed']['time']);
                         $duration = $startTime->diffInMinutes($endTime) . "'";
+                        $scheduleData['start_time'] = $startTime->format('H:i:s');
+                        $scheduleData['end_time'] = $endTime->format('H:i:s');
+                        $schedule['duration'] = $duration;
                     } catch (Exception $e) {
                         // Jika format waktu salah, durasi akan tetap null.
                         // Ini adalah fallback yang aman.
                         Log::warning('Gagal menghitung durasi jadwal: ' . $e->getMessage());
                     }
                 }
-                $invitation->schedules()->create([
-                    'description' => $schedule['description'],
-                    'start_time' => $schedule['startTime_processed']['time'],
-                    'end_time' => $schedule['endTime_processed']['time'],
-                    'duration' => $duration,
-                ]);
+                $invitation->schedules()->create($scheduleData);
             }
 
             $docRelationId[] = $invitation->id;
@@ -336,34 +338,6 @@ class DocumentForm extends Form
                     'end' => Carbon::parse($endTime)->format('g:i A')
                 ])
             ]);
-        }
-    }
-
-    private function getDate($date)
-    {
-        if (empty($date)) return null;
-
-        try {
-            Carbon::setLocale('id_ID');
-            $indonesianMonths = [
-                'januari' => 'january',
-                'februari' => 'february',
-                'maret' => 'march',
-                'april' => 'april',
-                'mei' => 'may',
-                'juni' => 'june',
-                'juli' => 'july',
-                'agustus' => 'august',
-                'september' => 'september',
-                'oktober' => 'october',
-                'november' => 'november',
-                'desember' => 'december'
-            ];
-            $date = str_ireplace(array_keys($indonesianMonths), array_values($indonesianMonths), $date);
-            return Carbon::parse($date)->format('Y-m-d');
-        } catch (Exception $e) {
-            Log::error("Gagal mem-parsing tanggal '{$date}'. Error: " . $e->getMessage());
-            return 'Format tidak valid';
         }
     }
 }

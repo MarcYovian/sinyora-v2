@@ -87,7 +87,7 @@ class DataDocumentModal extends Component
             'data.events.*.schedule' => 'nullable|array', // Can be empty if no schedule
             'data.events.*.schedule.*.description' => 'required|string|max:500',
             'data.events.*.schedule.*.startTime_processed.time' => [
-                'required',
+                'nullable',
                 'date_format:H:i', // Matches time input format
                 Rule::when(
                     fn($input) => isset($input['data']['events'][$input['eventIndex']]['schedule'][$input['scheduleIndex']]['startTime_processed']['status']) && $input['data']['events'][$input['eventIndex']]['schedule'][$input['scheduleIndex']]['startTime_processed']['status'] === 'error',
@@ -95,7 +95,7 @@ class DataDocumentModal extends Component
                 ),
             ],
             'data.events.*.schedule.*.endTime_processed.time' => [
-                'required',
+                'nullable',
                 'date_format:H:i',
                 Rule::when(
                     fn($input) => isset($input['data']['events'][$input['eventIndex']]['schedule'][$input['scheduleIndex']]['endTime_processed']['status']) && $input['data']['events'][$input['eventIndex']]['schedule'][$input['scheduleIndex']]['endTime_processed']['status'] === 'error',
