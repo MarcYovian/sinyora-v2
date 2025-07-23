@@ -128,8 +128,7 @@ class DocumentForm extends Form
 
             // 2. Buat record peminjaman jika ada barang
             if (!empty($dataEvent['equipment'])) {
-                $borrowing = Borrowing::create([
-                    'created_by' => Auth::id(),
+                $borrowing = new Borrowing([
                     'event_id' => $event->id,
                     'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                     'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
@@ -137,12 +136,16 @@ class DocumentForm extends Form
                     'borrower_phone' => data_get($dataEvent, 'organizers.0.contact', 'N/A'),
                     'status' => BorrowingStatus::PENDING
                 ]);
+
+                $admin->borrowings()->save($borrowing);
+
                 $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
                     return [
                         'asset_id' => $asset['item_id'],
                         'quantity' => $asset['quantity'],
                     ];
                 });
+
                 $borrowing->assets()->sync($assetIds);
                 $licensing->borrowings()->save($borrowing);
             }
@@ -156,6 +159,7 @@ class DocumentForm extends Form
 
     private function storeBorrowing(array $dataEvent, Document $document)
     {
+        $admin = ModelsUser::find(Auth::id());
         $docRelationId = [];
 
         foreach ($dataEvent['dates'] as $datePair) {
@@ -172,14 +176,16 @@ class DocumentForm extends Form
 
             // 2. Buat record peminjaman jika ada barang
             if (!empty($dataEvent['equipment'])) {
-                $borrowing = Borrowing::create([
-                    'created_by' => Auth::id(),
+                $borrowing = new Borrowing([
                     'start_datetime' => $startDateTime->format('Y-m-d H:i:s'),
                     'end_datetime' => $endDateTime->format('Y-m-d H:i:s'),
                     'borrower' => $dataEvent['organizers'][0]['name'] ?? 'N/A',
                     'borrower_phone' => $dataEvent['organizers'][0]['contact'] ?? 'N/A',
                     'status' => BorrowingStatus::PENDING
                 ]);
+
+                $admin->borrowings()->save($borrowing);
+
                 $assetIds = collect($dataEvent['equipment'])->map(function ($asset) {
                     return [
                         'asset_id' => $asset['item_id'],
