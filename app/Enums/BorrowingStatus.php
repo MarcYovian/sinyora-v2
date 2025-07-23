@@ -26,6 +26,15 @@ enum BorrowingStatus: string
         };
     }
 
+    public function borderColor(): string
+    {
+        return match ($this) {
+            self::PENDING => 'border-l-yellow-400 dark:border-l-yellow-600',
+            self::APPROVED => 'border-l-green-500 dark:border-l-green-600',
+            self::REJECTED => 'border-l-red-500 dark:border-l-red-600',
+        };
+    }
+
     public static function values(): array
     {
         return [

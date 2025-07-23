@@ -4,6 +4,7 @@ namespace App\Livewire\Pages\Event;
 
 use App\Models\GuestSubmitter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 use Livewire\Component;
@@ -45,15 +46,18 @@ class DocumentProposalForm extends Component
             // Simpan attachment
             if ($this->attachment) {
                 $path = $this->attachment->store('documents/proposals', 'public');
+                $mimeType = Storage::disk('public')->mimeType($path);
                 $guest->documents()->create([
                     'document_path' => $path,
                     'original_file_name' => $this->attachment->getClientOriginalName(),
-                    'mime_type' => $this->attachment->getClientMimeType(),
+                    'mime_type' => $mimeType,
                     'status' => 'pending',
                 ]);
+                toastr()->success('Dokumen proposal berhasil diajukan.');
+                $this->dispatch('close-modal', 'proposal-modal');
+            } else {
+                toastr()->error('Gagal mengunggah dokumen. Silakan coba lagi.');
             }
-
-            $this->dispatch('close-modal', 'proposal-modal');
         });
     }
 

@@ -84,6 +84,26 @@ class BorrowingForm extends Form
         ];
     }
 
+    public function messages()
+    {
+        return [
+            'assets.required' => 'Setidaknya satu aset harus dipilih.',
+            'assets.*.asset_id.required' => 'ID aset harus diisi.',
+            'assets.*.asset_id.exists' => 'Aset yang dipilih tidak valid.',
+            'assets.*.quantity.required' => 'Jumlah aset harus diisi.',
+            'assets.*.quantity.numeric' => 'Jumlah aset harus berupa angka.',
+            'start_datetime.required' => 'Tanggal mulai harus diisi.',
+            'start_datetime.date' => 'Tanggal mulai tidak valid.',
+            'start_datetime.after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.',
+            'end_datetime.required' => 'Tanggal selesai harus diisi.',
+            'end_datetime.date' => 'Tanggal selesai tidak valid.',
+            'end_datetime.after' => 'Tanggal selesai harus setelah tanggal mulai.',
+            'notes.max' => 'Catatan tidak boleh lebih dari 1000 karakter.',
+            'borrower.required' => 'Nama peminjam harus diisi.',
+            'borrower_phone.required' => 'Nomor telepon peminjam harus diisi.',
+        ];
+    }
+
     public function setBorrowing(?Borrowing $borrowing)
     {
         $this->borrowing = $borrowing->load('event');
@@ -107,7 +127,6 @@ class BorrowingForm extends Form
         $this->validate();
 
         $borrowing = Borrowing::create([
-            'created_by' => Auth::id(),
             'start_datetime' => $this->start_datetime,
             'end_datetime' => $this->end_datetime,
             'notes' => $this->notes,

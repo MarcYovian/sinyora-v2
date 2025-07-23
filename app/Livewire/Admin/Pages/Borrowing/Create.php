@@ -3,9 +3,14 @@
 namespace App\Livewire\Admin\Pages\Borrowing;
 
 use App\Enums\BorrowingStatus;
+use App\Livewire\Admin\Pages\User;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Asset;
+use App\Models\Borrowing as ModelsBorrowing;
+use App\Models\User as ModelsUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -85,9 +90,27 @@ class Create extends Component
     {
         $this->authorize('access', 'admin.asset-borrowings.create');
 
-        $this->form->store();
+        $this->validate();
 
-        toastr()->success('Borrowing berhasil disimpan');
+        DB::transaction(function () {
+            $user = ModelsUser::find(Auth::id());
+
+            $borrowing = new ModelsBorrowing([
+                'start_datetime' => $this->form->start_datetime,
+                'end_datetime' => $this->form->end_datetime,
+                'notes' => $this->form->notes,
+                'borrower' => $this->form->borrower,
+                'borrower_phone' => $this->form->borrower_phone,
+                'status' => BorrowingStatus::PENDING
+            ]);
+
+            $user->borrowings()->save($borrowing);
+
+            $borrowing->assets()->sync($this->form->assets);
+
+            toastr()->success('Borrowing berhasil disimpan');
+        });
+
         return redirect()->route('admin.asset-borrowings.index');
     }
 

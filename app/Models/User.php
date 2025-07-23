@@ -60,6 +60,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->morphMany(Event::class, 'creator');
     }
 
+    public function borrowings()
+    {
+        return $this->morphMany(Borrowing::class, 'creator');
+    }
+
     public function documents()
     {
         return $this->morphMany(Document::class, 'submitter');

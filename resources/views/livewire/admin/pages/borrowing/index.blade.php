@@ -24,7 +24,7 @@
         <div class="p-6 text-gray-900 dark:text-gray-100">
             <x-table title="Data Borrowings" :heads="$table_heads">
                 @forelse ($borrowings as $key => $borrowing)
-                    <tr wire:key="user-{{ $borrowing->id }}" x-on:dblclick="$wire.show({{ $borrowing->id }})"
+                    <tr wire:key="creator-{{ $borrowing->id }}" x-on:dblclick="$wire.show({{ $borrowing->id }})"
                         class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             {{ $key + $borrowings->firstItem() }}
@@ -265,14 +265,14 @@
                                     <div
                                         class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                                         <span class="text-lg font-medium text-gray-600 dark:text-gray-300">
-                                            {{ substr($this->borrowing->user->name, 0, 1) }}
+                                            {{ substr($this->borrowing->creator->name, 0, 1) }}
                                         </span>
                                     </div>
                                     <div>
                                         <h4 class="font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $this->borrowing->user->name }}</h4>
+                                            {{ $this->borrowing->creator->name }}</h4>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $this->borrowing->user->email }}
+                                            {{ $this->borrowing->creator->email }}
                                         </p>
                                     </div>
                                 </div>

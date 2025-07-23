@@ -30,7 +30,7 @@ class Index extends Component
         $this->authorize('access', 'admin.asset-borrowings.show');
 
         $this->reset('borrowing');
-        $this->borrowing = $borrowing->load(['assets', 'user', 'event']);
+        $this->borrowing = $borrowing->load(['assets', 'creator', 'event']);
         // dd($this->borrowing->toArray());
 
         $this->dispatch('open-modal', 'borrowing-detail-modal');
@@ -54,7 +54,7 @@ class Index extends Component
 
     public function confirmDelete(Borrowing $borrowing)
     {
-        $this->authorize('access', 'admin.asset-borrowings.delete');
+        // $this->authorize('access', 'admin.asset-borrowings.delete');
 
         // dd($borrowing);
         $this->deleteId = $borrowing->id;
@@ -113,7 +113,7 @@ class Index extends Component
 
         $table_heads = ['#', 'Borrower', 'Event', 'date', 'Note', 'Status', 'Actions'];
 
-        $borrowings = Borrowing::with(['assets', 'user', 'event'])->latest()->paginate(5);
+        $borrowings = Borrowing::with(['assets', 'creator', 'event'])->latest()->paginate(5);
         // dd($borrowings->toArray());
         return view('livewire.admin.pages.borrowing.index', [
             'table_heads' => $table_heads,

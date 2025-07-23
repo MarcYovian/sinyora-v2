@@ -40,9 +40,9 @@ class Borrowing extends Model
             ->withTimestamps();
     }
 
-    public function user()
+    public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->morphTo();
     }
 
     public function event()
