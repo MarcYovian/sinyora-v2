@@ -51,7 +51,7 @@ class EventShowForm extends Form
 
         if ($event) {
             $this->name = $event->name;
-            $this->description = $event->description;
+            $this->description = $event->description ?? '';
             $this->recurrence_type = $event->recurrence_type;
             $this->organization_id = $event->organization_id;
             $this->event_category_id = $event->event_category_id;
