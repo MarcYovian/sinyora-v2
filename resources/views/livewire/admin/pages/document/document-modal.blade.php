@@ -223,8 +223,12 @@
                                         <dt class="text-slate-500 dark:text-slate-400">Jenis Surat</dt>
                                         @if ($isEditing)
                                             <dd class="font-medium text-slate-800 dark:text-slate-200">
-                                                <x-text-input type="text" class="mt-1 block w-full"
-                                                    wire:model.defer="analysisResult.data.type" />
+                                                <select wire:model="analysisResult.data.type" id="type"
+                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
+                                                    <option value="undangan">{{ __('undangan') }}</option>
+                                                    <option value="peminjaman">{{ __('peminjaman') }}</option>
+                                                    <option value="perizinan">{{ __('perizinan') }}</option>
+                                                </select>
                                                 <x-input-error :messages="$errors->get('analysisResult.data.type')" class="mt-2" />
                                             </dd>
                                         @else
@@ -255,36 +259,38 @@
                                                     {{ __('Batal') }}
                                                 </x-button>
                                             @else
-                                                <x-button wire:click="prepareReanalysis" size="sm"
-                                                    variant="primary" class="flex items-center gap-1"
-                                                    wire:loading.attr="disabled" wire:target="prepareReanalysis">
+                                                @if ($doc->status !== 'done')
+                                                    <x-button wire:click="prepareReanalysis" size="sm"
+                                                        variant="primary" class="flex items-center gap-1"
+                                                        wire:loading.attr="disabled" wire:target="prepareReanalysis">
 
-                                                    {{-- Tampilkan spinner saat proses prepareReanalysis berjalan --}}
-                                                    <div wire:loading wire:target="prepareReanalysis"
-                                                        class="animate-spin rounded-full h-4 w-4 border-b-2 border-current">
-                                                    </div>
+                                                        {{-- Tampilkan spinner saat proses prepareReanalysis berjalan --}}
+                                                        <div wire:loading wire:target="prepareReanalysis"
+                                                            class="animate-spin rounded-full h-4 w-4 border-b-2 border-current">
+                                                        </div>
 
-                                                    {{-- Tampilkan ikon asli saat tidak loading --}}
-                                                    <svg wire:loading.remove wire:target="prepareReanalysis"
-                                                        xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-                                                    </svg>
+                                                        {{-- Tampilkan ikon asli saat tidak loading --}}
+                                                        <svg wire:loading.remove wire:target="prepareReanalysis"
+                                                            xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                                                        </svg>
 
-                                                    <span>{{ __('Analisa Ulang') }}</span>
-                                                </x-button>
-                                                <x-button wire:click="editAnalysis" size="sm" variant="warning"
-                                                    class="flex items-center gap-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-                                                    </svg>
-                                                    {{ __('Edit') }}
-                                                </x-button>
+                                                        <span>{{ __('Analisa Ulang') }}</span>
+                                                    </x-button>
+                                                    <x-button wire:click="editAnalysis" size="sm"
+                                                        variant="warning" class="flex items-center gap-1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                                                        </svg>
+                                                        {{ __('Edit') }}
+                                                    </x-button>
+                                                @endif
                                             @endif
                                         </div>
                                     @endif

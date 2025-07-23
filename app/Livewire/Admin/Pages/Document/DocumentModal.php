@@ -251,7 +251,7 @@ class DocumentModal extends Component
             $response = Http::acceptJson()
                 ->timeout(120)
                 ->attach('file', file_get_contents($absolutePath), $this->doc->original_file_name)
-                ->post(config('services.bert_api.url'))
+                ->post(config('services.bert_api.url') . "extract-information")
                 ->throw(); // Otomatis throw exception untuk status 4xx/5xx
 
             $this->analysisResult = $response->json();

@@ -86,7 +86,7 @@ class BorrowingForm extends Form
 
     public function setBorrowing(?Borrowing $borrowing)
     {
-        $this->borrowing = $borrowing;
+        $this->borrowing = $borrowing->load('event');
         if ($borrowing) {
             $this->assets = $borrowing->assets->map(function ($asset) {
                 return [
@@ -94,9 +94,9 @@ class BorrowingForm extends Form
                     'quantity' => $asset->pivot->quantity,
                 ];
             })->toArray();
-            $this->start_datetime = $borrowing->start_datetime;
-            $this->end_datetime = $borrowing->end_datetime;
-            $this->notes = $borrowing->notes;
+            $this->start_datetime = $borrowing->start_datetime->format('Y-m-d\TH:i');
+            $this->end_datetime = $borrowing->end_datetime->format('Y-m-d\TH:i');
+            $this->notes = $borrowing->notes ?? '';
             $this->borrower = $borrowing->borrower;
             $this->borrower_phone = $borrowing->borrower_phone;
         }

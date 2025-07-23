@@ -50,10 +50,12 @@
                                     </x-button>
                                 @endcan
                                 @can('delete document')
-                                    <x-button size="sm" variant="danger" type="button"
-                                        wire:click="confirmDelete({{ $document->id }})">
-                                        {{ __('Delete') }}
-                                    </x-button>
+                                    @if ($document->status !== 'done')
+                                        <x-button size="sm" variant="danger" type="button"
+                                            wire:click="confirmDelete({{ $document }})">
+                                            {{ __('Delete') }}
+                                        </x-button>
+                                    @endif
                                 @endcan
                             </div>
                         </td>
@@ -199,6 +201,31 @@
                 </footer>
             </form>
         </div>
+    </x-modal>
+
+    <x-modal name="delete-document-confirmation" :show="$errors->isNotEmpty()" focusable>
+        <form wire:submit="delete" class="p-6">
+
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ __('Are you sure you want to delete this document?') }}
+            </h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('This action cannot be undone.') }}
+            </p>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Please confirm that you want to delete this menu by clicking the button below.') }}
+            </p>
+
+            <div class="mt-6 flex justify-end">
+                <x-secondary-button x-on:click="$dispatch('close')">
+                    {{ __('Cancel') }}
+                </x-secondary-button>
+
+                <x-danger-button class="ms-3">
+                    {{ __('Delete') }}
+                </x-danger-button>
+            </div>
+        </form>
     </x-modal>
 
     <livewire:admin.pages.document.document-modal />

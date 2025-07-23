@@ -20,6 +20,7 @@ class Document extends Component
     #[Layout('layouts.app')]
 
     public $attachment = null;
+    public ModelsDocument $document;
 
     public function rules(): array
     {
@@ -70,6 +71,42 @@ class Document extends Component
 
             $this->dispatch('close-modal', 'add-document-modal');
         });
+    }
+
+    public function confirmDelete(ModelsDocument $document)
+    {
+        $this->document = $document;
+        if (!$this->document) {
+            toastr()->error(__('Document not found.'));
+            return;
+        }
+
+        if ($this->document->status === 'done') {
+            toastr()->error(__('You cannot delete a document that has been processed.'));
+            return;
+        }
+
+        $this->dispatch('open-modal', 'delete-document-confirmation');
+    }
+
+    public function delete()
+    {
+        if (!$this->document) {
+            toastr()->error(__('Document not found.'));
+            return;
+        }
+
+        DB::transaction(function () {
+            // Hapus file dari storage
+            Storage::disk('public')->delete($this->document->document_path);
+
+            // Hapus data dokumen
+            $this->document->delete();
+
+            toastr()->success(__('Document deleted successfully.'));
+        });
+
+        $this->dispatch('close-modal', 'delete-document-confirmation');
     }
 
     public function render()

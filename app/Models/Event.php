@@ -33,7 +33,6 @@ class Event extends Model
         'end_recurring',
         'status',
         'recurrence_type',
-        // 'created_by',
         'organization_id',
         'event_category_id',
     ];

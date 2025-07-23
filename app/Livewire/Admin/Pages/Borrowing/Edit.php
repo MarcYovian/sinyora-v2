@@ -24,6 +24,8 @@ class Edit extends Component
         $this->authorize('access', 'admin.asset-borrowings.edit');
 
         $this->form->setBorrowing($borrowing);
+
+        // dd($this->form);
     }
 
     public function addAsset()

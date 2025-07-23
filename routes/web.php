@@ -15,6 +15,9 @@ Route::get('/articles', \App\Livewire\Pages\Article\Index::class)
 Route::get('/articles/{article:slug}', \App\Livewire\Pages\Article\Show::class)
     ->name('articles.show');
 
+Route::get('/borrowing-assets', \App\Livewire\Pages\Borrowing\IndexComponent::class)
+    ->name('borrowing.index');
+
 Route::redirect('/admin', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' => 'admin.'], function () {
