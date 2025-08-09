@@ -1,5 +1,7 @@
 <?php
 
+use App\Console\Commands\MakeRepositoryCommand;
+use App\Console\Commands\MakeServiceCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
+    ->withCommands([
+        MakeRepositoryCommand::class,
+        MakeServiceCommand::class,
+    ])
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
