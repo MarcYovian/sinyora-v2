@@ -9,20 +9,19 @@ use App\Models\EventRecurrence;
 use App\Models\GuestSubmitter;
 use App\Models\Location;
 use App\Models\Organization;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class Index extends Component
 {
+    use WithFileUploads;
     #[Layout('components.layouts.app')]
     #[Title('Kalender Kegiatan')]
-
-    public $events = [];
-
-    use WithFileUploads;
 
     public EventProposalForm $form;
     public $document;
@@ -41,22 +40,6 @@ class Index extends Component
     public function submitProposal()
     {
         toastr()->success('Proposal berhasil diajukan! Terima kasih atas partisipasi Anda.');
-    }
-
-    public function mount()
-    {
-        $this->events = EventRecurrence::with(['event:id,name,organization_id,status,event_category_id', 'event.organization:id,code', 'event.eventCategory:id,color'])
-            ->whereHas('event', function ($q) {
-                $q->where('status', EventApprovalStatus::APPROVED);
-            })->get(['id', 'event_id', 'time_start', 'time_end', 'date'])
-            ->map(function ($recurrence) {
-                return [
-                    'title' => $recurrence->event->name . ' - ' . $recurrence->event->organization->code,
-                    'start' => $recurrence->date->format('Y-m-d') . 'T' . $recurrence->time_start->format('H:i:s'),
-                    'end' => $recurrence->date->format('Y-m-d') . 'T' . $recurrence->time_end->format('H:i:s'),
-                    'color' => $recurrence->event->eventCategory->color
-                ];
-            });
     }
 
     public function render()

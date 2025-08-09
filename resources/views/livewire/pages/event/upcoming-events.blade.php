@@ -201,7 +201,8 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @forelse ($events as $recurringEvent)
-                <a href="#" class="event-card group">
+                <a wire:click="$dispatch('showEventDetails', { eventId: {{ $recurringEvent->id }} })"
+                    class="event-card group cursor-pointer">
                     <span class="event-badge">{{ $recurringEvent->event->eventCategory->name }}</span>
 
                     <div class="event-image-container">
