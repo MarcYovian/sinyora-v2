@@ -40,14 +40,15 @@
                         @foreach (collect($eventsByDay[$dayString])->take(2) as $recurrence)
                             @php
                                 $event = $recurrence->event;
-                                $categoryColor = $event->eventCategory->color ?? '#6b7280'; // Default abu-abu
+                                $categoryColor = $event->eventCategory->color ?? '#6b7280';
+                                $locationBackgroundColor = $event->computed_background_color ?? '#f3f4f6';
                                 $startTime = \Carbon\Carbon::parse($recurrence->getRawOriginal('time_start'))->format(
                                     'H:i',
                                 );
                             @endphp
                             <div wire:click="$dispatch('showEventDetails', { eventId: {{ $recurrence->id }} })"
                                 class="flex items-center p-1.5 rounded-lg cursor-pointer transition-transform hover:scale-105"
-                                style="background-color: {{ $categoryColor }}20;" {{-- Warna kategori dengan transparansi 20% --}}>
+                                style="background-color: {{ $locationBackgroundColor }}40;">
                                 {{-- Titik penanda warna --}}
                                 <div class="w-1.5 h-1.5 mr-2 rounded-full flex-shrink-0"
                                     style="background-color: {{ $categoryColor }};"></div>

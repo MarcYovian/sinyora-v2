@@ -56,73 +56,94 @@
 
                     {{-- Render Acara --}}
                     @foreach ($eventsByDay as $recurrence)
-                        @php
-                            $event = $recurrence->event;
-                            $categoryColor = $event->eventCategory->color ?? '#4a5568'; // Default color abu-abu
+                        @if ($recurrence->is_grouped_master ?? false)
+                            @php
+                                $event = $recurrence->event;
+                                $categoryColor = $event->eventCategory->color ?? '#4a5568';
 
-                            // Gabungkan semua lokasi menjadi satu string
-                            $locations = $event->locations
-                                ->pluck('name')
-                                ->merge($event->customLocations->pluck('address'))
-                                ->implode(', ');
-                            $startCarbon = $recurrence->date
-                                ->copy()
-                                ->setTimeFromTimeString($recurrence->getRawOriginal('time_start'));
-                            $endCarbon = $recurrence->date
-                                ->copy()
-                                ->setTimeFromTimeString($recurrence->getRawOriginal('time_end'));
-                            if ($endCarbon->isBefore($startCarbon)) {
-                                $endCarbon->addDay();
-                            }
+                                // Gunakan GRADIENT untuk border jika ada beberapa lokasi
+                                $locationBorderImage =
+                                    $recurrence->computed_background_gradient ??
+                                    'linear-gradient(to right, #f3f4f6, #f3f4f6)';
 
-                            $topPosition = $startCarbon->hour * 60 + $startCarbon->minute;
-                            $durationInMinutes = $startCarbon->diffInMinutes($endCarbon);
-                            $height = max($durationInMinutes, 25);
+                                // Perhitungan posisi & tinggi tetap sama
+                                $startCarbon = $recurrence->date
+                                    ->copy()
+                                    ->setTimeFromTimeString($recurrence->getRawOriginal('time_start'));
+                                $endCarbon = $recurrence->date
+                                    ->copy()
+                                    ->setTimeFromTimeString($recurrence->getRawOriginal('time_end'));
+                                if ($endCarbon->isBefore($startCarbon)) {
+                                    $endCarbon->addDay();
+                                }
+                                $topPosition = $startCarbon->hour * 60 + $startCarbon->minute;
+                                $durationInMinutes = $startCarbon->diffInMinutes($endCarbon);
+                                $height = max($durationInMinutes, 60); // Tingkatkan tinggi minimal untuk ruang ekstra
+                                $startTime = $startCarbon->format('H:i');
+                                $endTime = $endCarbon->format('H:i');
+                            @endphp
 
-                            $startTime = $startCarbon->format('H:i');
-                            $endTime = $endCarbon->format('H:i');
-                        @endphp
+                            <div wire:click="$dispatch('showEventDetails', { eventId: {{ $recurrence->id }} })"
+                                class="absolute right-0 z-[15] bg-white text-gray-800 rounded-lg p-2.5 flex flex-col cursor-pointer overflow-hidden shadow-md transition-all duration-200 hover:shadow-xl hover:z-[25]"
+                                style="
+                                            top: {{ $topPosition }}px;
+                                            height: {{ $height }}px;
+                                            /* Menggunakan border-image untuk gradient */
+                                            border-left-width: 5px;
+                                            border-image: {{ $locationBorderImage }};
+                                            border-image-slice: 1;
+                                            /* Properti layout dari Trait */
+                                            width: calc({{ $recurrence->layout_width ?? 100 }}% - 10px);
+                                            left: calc({{ $recurrence->layout_left ?? 0 }}% + 5px);
+                                            z-index: {{ $recurrence->layout_zindex ?? 15 }};
+                                        ">
 
-                        <div wire:click="$dispatch('showEventDetails', { eventId: {{ $recurrence->id }} })"
-                            class="absolute left-1.5 right-1.5 z-[15] bg-white text-gray-800 rounded-lg p-2 flex flex-col cursor-pointer overflow-hidden shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
-                            style="top: {{ $topPosition }}px; height: {{ $height }}px; border-left: 5px solid {{ $categoryColor }};">
+                                {{-- Bagian Atas: Nama & Waktu --}}
+                                <div class="flex-shrink-0">
+                                    <p class="font-bold truncate text-sm" style="color: {{ $categoryColor }};">
+                                        {{ $event->name }}
+                                    </p>
+                                    <p class="text-gray-600 text-xs font-medium mt-0.5">
+                                        {{ $startTime }} - {{ $endTime }}
+                                    </p>
+                                </div>
 
-                            {{-- Nama Acara --}}
-                            <p class="font-bold truncate text-sm" style="color: {{ $categoryColor }};">
-                                {{ $event->name }}</p>
+                                {{-- Bagian Bawah: Daftar Lokasi (Informatif) --}}
+                                <div class="mt-auto text-xs space-y-1 pt-1.5 overflow-y-auto">
+                                    {{-- Loop melalui lokasi yang sudah digabungkan --}}
+                                    @foreach ($recurrence->grouped_locations as $location)
+                                        <div class="flex items-center text-gray-700 truncate">
+                                            {{-- Titik warna sesuai warna asli lokasi --}}
+                                            <div class="w-2 h-2 rounded-full mr-2 flex-shrink-0"
+                                                style="background-color: {{ $location->color ?? '#cbd5e1' }};">
+                                            </div>
+                                            {{-- Nama lokasi atau alamat --}}
+                                            <span class="truncate">{{ $location->name ?? $location->address }}</span>
+                                        </div>
+                                    @endforeach
 
-                            {{-- Waktu --}}
-                            <p class="text-gray-600 text-xs font-medium mt-1">{{ $startTime }} -
-                                {{ $endTime }}</p>
+                                    {{-- Indikator jika terlalu banyak lokasi untuk ditampilkan --}}
+                                    @if ($recurrence->grouped_locations->count() > 3 && $height < 120)
+                                        <p class="text-gray-500 text-xs mt-1">
+                                            +{{ $recurrence->grouped_locations->count() - 3 }} lokasi lain</p>
+                                    @endif
 
-                            {{-- Detail Lokasi & Organisasi --}}
-                            <div class="mt-auto text-xs space-y-1 pt-1">
-                                @if ($locations)
-                                    <div class="flex items-center text-gray-500 truncate">
-                                        {{-- SVG Ikon Lokasi --}}
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5 flex-shrink-0"
-                                            viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        <span class="truncate">{{ $locations }}</span>
-                                    </div>
-                                @endif
-
-                                @if ($event->organization)
-                                    <div class="flex items-center text-gray-500 truncate">
-                                        {{-- SVG Ikon Organisasi --}}
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5 flex-shrink-0"
-                                            viewBox="0 0 20 20" fill="currentColor">
-                                            <path
-                                                d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                                        </svg>
-                                        <span class="truncate">{{ $event->organization->name }}</span>
-                                    </div>
-                                @endif
+                                    @if ($event->organization)
+                                        <div class="flex items-center text-gray-600 truncate mt-1">
+                                            {{-- Ikon Organisasi (Gedung) --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="h-3.5 w-3.5 mr-2 flex-shrink-0" viewBox="0 0 20 20"
+                                                fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2 0h2v2h-2V9zm2-4h-2v2h2V5z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="truncate font-medium">{{ $event->organization->name }}</span>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
-                        </div>
+                        @endif
                     @endforeach
                 </div>
             </div>

@@ -4,8 +4,15 @@ namespace App\Livewire\Forms;
 
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
+use App\Exceptions\ScheduleConflictException;
 use App\Models\Event;
 use App\Models\EventRecurrence;
+use App\Models\User;
+use App\Repositories\Eloquent\EloquentBorrowingRepository;
+use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
+use App\Repositories\Eloquent\EloquentEventRepository;
+use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Services\EventCreationService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
@@ -18,16 +25,20 @@ use Livewire\Form;
 
 class EventForm extends Form
 {
+    protected $eventCreationService;
     public ?Event $event;
+
 
     // Form properties
     public string $name = '';
     public string $description = '';
-    public string $start_datetime = '';
-    public string $end_datetime = '';
-    public $recurrence_type = EventRecurrenceType::DAILY;
-    public ?int $organization_id = null;
     public ?int $event_category_id = null;
+    public ?int $organization_id = null;
+    public string $datetime_start = '';
+    public string $datetime_end = '';
+    public $recurrence_type = EventRecurrenceType::DAILY;
+    public string $start_recurring = '';
+    public string $end_recurring = '';
     public array $locations = [];
 
     protected function rules(): array
@@ -35,97 +46,114 @@ class EventForm extends Form
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:65535'],
-            'start_datetime' => ['required', 'dateformat:Y-m-d\TH:i', 'before_or_equal:end_datetime'],
-            'end_datetime' => ['required', 'dateformat:Y-m-d\TH:i', 'after_or_equal:start_datetime'],
-            'recurrence_type' => ['required', Rule::in(EventRecurrenceType::values())],
-            'organization_id' => ['nullable', Rule::exists('organizations', 'id')],
             'event_category_id' => ['nullable', Rule::exists('event_categories', 'id')],
+            'organization_id' => ['nullable', Rule::exists('organizations', 'id')],
+            'datetime_start' => ['required', 'dateformat:Y-m-d\TH:i', 'before_or_equal:datetime_end'],
+            'datetime_end' => ['required', 'dateformat:Y-m-d\TH:i', 'after_or_equal:datetime_start'],
+            'recurrence_type' => ['required', Rule::in(EventRecurrenceType::values())],
+            'start_recurring' => [
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM && $this->recurrence_type !== EventRecurrenceType::DAILY),
+                'date_format:Y-m-d'
+            ],
+            'end_recurring' => [
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM && $this->recurrence_type !== EventRecurrenceType::DAILY),
+                'date_format:Y-m-d',
+                'after_or_equal:start_recurring'
+            ],
             'locations' => ['required', 'array', 'min:1'],
             'locations.*' => [Rule::exists('locations', 'id')],
         ];
     }
 
+    protected function messages(): array
+    {
+        return [
+            'datetime_start.before_or_equal' => __('The start date must be before or equal to the end date.'),
+            'datetime_end.after_or_equal' => __('The end date must be after or equal to the start date.'),
+            'locations.required' => __('At least one location is required.'),
+            'locations.min' => __('You must select at least one location.'),
+            'locations.*.exists' => __('The selected location is invalid.'),
+            'event_category_id.exists' => __('The selected event category is invalid.'),
+            'organization_id.exists' => __('The selected organization is invalid.'),
+            'recurrence_type.in' => __('The selected recurrence type is invalid.'),
+            'start_recurring.required' => __('The start recurring date is required.'),
+            'end_recurring.required' => __('The end recurring date is required.'),
+            'end_recurring.after_or_equal' => __('The end recurring date must be after or equal to the start recurring date.'),
+            'datetime_start.date_format' => __('The start date must be in the format Y-m-d\TH:i.'),
+            'datetime_end.date_format' => __('The end date must be in the format Y-m-d\TH:i.'),
+            'name.required' => __('The event name is required.'),
+            'name.string' => __('The event name must be a string.'),
+            'name.max' => __('The event name may not be greater than 255 characters.'),
+            'description.string' => __('The event description must be a string.'),
+            'description.max' => __('The event description may not be greater than 65535 characters.'),
+            'event_category_id.required' => __('The event category is required.'),
+            'event_category_id.integer' => __('The event category must be an integer.'),
+            'organization_id.required' => __('The organization is required.'),
+            'organization_id.integer' => __('The organization must be an integer.'),
+            'recurrence_type.required' => __('The recurrence type is required.'),
+            'recurrence_type.string' => __('The recurrence type must be a string.'),
+            'recurrence_type.max' => __('The recurrence type may not be greater than 255 characters.'),
+            'start_recurring.date_format' => __('The start recurring date must be in the format Y-m-d.'),
+            'end_recurring.date_format' => __('The end recurring date must be in the format Y-m-d.'),
+            'start_recurring.after_or_equal' => __('The start recurring date must be after or equal to the start date.'),
+            'locations.array' => __('The locations must be an array.'),
+        ];
+    }
+
+    public function __construct(
+        \Livewire\Component $component,
+        $propertyName
+    ) {
+        parent::__construct($component, $propertyName);
+        $this->eventCreationService = new EventCreationService(
+            new EloquentEventRepository(),
+            new EloquentEventRecurrenceRepository(),
+            new EloquentUserRepository(),
+            new EloquentBorrowingRepository()
+        );
+    }
+
     public function setEvent(?Event $event = null): void
     {
         $this->event = $event;
-
-        if ($event) {
-            $this->name = $event->name;
-            $this->description = $event->description ?? '';
-            $this->recurrence_type = $event->recurrence_type;
-            $this->organization_id = $event->organization_id;
-            $this->event_category_id = $event->event_category_id;
-            $this->locations = $event->locations->pluck('id')->toArray();
-
-            if ($event->eventRecurrences()->exists()) {
-                $dates = $event->eventRecurrences()->orderBy('date')->get();
-
-                // Pastikan setidaknya ada 1 recurrence
-                if ($dates->isEmpty()) {
-                    return; // Keluar jika koleksi kosong untuk menghindari error
-                }
-
-                $startDate = $dates->first();
-                $endDate = $startDate;
-
-                // Cari rentang tanggal berurutan
-                foreach ($dates as $key => $date) {
-                    if ($key === 0) {
-                        continue; // Lewatkan item pertama
-                    }
-
-                    // PERBAIKAN 1: Tidak perlu Carbon::parse() lagi karena $casts sudah menjadikannya objek Carbon.
-                    $prevDateObject = $dates[$key - 1]->date;
-                    $currentDateObject = $date->date;
-
-                    // PERBAIKAN 2: Gunakan copy() agar tidak mengubah objek asli saat pengecekan.
-                    // Gunakan isSameDay() untuk perbandingan tanggal yang lebih aman.
-                    $isConsecutive = $prevDateObject->copy()->addDay()->isSameDay($currentDateObject);
-
-                    // PERBAIKAN 3: Bandingkan waktu dengan memformatnya terlebih dahulu, karena ini adalah objek Carbon.
-                    $isFullDayEvent = $date->time_start->format('H:i:s') === '00:00:00'
-                        && $dates[$key - 1]->time_end->format('H:i:s') === '23:59:59';
-
-                    if ($isConsecutive && $isFullDayEvent) {
-                        $endDate = $date; // Update end date
-                    } else {
-                        break; // Berhenti jika urutan tanggal terputus atau bukan event sehari penuh
-                    }
-                }
-
-                // PERBAIKAN 4: Gunakan metode objek Carbon untuk mengatur waktu, BUKAN penggabungan string.
-                // Ini adalah perbaikan utama untuk error "Double date specification".
-                $this->start_datetime = $startDate->date->copy()->setTimeFrom($startDate->time_start)->format('Y-m-d\TH:i');
-                $this->end_datetime = $endDate->date->copy()->setTimeFrom($endDate->time_end)->format('Y-m-d\TH:i');
-            }
-        }
     }
 
     public function store(): void
     {
-        $this->validate();
+        $validated = $this->validate();
 
-        DB::transaction(function () {
-            $admin = Auth::user();
+        try {
+            $this->eventCreationService->createEvent($validated);
+        } catch (ScheduleConflictException $e) {
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            Log::error('Error creating event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => __('Failed to create event. Please try again.')]);
+        }
 
-            $event = new Event([
-                'name' => $this->name,
-                'description' => $this->description,
-                'start_recurring' => Carbon::parse($this->start_datetime)->format('Y-m-d'),
-                'end_recurring' => $this->getRecurrenceEndDate(),
-                'status' => EventApprovalStatus::PENDING,
-                'recurrence_type' => $this->recurrence_type,
-                'organization_id' => $this->organization_id,
-                'event_category_id' => $this->event_category_id,
-            ]);
+        // $this->validate();
 
-            $admin->events()->save($event);
+        // DB::transaction(function () {
+        //     $admin = User::find(Auth::id());
 
-            $event->locations()->sync($this->locations);
-            $this->handleRecurrence($event);
+        //     $event = $this->eventRepository->create([
+        //         'name' => $this->name,
+        //         'description' => $this->description,
+        //         'start_recurring' => $this->start_recurring,
+        //         'end_recurring' => $this->end_recurring,
+        //         'status' => EventApprovalStatus::PENDING,
+        //         'recurrence_type' => $this->recurrence_type,
+        //         'organization_id' => $this->organization_id,
+        //         'event_category_id' => $this->event_category_id,
+        //     ]);
 
-            $this->reset();
-        });
+        //     $admin->events()->save($event);
+
+        //     $event->locations()->sync($this->locations);
+        //     $this->handleRecurrence($event);
+
+        //     $this->reset();
+        // });
     }
 
     public function update(): void

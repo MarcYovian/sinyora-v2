@@ -18,8 +18,14 @@ class EventCategory extends Model
     protected $fillable = [
         'name',
         'color',
+        'keywords',
         'is_active',
     ];
+
+    protected $casts = [
+        'keywords' => 'array',
+    ];
+
 
     public function events()
     {

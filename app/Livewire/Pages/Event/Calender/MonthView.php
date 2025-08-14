@@ -4,6 +4,7 @@ namespace App\Livewire\Pages\Event\Calender;
 
 use App\Enums\EventApprovalStatus;
 use App\Models\EventRecurrence;
+use App\Services\BlendColorService;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -26,7 +27,7 @@ class MonthView extends Component
         $endDate = $this->currentDate->clone()->endOf('month')->endOfWeek();
 
         // Ambil semua acara yang sudah disetujui untuk rentang waktu yang relevan
-        return EventRecurrence::with(['event.eventCategory:id,name,color'])
+        $eventRecurrences = EventRecurrence::with(['event.eventCategory:id,name,color', 'event.locations:id,name,color'])
             ->whereHas('event', function ($q) {
                 $q->where('status', EventApprovalStatus::APPROVED);
             })
@@ -34,6 +35,18 @@ class MonthView extends Component
             ->select('id', 'event_id', 'date', 'time_start')
             ->orderBy('time_start')
             ->get();
+
+        $eventRecurrences->each(function ($recurrence) {
+            if ($recurrence->event) {
+                // Ambil semua warna dari lokasi yang terkait
+                $locationColors = $recurrence->event->locations->pluck('color')->filter()->all();
+
+                // Hitung warna background dan tambahkan sebagai properti baru
+                $recurrence->event->computed_background_color = BlendColorService::blend($locationColors);
+            }
+        });
+
+        return $eventRecurrences;
     }
 
     public function render()
