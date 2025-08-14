@@ -13,6 +13,7 @@ interface EventRecurrenceRepositoryInterface
     public function findById(int $id): ?EventRecurrence;
     public function create(Event $event, array $data): Collection;
     public function update(int $id, array $data): bool;
+    public function sync(Event $event, array $data): Collection;
     public function delete(int $id): bool;
     public function findConflicts(array $recurrences, array $locations): Collection;
 }

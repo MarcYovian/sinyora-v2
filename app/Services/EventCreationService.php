@@ -145,6 +145,124 @@ class EventCreationService
         });
     }
 
+    public function getEventById(?int $id): ?Event
+    {
+        return $this->eventRepository->findById($id)->load(['eventCategory', 'organization', 'locations', 'eventRecurrences']);
+    }
+
+    public function updateEvent(Event $event, array $data)
+    {
+        $recurrences = $this->handleRecurrences($data);
+
+        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $data['locations']);
+        if ($conflicts->count() > 0) {
+            $firstConflict = $conflicts->first();
+            $errorMessage = sprintf(
+                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
+                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
+                Carbon::parse($firstConflict->time_start)->format('H:i'),
+                Carbon::parse($firstConflict->time_end)->format('H:i')
+            );
+
+            throw new ScheduleConflictException($errorMessage);
+        }
+
+        $isDailyOrCustom = $data['recurrence_type'] === EventRecurrenceType::DAILY->value || $data['recurrence_type'] === EventRecurrenceType::CUSTOM->value;
+        // dd($data);
+        return DB::transaction(function () use ($event, $data, $isDailyOrCustom, $recurrences) {
+            try {
+                $eventData = [
+                    'name' => $data['name'],
+                    'description' => $data['description'],
+                    'start_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_start'])->format('Y-m-d') : $data['start_recurring'],
+                    'end_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_end'])->format('Y-m-d') : $data['end_recurring'],
+                    'recurrence_type' => $data['recurrence_type'],
+                    'organization_id' => $data['organization_id'],
+                    'event_category_id' => $data['event_category_id'],
+                ];
+
+                $eventUpdated = $this->eventRepository->update($event->id, $eventData);
+
+                if (!$eventUpdated) {
+                    throw new \Exception('Failed to update event.');
+                }
+
+                $event->locations()->sync($data['locations']);
+
+                $this->eventRecurrenceRepository->sync($event, $recurrences);
+            } catch (\Throwable $th) {
+                throw $th;
+            }
+        });
+    }
+
+    public function deleteEvent(Event $event): bool
+    {
+        try {
+            if ($event->status === EventApprovalStatus::APPROVED) {
+                throw new \Exception('Cannot delete an approved event.');
+            }
+            if ($event->status === EventApprovalStatus::REJECTED) {
+                throw new \Exception('Cannot delete a rejected event.');
+            }
+            if ($event->status === EventApprovalStatus::PENDING) {
+                $event->eventRecurrences()->delete();
+                $event->locations()->detach();
+                $event->delete();
+                return true;
+            }
+            throw new \Exception('Invalid event status for deletion.');
+        } catch (\Throwable $th) {
+            throw new \Exception('Failed to delete event: ' . $th->getMessage());
+        }
+    }
+
+    public function approveEvent(Event $event): bool
+    {
+        if ($event->status !== EventApprovalStatus::PENDING) {
+            throw new \Exception('Only pending events can be approved.');
+        }
+
+        $event->load(['eventRecurrences', 'locations']);
+        $recurrences = $event->eventRecurrences->map(function ($recurrence) {
+            return [
+                'date' => $recurrence->date,
+                'time_start' => $recurrence->time_start,
+                'time_end' => $recurrence->time_end,
+            ];
+        })->toArray();
+
+        $locations = $event->locations->pluck('id')->toArray();
+        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locations);
+
+        if ($conflicts->count() > 0) {
+            $firstConflict = $conflicts->first();
+            $errorMessage = sprintf(
+                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
+                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
+                Carbon::parse($firstConflict->time_start)->format('H:i'),
+                Carbon::parse($firstConflict->time_end)->format('H:i')
+            );
+
+            throw new ScheduleConflictException($errorMessage);
+        }
+
+        $event->status = EventApprovalStatus::APPROVED;
+
+        return $event->save();
+    }
+
+    public function rejectEvent(Event $event): bool
+    {
+        if ($event->status !== EventApprovalStatus::PENDING) {
+            throw new \Exception('Only pending events can be rejected.');
+        }
+
+        $event->status = EventApprovalStatus::REJECTED;
+
+        return $event->save();
+    }
+
     private function handleRecurrences(array $data): array
     {
         $startEvent = Carbon::parse($data['datetime_start']);

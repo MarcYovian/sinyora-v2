@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Event extends Model
 {
@@ -113,5 +115,51 @@ class Event extends Model
     public function rejected($query)
     {
         return $query->where('status', EventApprovalStatus::REJECTED);
+    }
+
+    public function firstRecurrence(): HasOne
+    {
+        return $this->hasOne(EventRecurrence::class)
+            ->orderBy('date', 'asc')
+            ->orderBy('time_start', 'asc');
+    }
+
+    public function getContinuousEndDate(): ?Carbon
+    {
+        // Ambil semua jadwal terurut untuk dianalisis
+        $recurrences = $this->eventRecurrences()->orderBy('date', 'asc')->orderBy('time_start', 'asc')->get();
+
+        if ($recurrences->isEmpty()) {
+            return null;
+        }
+
+        // Mulai dengan asumsi jadwal terakhir adalah jadwal pertama
+        $lastContinuousRecurrence = $recurrences->first();
+
+        // Loop mulai dari item kedua untuk membandingkan dengan item sebelumnya
+        for ($i = 1; $i < $recurrences->count(); $i++) {
+            $previous = $recurrences->get($i - 1);
+            $current = $recurrences->get($i);
+
+            // Cek apakah jadwal berkelanjutan (continuous)
+            // Kondisi: Waktu akhir sebelumnya adalah 23:59:59 DAN
+            // Waktu mulai saat ini adalah 00:00:00 PADA HARI BERIKUTNYA.
+            $previousEndTime = $previous->time_end->format('H:i:s');
+            $currentStartTime = $current->time_start->format('H:i:s');
+            $isNextDay = $current->date->isSameDay($previous->date->copy()->addDay());
+
+            if ($previousEndTime === '23:59:59' && $currentStartTime === '00:00:00' && $isNextDay) {
+                // Jika ya, perbarui jadwal terakhir yang kita lacak dan lanjutkan loop
+                $lastContinuousRecurrence = $current;
+            } else {
+                // Jika tidak, berarti blok sudah terputus. Hentikan loop.
+                break;
+            }
+        }
+
+        // Gabungkan tanggal dan waktu dari jadwal terakhir yang berkelanjutan
+        return Carbon::parse(
+            $lastContinuousRecurrence->date->format('Y-m-d') . ' ' . $lastContinuousRecurrence->time_end->format('H:i:s')
+        );
     }
 }

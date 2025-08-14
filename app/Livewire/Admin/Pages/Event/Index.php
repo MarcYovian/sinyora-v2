@@ -54,8 +54,7 @@ class Index extends Component
         $this->authorize('access', 'admin.events.edit');
 
         $this->editId = $id;
-        $event = Event::find($id);
-        $this->form->setEvent($event);
+        $this->form->setEvent($id);
         $this->dispatch('open-modal', 'event-modal');
     }
 
@@ -66,12 +65,12 @@ class Index extends Component
 
             $this->form->update();
             $this->editId = null;
-            $this->dispatch('updateSuccess');
+            toastr()->success(__('Event updated successfully.'));
         } else {
             $this->authorize('access', 'admin.events.create');
 
             $this->form->store();
-            $this->dispatch('createSuccess');
+            toastr()->success(__('Event created successfully.'));
         }
         $this->dispatch('close-modal', 'event-modal');
     }
@@ -81,8 +80,7 @@ class Index extends Component
         $this->authorize('access', 'admin.events.destroy');
 
         $this->deleteId = $id;
-        $event = Event::find($id);
-        $this->form->setEvent($event);
+        $this->form->setEvent($id);
         $this->dispatch('open-modal', 'delete-event-confirmation');
     }
 
@@ -93,7 +91,7 @@ class Index extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            $this->dispatch('deleteSuccess');
+            toastr()->success(__('Event deleted successfully.'));
         }
         $this->dispatch('close-modal', 'delete-event-confirmation');
     }
@@ -101,10 +99,9 @@ class Index extends Component
     public function confirmApprove($id)
     {
         $this->authorize('access', 'admin.events.approve');
-
+        $this->form->resetErrorBag();
         $this->approveId = $id;
-        $event = Event::find($id);
-        $this->form->setEvent($event);
+        $this->form->setEvent($id);
         $this->dispatch('open-modal', 'approve-event-confirmation');
     }
 
@@ -126,8 +123,7 @@ class Index extends Component
         $this->authorize('access', 'admin.events.reject');
 
         $this->rejectId = $id;
-        $event = Event::find($id);
-        $this->form->setEvent($event);
+        $this->form->setEvent($id);
         $this->dispatch('open-modal', 'reject-event-confirmation');
     }
 
@@ -148,7 +144,7 @@ class Index extends Component
         $this->authorize('access', 'admin.events.index');
 
         // table heads
-        $table_heads = ['No', 'Name', 'Recurrence Start', 'Recurrence End', 'Organization', 'Event Category', 'Locations', 'Recurrence Type', 'Status', 'Action'];
+        $table_heads = ['No', 'Event', 'Period', 'Categories', 'Locations', 'Status', 'Action'];
 
         // events list
         $events = Event::with(['eventCategory', 'organization', 'locations', 'eventRecurrences'])

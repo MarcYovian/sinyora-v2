@@ -113,9 +113,44 @@ class EventForm extends Form
         );
     }
 
-    public function setEvent(?Event $event = null): void
+    public function setEvent(?int $id = null): void
     {
-        $this->event = $event;
+        $this->event = $this->eventCreationService->getEventById($id);
+        // dd($this->event->toArray());
+        if ($this->event) {
+            $this->name = $this->event->name;
+            $this->description = $this->event->description;
+            $this->event_category_id = $this->event->event_category_id;
+            $this->organization_id = $this->event->organization_id;
+            $firstRecurrence = $this->event->firstRecurrence;
+
+            if ($firstRecurrence) {
+                $this->datetime_start = Carbon::parse(
+                    $firstRecurrence->date->format('Y-m-d') . ' ' . $firstRecurrence->time_start->format('H:i')
+                )->format('Y-m-d\TH:i');
+
+                $continuousEndDate = $this->event->getContinuousEndDate();
+                if ($continuousEndDate) {
+                    $this->datetime_end = $continuousEndDate->format('Y-m-d\TH:i');
+                }
+            } else {
+                // Jika tidak ada jadwal sama sekali, kosongkan
+                $this->datetime_start = '';
+                $this->datetime_end = '';
+            }
+
+            $this->recurrence_type = $this->event->recurrence_type;
+
+            if ($this->recurrence_type === EventRecurrenceType::WEEKLY || $this->recurrence_type === EventRecurrenceType::BIWEEKLY || $this->recurrence_type === EventRecurrenceType::MONTHLY) {
+                $this->start_recurring = Carbon::parse($this->event->start_recurring)->format('Y-m-d');
+                $this->end_recurring = Carbon::parse($this->event->end_recurring)->format('Y-m-d');
+            } else {
+                $this->start_recurring = '';
+                $this->end_recurring = '';
+            }
+
+            $this->locations = $this->event->locations()->pluck('locations.id')->toArray();
+        }
     }
 
     public function store(): void
@@ -130,281 +165,59 @@ class EventForm extends Form
             Log::error('Error creating event: ' . $e->getMessage());
             throw ValidationException::withMessages(['error' => __('Failed to create event. Please try again.')]);
         }
-
-        // $this->validate();
-
-        // DB::transaction(function () {
-        //     $admin = User::find(Auth::id());
-
-        //     $event = $this->eventRepository->create([
-        //         'name' => $this->name,
-        //         'description' => $this->description,
-        //         'start_recurring' => $this->start_recurring,
-        //         'end_recurring' => $this->end_recurring,
-        //         'status' => EventApprovalStatus::PENDING,
-        //         'recurrence_type' => $this->recurrence_type,
-        //         'organization_id' => $this->organization_id,
-        //         'event_category_id' => $this->event_category_id,
-        //     ]);
-
-        //     $admin->events()->save($event);
-
-        //     $event->locations()->sync($this->locations);
-        //     $this->handleRecurrence($event);
-
-        //     $this->reset();
-        // });
     }
 
     public function update(): void
     {
-        $this->validate();
+        $validated = $this->validate();
 
-        DB::transaction(function () {
-            $this->event->update([
-                'name' => $this->name,
-                'description' => $this->description,
-                'start_recurring' => Carbon::parse($this->start_datetime)->format('Y-m-d'),
-                'end_recurring' => $this->getRecurrenceEndDate(),
-                'recurrence_type' => $this->recurrence_type,
-                'organization_id' => $this->organization_id,
-                'event_category_id' => $this->event_category_id,
-            ]);
-
-            $this->event->locations()->sync($this->locations);
-            $this->event->eventRecurrences()->delete();
-            $this->handleRecurrence($this->event);
-
+        try {
+            $this->eventCreationService->updateEvent($this->event, $validated);
             $this->reset();
-        });
+        } catch (ScheduleConflictException $e) {
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            Log::error('Error updating event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => __('Failed to update event. Please try again.')]);
+        }
     }
 
     public function delete(): void
     {
         if (!$this->event) {
-            return;
+            throw ValidationException::withMessages(['error' => __('Event not found.')]);
         }
 
-        DB::transaction(function () {
-            $this->event->eventRecurrences()->delete();
-            $this->event->locations()->detach();
-            $this->event->delete();
-        });
-
-        $this->reset();
+        try {
+            $this->eventCreationService->deleteEvent($this->event);
+            $this->reset();
+        } catch (\Exception $e) {
+            Log::error('Error deleting event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
+        }
     }
 
     public function approve()
     {
-        if (!$this->event) {
-            return;
+        try {
+            $this->eventCreationService->approveEvent($this->event);
+            $this->reset();
+        } catch (ScheduleConflictException $e) {
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
         }
-
-        $this->event->load('eventRecurrences');
-
-
-
-        DB::transaction(function () {
-
-            if ($this->event->eventRecurrences()->exists()) {
-                foreach ($this->event->eventRecurrences as $eventRecurrence) {
-                    $this->validateNoConflict(
-                        $eventRecurrence->date,
-                        $eventRecurrence->time_start,
-                        $eventRecurrence->time_end,
-                        $this->event->locations->pluck('id')->toArray()
-                    );
-                }
-            }
-
-            $this->event->update([
-                'status' => EventApprovalStatus::APPROVED
-            ]);
-        });
     }
 
     public function reject()
     {
-        if (!$this->event) {
-            return;
+        try {
+            $this->eventCreationService->rejectEvent($this->event);
+            $this->reset();
+        } catch (\Exception $e) {
+            Log::error('Error rejecting event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => $e->getMessage()]);
         }
-        $this->event->load('eventRecurrences');
-        dd($this->event->toArray());
-
-        DB::transaction(function () {
-            $this->event->update([
-                'status' => EventApprovalStatus::REJECTED
-            ]);
-        });
-    }
-
-    protected function handleRecurrence(Event $event): void
-    {
-        $startDate = Carbon::parse($this->start_datetime)->format('Y-m-d');
-        $endDate = Carbon::parse($this->end_datetime)->format('Y-m-d');
-        $startTime = Carbon::parse($this->start_datetime)->format('H:i:s');
-        $endTime = Carbon::parse($this->end_datetime)->format('H:i:s');
-
-        if ($this->recurrence_type === EventRecurrenceType::CUSTOM || $this->recurrence_type === EventRecurrenceType::DAILY) {
-            $this->generateSingleRecurrence($event, $startDate, $endDate, $startTime, $endTime);
-            return;
-        }
-
-        $this->generateRecurringEvents($event, $startDate, $endDate, $startTime, $endTime);
-    }
-
-    protected function generateRecurringEvents(Event $event, $startDate, $endDate, $startTime, $endTime): void
-    {
-        $isSameDay = $startDate === $endDate;
-        $period = CarbonPeriod::create(
-            $this->start_datetime,
-            $this->getInterval(),
-            $this->getRecurrenceEndDate()
-        );
-
-        foreach ($period as $date) {
-            $this->generateDailyRecurrences(
-                $event->id,
-                $date->format('Y-m-d'),
-                $startTime,
-                !$isSameDay ? '23:59:59' : $endTime,
-                $this->locations
-            );
-
-            if (!$isSameDay) {
-                $currentDate = Carbon::parse($date->format('Y-m-d'))->addDay();
-                $endDate = Carbon::parse($date)->addDays(Carbon::parse($this->start_datetime)->diffInDays($this->end_datetime));
-
-                while ($currentDate->lte($endDate)) {
-                    $timeStart = $currentDate->isSameDay($endDate) ? '00:00:00' : ($currentDate->isBefore($endDate) ? '00:00:00' : $startTime);
-                    $timeEnd = $currentDate->isSameDay($endDate) ? $endTime : '23:59:59';
-
-                    $this->generateDailyRecurrences(
-                        $event->id,
-                        $currentDate->format('Y-m-d'),
-                        $timeStart,
-                        $timeEnd,
-                        $this->locations
-                    );
-
-                    $currentDate->addDay();
-                }
-            }
-        }
-    }
-
-    protected function generateSingleRecurrence(Event $event, $startDate, $endDate, $startTime, $endTime): void
-    {
-        $isSameDay = $startDate === $endDate;
-        $this->generateDailyRecurrences(
-            $event->id,
-            $startDate,
-            $startTime,
-            !$isSameDay ? '23:59:59' : $endTime,
-            $this->locations
-        );
-
-        if (!$isSameDay) {
-            $currentDate = Carbon::parse($startDate)->addDay();
-            $endDate = Carbon::parse($endDate);
-
-            while ($currentDate->lte($endDate)) {
-                $timeStart = $currentDate->isSameDay($endDate) ? '00:00:00' : ($currentDate->isBefore($endDate) ? '00:00:00' : $startTime);
-                $timeEnd = $currentDate->isSameDay($endDate) ? $endTime : '23:59:59';
-
-                $this->generateDailyRecurrences(
-                    $event->id,
-                    $currentDate->format('Y-m-d'),
-                    $timeStart,
-                    $timeEnd,
-                    $this->locations
-                );
-
-                $currentDate->addDay();
-            }
-        }
-    }
-
-    protected function generateDailyRecurrences(
-        int $eventId,
-        string $date,
-        string $timeStart,
-        string $timeEnd,
-        array $locations
-    ): void {
-        $this->validateNoConflict($date, $timeStart, $timeEnd, $locations);
-
-        EventRecurrence::create([
-            'event_id' => $eventId,
-            'date' => $date,
-            'time_start' => $timeStart,
-            'time_end' => $timeEnd,
-        ]);
-    }
-
-    protected function validateNoConflict(
-        string $date,
-        string $startTime,
-        string $endTime,
-        array $locations
-    ): void {
-
-        $conflictExists = EventRecurrence::whereHas('event.locations', function ($q) use ($locations) {
-            $q->whereIn('locations.id', $locations);
-        })->whereHas('event', function ($q) {
-            $q->where('status', EventApprovalStatus::APPROVED);
-        })
-            ->where('date', $date)
-            ->where(function ($q) use ($startTime, $endTime) {
-                $q->where([
-                    ['time_start', '<', $endTime],
-                    ['time_end', '>', $startTime]
-                ]);
-            })
-            ->select('id')
-            ->exists();
-        // dd($conflictExists, $startTime, $endTime, $date);
-        if ($conflictExists) {
-            Log::warning('There is a conflict', [
-                'date' => $date,
-                'startTime' => $startTime,
-                'endTime' => $endTime,
-            ]);
-            throw ValidationException::withMessages([
-                'conflict' => __('The schedule conflicts with an existing event on :date between :start and :end', [
-                    'date' => Carbon::parse($date)->format('M j, Y'),
-                    'start' => Carbon::parse($startTime)->format('g:i A'),
-                    'end' => Carbon::parse($endTime)->format('g:i A')
-                ])
-            ]);
-        }
-    }
-
-    protected function getInterval(): string
-    {
-        return match ($this->recurrence_type) {
-            EventRecurrenceType::DAILY => '1 day',
-            EventRecurrenceType::WEEKLY => '1 week',
-            EventRecurrenceType::BIWEEKLY => '2 weeks',
-            EventRecurrenceType::MONTHLY => '1 month',
-            default => '1 day',
-        };
-    }
-
-    protected function getRecurrenceEndDate(): string
-    {
-        if ($this->recurrence_type === EventRecurrenceType::CUSTOM || $this->recurrence_type === EventRecurrenceType::DAILY) {
-            return $this->end_datetime;
-        }
-
-        return Carbon::parse($this->end_datetime)
-            ->addMonthsNoOverflow(3)
-            ->next(Carbon::getDays()[$this->getDayOfWeek()])
-            ->format('Y-m-d');
-    }
-
-    protected function getDayOfWeek(): int
-    {
-        return Carbon::parse($this->start_datetime)->dayOfWeek;
     }
 }

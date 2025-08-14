@@ -89,4 +89,13 @@ class EloquentEventRecurrenceRepository implements EventRecurrenceRepositoryInte
 
         return $conflicts->get();
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function sync(Event $event, array $data): Collection
+    {
+        $event->eventRecurrences()->delete();
+        return $this->create($event, $data);
+    }
 }
