@@ -47,7 +47,7 @@ class Borrowing extends Model
 
     public function event()
     {
-        return $this->belongsTo(Event::class);
+        return $this->morphTo(type: 'borrowable_type', id: 'borrowable_id');
     }
 
     public function document_typable()

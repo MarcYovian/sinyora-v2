@@ -8,7 +8,12 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Event extends Model
 {
@@ -46,17 +51,17 @@ class Event extends Model
         'recurrence_type' => EventRecurrenceType::class,
     ];
 
-    public function creator()
+    public function creator(): MorphTo
     {
         return $this->morphTo();
     }
 
-    public function eventRecurrences()
+    public function eventRecurrences(): HasMany
     {
         return $this->hasMany(EventRecurrence::class);
     }
 
-    public function locations()
+    public function locations(): MorphToMany
     {
         return $this->morphedByMany(
             Location::class,
@@ -65,7 +70,7 @@ class Event extends Model
         );
     }
 
-    public function customLocations()
+    public function customLocations(): MorphToMany
     {
         return $this->morphedByMany(
             CustomLocation::class,
@@ -74,24 +79,24 @@ class Event extends Model
         );
     }
 
-    public function document_typable()
+    public function document_typable(): MorphTo
     {
         return $this->morphTo();
     }
 
-    public function eventCategory()
+    public function eventCategory(): BelongsTo
     {
         return $this->belongsTo(EventCategory::class);
     }
 
-    public function organization()
+    public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
 
-    public function borrowings()
+    public function borrowings(): MorphMany
     {
-        return $this->hasMany(Borrowing::class);
+        return $this->morphMany(Borrowing::class, 'borrowable');
     }
 
     public function schedules()
@@ -100,19 +105,19 @@ class Event extends Model
     }
 
     #[Scope]
-    public function pending($query)
+    public function pending($query): mixed
     {
         return $query->where('status', EventApprovalStatus::PENDING);
     }
 
     #[Scope]
-    public function approved($query)
+    public function approved($query): mixed
     {
         return $query->where('status', EventApprovalStatus::APPROVED);
     }
 
     #[Scope]
-    public function rejected($query)
+    public function rejected($query): mixed
     {
         return $query->where('status', EventApprovalStatus::REJECTED);
     }

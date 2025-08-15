@@ -22,13 +22,13 @@ class LocationSeeder extends Seeder
         Location::create([
             'name' => 'Kapel St Yohanes Rasul Lantai 2',
             'description' => 'Kapel St Yohanes Rasul Lantai 2',
-            'image' => 'https://placehold.co/600x400?text=Hello+World',
+            'image' => 'https://placehold.co/600x400',
             'is_active' => 1,
         ]);
         Location::create([
             'name' => 'Halaman Kapel St Yohanes Rasul',
             'description' => 'Halaman Kapel St Yohanes Rasul',
-            'image' => 'https://placehold.co/600x400?text=Hello+World',
+            'image' => 'https://placehold.co/600x400',
             'is_active' => 1,
         ]);
     }

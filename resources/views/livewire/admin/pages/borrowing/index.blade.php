@@ -88,13 +88,13 @@
                                 @endcan
 
                                 @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                    @can('asset borrowing approve')
+                                    @can('approve borrowing asset')
                                         <x-button size="sm" variant="success" type="button"
                                             wire:click="confirmApprove({{ $borrowing->id }})">
                                             {{ __('Approve') }}
                                         </x-button>
                                     @endcan
-                                    @can('asset borrowing reject')
+                                    @can('reject borowing asset')
                                         <x-button size="sm" variant="danger" type="button"
                                             wire:click="confirmReject({{ $borrowing->id }})">
                                             {{ __('Reject') }}
@@ -308,14 +308,14 @@
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Actions</h3>
                                 <div class="space-y-3">
                                     @if ($this->borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                        @can('asset borrowing approve')
+                                        @can('approve borrowing asset')
                                             <x-button variant="success" class="w-full"
                                                 wire:click="confirmApprove({{ $this->borrowing->id }})">
                                                 <x-heroicon-s-check class="h-5 w-5 mr-2" />
                                                 Approve Request
                                             </x-button>
                                         @endcan
-                                        @can('asset borrowing reject')
+                                        @can('reject borowing asset')
                                             <x-button variant="danger" class="w-full"
                                                 wire:click="confirmReject({{ $this->borrowing->id }})">
                                                 <x-heroicon-s-x-mark class="h-5 w-5 mr-2" />
