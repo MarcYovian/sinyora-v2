@@ -7,6 +7,7 @@ use App\Livewire\Admin\Pages\User;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Asset;
 use App\Models\Borrowing as ModelsBorrowing;
+use App\Models\Event;
 use App\Models\User as ModelsUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -51,30 +52,27 @@ class Create extends Component
     #[Computed]
     public function availableAssets()
     {
-        $assets = $assets = Asset::query()
+        // Hanya jalankan query jika periode waktu valid
+        if (empty($this->form->start_datetime) || empty($this->form->end_datetime)) {
+            return collect();
+        }
+
+        return Asset::query()
             ->where('is_active', true)
-            ->with(['borrowings' => function ($query) {
-                $query->where('status', BorrowingStatus::APPROVED)
+            ->withCount(['borrowings as borrowed_quantity' => function ($query) {
+                $query->where('status', 'approved')
                     ->where(function ($q) {
                         $q->whereBetween('start_datetime', [$this->form->start_datetime, $this->form->end_datetime])
                             ->orWhereBetween('end_datetime', [$this->form->start_datetime, $this->form->end_datetime])
                             ->orWhere(function ($sub) {
-                                $sub->where('start_datetime', '<=', $this->form->start_datetime)
-                                    ->where('end_datetime', '>=', $this->form->end_datetime);
+                                $sub->where('start_datetime', '<', $this->form->start_datetime)
+                                    ->where('end_datetime', '>', $this->form->end_datetime);
                             });
-                    });
+                    })
+                    // FIX: Changed 'borrowing_asset.quantity' to 'asset_borrowing.quantity'
+                    ->select(DB::raw("SUM(asset_borrowing.quantity)"));
             }])
-            ->get()
-            ->map(function ($asset) {
-                // Sum dari pivot table 'quantity'
-                $asset->borrowed_quantity = $asset->borrowings->sum(function ($borrowing) {
-                    return $borrowing->pivot->quantity ?? 0;
-                });
-
-                return $asset;
-            });
-
-        return $assets;
+            ->get();
     }
 
     #[Computed]
@@ -86,30 +84,19 @@ class Create extends Component
             ->toArray();
     }
 
+    #[Computed]
+    public function events()
+    {
+        return Event::all();
+    }
+
     public function store()
     {
         $this->authorize('access', 'admin.asset-borrowings.create');
 
-        $this->validate();
+        $this->form->store();
 
-        DB::transaction(function () {
-            $user = ModelsUser::find(Auth::id());
-
-            $borrowing = new ModelsBorrowing([
-                'start_datetime' => $this->form->start_datetime,
-                'end_datetime' => $this->form->end_datetime,
-                'notes' => $this->form->notes,
-                'borrower' => $this->form->borrower,
-                'borrower_phone' => $this->form->borrower_phone,
-                'status' => BorrowingStatus::PENDING
-            ]);
-
-            $user->borrowings()->save($borrowing);
-
-            $borrowing->assets()->sync($this->form->assets);
-
-            toastr()->success('Borrowing berhasil disimpan');
-        });
+        toastr()->success('Borrowing berhasil disimpan');
 
         return redirect()->route('admin.asset-borrowings.index');
     }

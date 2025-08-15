@@ -4,15 +4,22 @@ namespace App\Livewire\Forms;
 
 use App\Enums\BorrowingStatus;
 use App\Models\Borrowing;
+use App\Repositories\Eloquent\EloquentActivityRepository;
+use App\Repositories\Eloquent\EloquentBorrowingRepository;
+use App\Repositories\Eloquent\EloquentEventRepository;
 use App\Rules\AssetAvailability;
 use App\Rules\ValidBorrowingPeriod;
+use App\Services\BorrowingManagementService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class BorrowingForm extends Form
 {
+    protected $borrowingManagementService;
     public ?Borrowing $borrowing = null;
 
     public array $assets = [];
@@ -21,6 +28,10 @@ class BorrowingForm extends Form
     public string $notes = '';
     public string $borrower = '';
     public string $borrower_phone = '';
+    public ?string $borrowable_type = null;
+    public ?int $borrowable_id = null;
+    public string $activity_name = '';
+    public string $activity_location = '';
 
     public function rules()
     {
@@ -81,6 +92,21 @@ class BorrowingForm extends Form
             'notes' => ['nullable', 'string', 'max:1000'],
             'borrower' => ['required', 'string', 'max:100'],
             'borrower_phone' => ['required', 'string', 'max:100'],
+            'borrowable_type' => ['required', Rule::in(['event', 'activity'])],
+            'borrowable_id' => [
+                Rule::requiredIf($this->borrowable_type === 'event'),
+                Rule::when($this->borrowable_type === 'event', [
+                    Rule::exists('events', 'id'),
+                ]),
+            ],
+            'activity_name' => [
+                Rule::requiredIf($this->borrowable_type === 'activity'),
+                Rule::when($this->borrowable_type === 'activity', [
+                    'string',
+                    'max:255',
+                ]),
+            ],
+            'activity_location' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -101,7 +127,27 @@ class BorrowingForm extends Form
             'notes.max' => 'Catatan tidak boleh lebih dari 1000 karakter.',
             'borrower.required' => 'Nama peminjam harus diisi.',
             'borrower_phone.required' => 'Nomor telepon peminjam harus diisi.',
+            'borrowable_type.required' => 'Tipe peminjaman harus diisi.',
+            'borrowable_type.in' => 'Tipe peminjaman tidak valid.',
+            'borrowable_id.required_if' => 'ID peminjaman harus diisi jika tipe peminjaman adalah event.',
+            'borrowable_id.exists' => 'ID peminjaman tidak valid.',
+            'activity_name.required_if' => 'Nama aktivitas harus diisi jika tipe peminjaman adalah aktivitas.',
+            'activity_name.string' => 'Nama aktivitas harus berupa string.',
+            'activity_name.max' => 'Nama aktivitas tidak boleh lebih dari 255 karakter.',
+            'activity_location.string' => 'Lokasi aktivitas harus berupa string.',
+            'activity_location.max' => 'Lokasi aktivitas tidak boleh lebih dari 255 karakter.',
         ];
+    }
+
+    public function __construct(\Livewire\Component $component, $propertyName)
+    {
+        parent::__construct($component, $propertyName);
+
+        $this->borrowingManagementService = new BorrowingManagementService(
+            new EloquentBorrowingRepository(),
+            new EloquentEventRepository(),
+            new EloquentActivityRepository()
+        );
     }
 
     public function setBorrowing(?Borrowing $borrowing)
@@ -124,20 +170,15 @@ class BorrowingForm extends Form
 
     public function store()
     {
-        $this->validate();
+        $validated = $this->validate();
 
-        $borrowing = Borrowing::create([
-            'start_datetime' => $this->start_datetime,
-            'end_datetime' => $this->end_datetime,
-            'notes' => $this->notes,
-            'borrower' => $this->borrower,
-            'borrower_phone' => $this->borrower_phone,
-            'status' => BorrowingStatus::PENDING
-        ]);
-
-        $borrowing->assets()->sync($this->assets);
-
-        $this->reset();
+        try {
+            $this->borrowingManagementService->createNewBorrowing($validated);
+            $this->reset();
+        } catch (\Exception $e) {
+            Log::error('Error creating event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => __('Failed to create event. Please try again.')]);
+        }
     }
 
     public function update()
@@ -209,6 +250,27 @@ class BorrowingForm extends Form
 
         $this->borrowing->update([
             'status' => BorrowingStatus::APPROVED,
+        ]);
+
+        $this->reset();
+    }
+
+    public function reject($rejectId)
+    {
+        $this->borrowing = Borrowing::find($rejectId);
+
+        if (!$this->borrowing) {
+            $this->addError('borrowing', 'Borrowing not found.');
+            return;
+        }
+
+        if ($this->borrowing->status !== BorrowingStatus::PENDING) {
+            $this->addError('borrowing', 'Borrowing status is not pending.');
+            return;
+        }
+
+        $this->borrowing->update([
+            'status' => BorrowingStatus::REJECTED,
         ]);
 
         $this->reset();

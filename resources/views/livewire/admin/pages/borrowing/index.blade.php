@@ -1,11 +1,217 @@
 <div>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Data Borrowings') }}
+    <header class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+            {{ __('Manajemen Peminjaman Aset') }}
         </h2>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Kelola semua permintaan peminjaman aset yang masuk.
+        </p>
     </header>
 
-    <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+        <div class="p-4 sm:p-6 space-y-4">
+            {{-- Header Kontrol: Tombol, Filter, dan Pencarian --}}
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                @can('create asset borrowing')
+                    <x-button type="button" variant="primary" href="{{ route('admin.asset-borrowings.create') }}"
+                        class="w-full sm:w-auto">
+                        <x-heroicon-s-plus class="w-5 h-5 mr-2" />
+                        <span>{{ __('Buat Peminjaman') }}</span>
+                    </x-button>
+                @endcan
+                <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
+                    <div class="w-full sm:w-auto sm:flex-grow">
+                        <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
+                            placeholder="{{ __('Cari nama peminjam/event...') }}" />
+                    </div>
+                    <div class="w-full sm:w-48">
+                        <x-select wire:model.live="filterStatus" class="w-full">
+                            <option value="">{{ __('Semua Status') }}</option>
+                            @foreach (App\Enums\BorrowingStatus::cases() as $status)
+                                <option value="{{ $status->value }}">{{ $status->label() }}</option>
+                            @endforeach
+                        </x-select>
+                    </div>
+                    @if ($search || $filterStatus)
+                        <x-button type="button" wire:click="resetFilters" variant="secondary" class="w-full sm:w-auto">
+                            {{ __('Reset') }}
+                        </x-button>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Indikator Loading --}}
+            <div wire:loading.flex class="items-center justify-center w-full py-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
+                    <span>Memuat data...</span>
+                </div>
+            </div>
+
+            <div wire:loading.remove>
+                {{-- Tampilan Card untuk Mobile (Mobile First) --}}
+                <div class="grid grid-cols-1 gap-4 md:hidden">
+                    @forelse ($borrowings as $borrowing)
+                        <div wire:key="borrowing-card-{{ $borrowing->id }}"
+                            class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                            {{ $borrowing->borrower }}
+                                        </p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            Diajukan {{ $borrowing->created_at->diffForHumans() }}
+                                        </p>
+                                        <x-status-badge :status="$borrowing->status" />
+                                    </div>
+                                    {{-- Dropdown Aksi untuk Mobile --}}
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-1.5 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            @can('edit asset borrowing')
+                                                <x-dropdown-link
+                                                    href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">Edit</x-dropdown-link>
+                                            @endcan
+                                            @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                                @can('approve borrowing asset')
+                                                    <x-dropdown-link href="#"
+                                                        wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
+                                                @endcan
+                                                @can('reject borowing asset')
+                                                    <x-dropdown-link href="#"
+                                                        wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
+                                                @endcan
+                                            @endif
+                                            <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                                            @can('delete asset borrowing')
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmDelete({{ $borrowing->id }})"
+                                                    class="text-red-600 dark:text-red-500">Delete
+                                                </x-dropdown-link>
+                                            @endcan
+                                        </x-slot>
+                                    </x-dropdown>
+                                </div>
+                                <div class="mt-3 pt-3 border-t dark:border-gray-700 space-y-2 text-sm">
+                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                        <x-heroicon-o-calendar class="w-4 h-4 mr-2 flex-shrink-0" />
+                                        <span>{{ $borrowing->start_datetime->format('d M Y, H:i') }} -
+                                            {{ $borrowing->end_datetime->format('H:i') }}</span>
+                                    </div>
+                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                        <x-heroicon-o-link class="w-4 h-4 mr-2 flex-shrink-0" />
+                                        <span>{{ $borrowing->event?->name ?? 'Aktivitas Internal' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900/50 px-4 py-2 flex items-center justify-end gap-2">
+                                <x-button wire:click="show({{ $borrowing->id }})" variant="secondary" size="sm">
+                                    Detail
+                                </x-button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-12 text-gray-500 dark:text-gray-400 col-span-1">
+                            <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                            <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data peminjaman') }}</h4>
+                            <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau buat peminjaman baru.') }}</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Tampilan Table untuk Desktop --}}
+                <div class="hidden md:block">
+                    <x-table :heads="$table_heads">
+                        @forelse ($borrowings as $borrowing)
+                            <tr wire:key="borrowing-row-{{ $borrowing->id }}"
+                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $loop->iteration + $borrowings->firstItem() - 1 }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="font-semibold text-gray-800 dark:text-gray-200">
+                                        {{ $borrowing->borrower }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $borrowing->creator->name }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    <div>{{ $borrowing->start_datetime->translatedFormat('d M Y, H:i') }}</div>
+                                    <div class="text-xs">sampai</div>
+                                    <div>{{ $borrowing->end_datetime->translatedFormat('d M Y, H:i') }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $borrowing->event?->name ?? 'Aktivitas Internal' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <x-status-badge :status="$borrowing->status" />
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{-- Dropdown Aksi untuk Desktop --}}
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800">
+                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            @can('view asset borrowing details')
+                                                <x-dropdown-link href="#"
+                                                    wire:click="show({{ $borrowing->id }})">Detail</x-dropdown-link>
+                                            @endcan
+                                            @can('edit asset borrowing')
+                                                <x-dropdown-link
+                                                    href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">Edit</x-dropdown-link>
+                                            @endcan
+                                            @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                                @can('approve borrowing asset')
+                                                    <x-dropdown-link href="#"
+                                                        wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
+                                                @endcan
+                                                @can('reject borowing asset')
+                                                    <x-dropdown-link href="#"
+                                                        wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
+                                                @endcan
+                                            @endif
+                                            <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                                            @can('delete asset borrowing')
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmDelete({{ $borrowing->id }})"
+                                                    class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
+                                            @endcan
+                                        </x-slot>
+                                    </x-dropdown>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($table_heads) }}"
+                                    class="text-center py-12 text-gray-500 dark:text-gray-400">
+                                    <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                                    <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data peminjaman') }}</h4>
+                                    <p class="mt-1 text-sm">
+                                        {{ __('Coba ubah filter Anda atau buat peminjaman baru.') }}</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </x-table>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pagination --}}
+        <div class="px-4 sm:px-6 py-4">
+            {{ $borrowings->links() }}
+        </div>
+    </div>
+
+    {{-- <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
             @can('create asset borrowing')
                 <x-button type="button" variant="primary" href="{{ route('admin.asset-borrowings.create') }}"
@@ -117,7 +323,7 @@
         <div class="px-6 py-4">
             {{ $borrowings->links() }}
         </div>
-    </div>
+    </div> --}}
 
     <x-modal name="borrowing-detail-modal" maxWidth="5xl" focusable>
         @if ($this->borrowing)
@@ -168,7 +374,8 @@
                                         </p>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</p>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number
+                                        </p>
                                         <p class="mt-1 text-gray-900 dark:text-gray-100">
                                             {{ $this->borrowing->borrower_phone }}
                                         </p>
@@ -288,15 +495,8 @@
                                     </h3>
                                     <div class="space-y-2">
                                         <h4 class="font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $this->borrowing->event->name }}</h4>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ \Carbon\Carbon::parse($this->borrowing->event->start_datetime)->format('M j, Y g:i A') }}
-                                            -
-                                            {{ \Carbon\Carbon::parse($this->borrowing->event->end_datetime)->format('M j, Y g:i A') }}
-                                        </p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                                            {{ $this->borrowing->event->description }}
-                                        </p>
+                                            {{ $this->borrowing->event->name }}
+                                        </h4>
                                     </div>
                                 </div>
                             </div>

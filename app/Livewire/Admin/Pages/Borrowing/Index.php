@@ -7,6 +7,7 @@ use App\Livewire\Forms\BorrowingForm;
 use App\Models\Borrowing;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -18,28 +19,42 @@ class Index extends Component
 
     public BorrowingForm $form;
 
-    public $borrowing = [];
+    public $borrowing;
 
     public $approveId;
-
     public $rejectId;
     public $deleteId;
+
+    #[Url(keep: true)]
+    public string $search = '';
+
+    #[Url(as: 'status', keep: true)]
+    public string $filterStatus = '';
+
+    public function updated($propertyName): void
+    {
+        if (in_array($propertyName, ['search', 'filterStatus'])) {
+            $this->resetPage();
+        }
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filterStatus');
+        $this->resetPage();
+    }
 
     public function show(Borrowing $borrowing)
     {
         $this->authorize('access', 'admin.asset-borrowings.show');
-
         $this->reset('borrowing');
         $this->borrowing = $borrowing->load(['assets', 'creator', 'event']);
-        // dd($this->borrowing->toArray());
-
         $this->dispatch('open-modal', 'borrowing-detail-modal');
     }
 
     public function confirmApprove($id)
     {
         $this->authorize('access', 'admin.asset-borrowings.approve');
-
         $this->approveId = $id;
         $this->dispatch('open-modal', 'approve-borrowing-confirmation');
     }
@@ -47,16 +62,13 @@ class Index extends Component
     public function confirmReject($id)
     {
         $this->authorize('access', 'admin.asset-borrowings.reject');
-
         $this->rejectId = $id;
         $this->dispatch('open-modal', 'reject-borrowing-confirmation');
     }
 
     public function confirmDelete(Borrowing $borrowing)
     {
-        // $this->authorize('access', 'admin.asset-borrowings.delete');
-
-        // dd($borrowing);
+        $this->authorize('access', 'admin.asset-borrowings.destroy');
         $this->deleteId = $borrowing->id;
         $this->borrowing = $borrowing;
         $this->dispatch('open-modal', 'delete-borrowing-confirmation');
@@ -65,15 +77,9 @@ class Index extends Component
     public function approve()
     {
         $this->authorize('access', 'admin.asset-borrowings.approve');
-
         if ($this->approveId) {
             $this->form->approve($this->approveId);
-
-            if ($this->getErrorBag()->isNotEmpty()) {
-                toastr()->error($this->getErrorBag()->first());
-                return;
-            }
-
+            $this->approveId = null;
             toastr()->success('Borrowing approved successfully');
         }
         $this->dispatch('close-modal', 'approve-borrowing-confirmation');
@@ -85,7 +91,7 @@ class Index extends Component
         $this->authorize('access', 'admin.asset-borrowings.reject');
 
         if ($this->rejectId) {
-            Borrowing::find($this->rejectId)->update(['status' => BorrowingStatus::REJECTED]);
+            $this->form->reject($this->rejectId);
             $this->rejectId = null;
             toastr()->success('Borrowing rejected successfully');
         }
@@ -111,10 +117,22 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.asset-borrowings.index');
 
-        $table_heads = ['#', 'Borrower', 'Event', 'date', 'Note', 'Status', 'Actions'];
+        $table_heads = ['#', 'Peminjam', 'Periode', 'Aktivitas Terkait', 'Status', ''];
 
-        $borrowings = Borrowing::with(['assets', 'creator', 'event'])->latest()->paginate(5);
-        // dd($borrowings->toArray());
+        $borrowings = Borrowing::query()
+            ->with(['creator', 'event'])
+            ->when($this->search, function ($query) {
+                $query->where('borrower', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('event', function ($q) {
+                        $q->where('name', 'like', '%' . $this->search . '%');
+                    });
+            })
+            ->when($this->filterStatus, function ($query) {
+                $query->where('status', $this->filterStatus);
+            })
+            ->latest()
+            ->paginate(10);
+
         return view('livewire.admin.pages.borrowing.index', [
             'table_heads' => $table_heads,
             'borrowings' => $borrowings

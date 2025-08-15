@@ -14,27 +14,17 @@ class StatusBadge extends Component
     /**
      * Create a new component instance.
      */
-    public function __construct(?EventApprovalStatus $status)
+    public function __construct(object $status = null)
     {
-        [$this->label, $this->colorClasses] = match ($status) {
-            EventApprovalStatus::APPROVED => [
-                __('Approved'),
-                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-            ],
-            EventApprovalStatus::PENDING => [
-                __('Pending'),
-                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-            ],
-            EventApprovalStatus::REJECTED => [
-                __('Rejected'),
-                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-            ],
-            // Default case jika status tidak dikenali atau null
-            default => [
-                __('Unknown'),
-                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-            ],
-        };
+        if ($status && method_exists($status, 'label') && method_exists($status, 'color')) {
+            // Jika objek status valid dan memiliki method yang dibutuhkan, panggil method tersebut.
+            $this->label = $status->label();
+            $this->colorClasses = $status->color();
+        } else {
+            // Fallback jika status null atau tidak memiliki method yang diharapkan.
+            $this->label = __('Unknown');
+            $this->colorClasses = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\BorrowingStatus;
+use App\Models\Activity;
 use App\Models\Borrowing;
 use App\Models\Event;
 use App\Models\GuestSubmitter;
@@ -23,23 +24,15 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function create(User|GuestSubmitter $creator, ?Event $event, array $data): Borrowing
+    public function create(User|GuestSubmitter $creator, Event|Activity $event, array $data): Borrowing
     {
-        if ($creator instanceof User) {
-            $borrowerName = $creator->name;
-            $borrowerPhone = $creator->phone;
-        } else {
-            $borrowerName = $data['guestName'];
-            $borrowerPhone = $data['guestPhone'];
-        }
-
         $borrowing = new Borrowing([
             'start_datetime' => $data['start_datetime'],
             'end_datetime' => $data['end_datetime'],
             'notes' => $data['notes'] ?? null,
             'status' => BorrowingStatus::PENDING,
-            'borrower' => $borrowerName,
-            'borrower_phone' => $borrowerPhone,
+            'borrower' => $data['borrower'] ?? null,
+            'borrower_phone' => $data['borrower_phone'] ?? null,
         ]);
 
         $borrowing->creator()->associate($creator);

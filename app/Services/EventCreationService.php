@@ -133,9 +133,9 @@ class EventCreationService
                     $this->borrowingRepository->create($guest, $event, [
                         'start_datetime' => $data['datetime_start'],
                         'end_datetime' => $data['datetime_end'],
-                        'notes' => $data['notes'] ?? '',
-                        'guestName' => $data['guestName'],
-                        'guestPhone' => $data['guestPhone'],
+                        'notes' => $data['borrowingNotes'] ?? '',
+                        'borrower' => $data['guestName'] ?? '',
+                        'borrower_phone' => $data['guestPhone'] ?? '',
                         'assets' => $data['assets'] ?? [],
                     ]);
                 }
