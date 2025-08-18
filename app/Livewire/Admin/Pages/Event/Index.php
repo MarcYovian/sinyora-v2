@@ -9,6 +9,8 @@ use App\Models\EventCategory;
 use App\Models\Location;
 use App\Models\Organization;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -109,13 +111,21 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.events.approve');
 
-        if ($this->approveId) {
+        if (!$this->approveId) {
+            return;
+        }
+        try {
             $this->form->approve();
             $this->approveId = null;
-            if ($this->getErrorBag());
-            $this->dispatch('approveSuccess');
+            toastr()->success('Event approved successfully.');
+            $this->dispatch('close-modal', 'approve-event-confirmation');
+        } catch (ValidationException $e) {
+            toastr()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            // 4. Tangkap error umum lainnya
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
         }
-        $this->dispatch('close-modal', 'approve-event-confirmation');
     }
 
     public function confirmReject($id)
@@ -131,12 +141,22 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.events.reject');
 
-        if ($this->rejectId) {
+        if (!$this->rejectId) {
+            return;
+        }
+
+        try {
             $this->form->reject();
             $this->rejectId = null;
-            $this->dispatch('rejectSuccess');
+            toastr()->success('Event rejected successfully.');
+            $this->dispatch('close-modal', 'reject-event-confirmation');
+        } catch (ValidationException $e) {
+            toastr()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            // 4. Tangkap error umum lainnya
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
         }
-        $this->dispatch('close-modal', 'reject-event-confirmation');
     }
 
     public function render()

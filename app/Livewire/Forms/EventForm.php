@@ -18,7 +18,6 @@ use Livewire\Form;
 
 class EventForm extends Form
 {
-    protected $eventCreationService;
     public ?Event $event;
 
 
@@ -93,22 +92,9 @@ class EventForm extends Form
         ];
     }
 
-    public function __construct(
-        \Livewire\Component $component,
-        $propertyName
-    ) {
-        parent::__construct($component, $propertyName);
-        $this->eventCreationService = new EventCreationService(
-            new EloquentEventRepository(),
-            new EloquentEventRecurrenceRepository(),
-            new EloquentUserRepository(),
-            new EloquentBorrowingRepository()
-        );
-    }
-
     public function setEvent(?int $id = null): void
     {
-        $this->event = $this->eventCreationService->getEventById($id);
+        $this->event = app(EventCreationService::class)->getEventById($id);
         // dd($this->event->toArray());
         if ($this->event) {
             $this->name = $this->event->name;
@@ -151,7 +137,8 @@ class EventForm extends Form
         $validated = $this->validate();
 
         try {
-            $this->eventCreationService->createEvent($validated);
+            app(EventCreationService::class)->createEvent($validated);
+            $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {
@@ -165,7 +152,7 @@ class EventForm extends Form
         $validated = $this->validate();
 
         try {
-            $this->eventCreationService->updateEvent($this->event, $validated);
+            app(EventCreationService::class)->updateEvent($this->event, $validated);
             $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
@@ -182,7 +169,7 @@ class EventForm extends Form
         }
 
         try {
-            $this->eventCreationService->deleteEvent($this->event);
+            app(EventCreationService::class)->deleteEvent($this->event);
             $this->reset();
         } catch (\Exception $e) {
             Log::error('Error deleting event: ' . $e->getMessage());
@@ -193,7 +180,7 @@ class EventForm extends Form
     public function approve()
     {
         try {
-            $this->eventCreationService->approveEvent($this->event);
+            app(EventCreationService::class)->approveEvent($this->event);
             $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
@@ -206,7 +193,7 @@ class EventForm extends Form
     public function reject()
     {
         try {
-            $this->eventCreationService->rejectEvent($this->event);
+            app(EventCreationService::class)->rejectEvent($this->event);
             $this->reset();
         } catch (\Exception $e) {
             Log::error('Error rejecting event: ' . $e->getMessage());

@@ -13,15 +13,16 @@ class Borrowing extends Model
     protected $table = 'borrowings';
 
     protected $fillable = [
-        'asset_id',
-        'created_by',
-        'event_id',
         'start_datetime',
         'end_datetime',
         'notes',
         'borrower',
         'borrower_phone',
         'status',
+        'creator_id',
+        'creator_type',
+        'borrowable_id',
+        'borrowable_type',
     ];
 
     protected function casts()

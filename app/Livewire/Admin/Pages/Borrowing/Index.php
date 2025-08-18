@@ -6,6 +6,8 @@ use App\Enums\BorrowingStatus;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Borrowing;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -70,47 +72,72 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.asset-borrowings.destroy');
         $this->deleteId = $borrowing->id;
-        $this->borrowing = $borrowing;
         $this->dispatch('open-modal', 'delete-borrowing-confirmation');
     }
 
     public function approve()
     {
         $this->authorize('access', 'admin.asset-borrowings.approve');
-        if ($this->approveId) {
-            $this->form->approve($this->approveId);
-            $this->approveId = null;
-            toastr()->success('Borrowing approved successfully');
+        if (!$this->approveId) {
+            return;
         }
-        $this->dispatch('close-modal', 'approve-borrowing-confirmation');
-        $this->dispatch('close-modal', 'borrowing-detail-modal');
+        try {
+            $this->form->approve($this->approveId);
+
+            // 2. Baris ini HANYA akan berjalan jika tidak ada exception (proses sukses)
+            toastr()->success('Peminjaman berhasil disetujui.');
+            $this->approveId = null;
+            $this->dispatch('close-modal', 'approve-borrowing-confirmation');
+            $this->dispatch('close-modal', 'borrowing-detail-modal');
+        } catch (ValidationException $e) {
+            toastr()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            // 4. Tangkap error umum lainnya
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
+        }
     }
 
     public function reject()
     {
         $this->authorize('access', 'admin.asset-borrowings.reject');
-
-        if ($this->rejectId) {
-            $this->form->reject($this->rejectId);
-            $this->rejectId = null;
-            toastr()->success('Borrowing rejected successfully');
+        if (!$this->rejectId) {
+            return;
         }
-        $this->dispatch('close-modal', 'reject-borrowing-confirmation');
-        $this->dispatch('close-modal', 'borrowing-detail-modal');
+
+        try {
+            $this->form->reject($this->rejectId);
+            toastr()->success('Peminjaman berhasil ditolak.');
+            $this->dispatch('close-modal', 'reject-borrowing-confirmation');
+            $this->dispatch('close-modal', 'borrowing-detail-modal');
+        } catch (ValidationException $e) {
+            toastr()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
+        } finally {
+            $this->rejectId = null;
+        }
     }
 
     public function destroy()
     {
         $this->authorize('access', 'admin.asset-borrowings.destroy');
 
-        if ($this->deleteId) {
-            $this->form->setBorrowing(Borrowing::find($this->deleteId));
-            $this->form->destroy();
-            $this->deleteId = null;
-            $this->borrowing = [];
-            toastr()->success('Borrowing deleted successfully');
+        if (!$this->deleteId) {
+            return;
         }
-        $this->dispatch('close-modal', 'delete-borrowing-confirmation');
+
+        try {
+            $this->form->destroy($this->deleteId);
+            toastr()->success('Peminjaman berhasil dihapus.');
+            $this->dispatch('close-modal', 'delete-borrowing-confirmation');
+        } catch (\Exception $e) {
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Deletion Exception in Component: ' . $e->getMessage());
+        } finally {
+            $this->deleteId = null;
+        }
     }
 
     public function render()

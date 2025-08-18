@@ -2,30 +2,15 @@
 
 namespace App\Livewire\Forms;
 
-use App\Enums\EventApprovalStatus;
-use App\Enums\EventRecurrenceType;
 use App\Exceptions\ScheduleConflictException;
-use App\Models\Event;
-use App\Models\EventRecurrence;
-use App\Models\GuestSubmitter;
-use App\Repositories\Eloquent\EloquentBorrowingRepository;
-use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
-use App\Repositories\Eloquent\EloquentEventRepository;
-use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Services\EventCreationService;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule as ValidationRule;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Locked;
-use Livewire\Attributes\Rule;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class EventProposalForm extends Form
 {
-    protected $eventCreationService;
     public string $guestName = '';
     public string $guestEmail = '';
     public string $guestPhone = '';
@@ -85,23 +70,12 @@ class EventProposalForm extends Form
         ];
     }
 
-    public function __construct(\Livewire\Component $component, $propertyName)
-    {
-        parent::__construct($component, $propertyName);
-        $this->eventCreationService = new EventCreationService(
-            new EloquentEventRepository(),
-            new EloquentEventRecurrenceRepository(),
-            new EloquentUserRepository(),
-            new EloquentBorrowingRepository()
-        );
-    }
-
     public function store()
     {
         $validated = $this->validate();
 
         try {
-            $this->eventCreationService->createEventForGuest($validated);
+            app(EventCreationService::class)->createEventForGuest($validated);
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {

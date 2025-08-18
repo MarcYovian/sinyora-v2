@@ -3,11 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\BorrowingStatus;
-use App\Models\Activity;
 use App\Models\Borrowing;
-use App\Models\Event;
-use App\Models\GuestSubmitter;
-use App\Models\User;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
 use Illuminate\Support\Collection;
 
@@ -24,24 +20,20 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function create(User|GuestSubmitter $creator, Event|Activity $event, array $data): Borrowing
+    public function create(array $data): Borrowing
     {
-        $borrowing = new Borrowing([
+        $borrowing = Borrowing::create([
             'start_datetime' => $data['start_datetime'],
             'end_datetime' => $data['end_datetime'],
             'notes' => $data['notes'] ?? null,
             'status' => BorrowingStatus::PENDING,
             'borrower' => $data['borrower'] ?? null,
             'borrower_phone' => $data['borrower_phone'] ?? null,
+            'creator_id' => $data['creator_id'],
+            'creator_type' => $data['creator_type'],
+            'borrowable_id' => $data['borrowable_id'],
+            'borrowable_type' => $data['borrowable_type'],
         ]);
-
-        $borrowing->creator()->associate($creator);
-
-        if ($event) {
-            $borrowing->event()->associate($event);
-        }
-
-        $borrowing->save();
 
         $assetsToSync = [];
         if (!empty($data['assets'])) {
@@ -66,6 +58,8 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
             return false;
         }
 
+        $borrowing->assets()->detach();
+
         return $borrowing->delete();
     }
 
@@ -89,6 +83,32 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
 
         // Update the borrowing with the provided data
         $borrowing->fill($data);
+
+        if (isset($data['assets'])) {
+            $assetsToSync = [];
+            foreach ($data['assets'] as $assetData) {
+                // Pastikan formatnya benar sebelum sync
+                $assetsToSync[$assetData['asset_id']] = ['quantity' => $assetData['quantity']];
+            }
+            // Lakukan sync pada relasi pivot table asset_borrowing
+            $borrowing->assets()->sync($assetsToSync);
+        }
+
+        $borrowing->save();
+
+        return $borrowing;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function updateStatus(int $id, BorrowingStatus $status): Borrowing
+    {
+        $borrowing = $this->findById($id);
+        if (!$borrowing) {
+            throw new \Exception("Borrowing with ID {$id} not found.");
+        }
+        $borrowing->status = $status;
         $borrowing->save();
 
         return $borrowing;

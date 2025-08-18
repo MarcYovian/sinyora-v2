@@ -8,6 +8,8 @@ use App\Models\EventCategory as Category;
 use App\Models\GuestSubmitter;
 use App\Models\Location;
 use App\Models\Organization;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -35,10 +37,18 @@ class ManualProposalForm extends Component
         } else {
             $this->form->assets = [];
         }
+        try {
 
-        $this->form->store();
-        toastr()->success('Proposal created successfully');
-        $this->dispatch('close-modal', 'proposal-modal');
+            $this->form->store();
+            toastr()->success('Proposal created successfully');
+            $this->dispatch('close-modal', 'proposal-modal');
+        } catch (ValidationException $e) {
+            toastr()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            // 4. Tangkap error umum lainnya
+            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
+        }
     }
 
     #[Computed]

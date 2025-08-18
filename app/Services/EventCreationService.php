@@ -130,14 +130,20 @@ class EventCreationService
                 $this->eventRecurrenceRepository->create($event, $recurrences);
 
                 if ($data['enableBorrowing'] && !empty($data['assets'])) {
-                    $this->borrowingRepository->create($guest, $event, [
+                    $borrowingData = [
                         'start_datetime' => $data['datetime_start'],
                         'end_datetime' => $data['datetime_end'],
                         'notes' => $data['borrowingNotes'] ?? '',
                         'borrower' => $data['guestName'] ?? '',
                         'borrower_phone' => $data['guestPhone'] ?? '',
                         'assets' => $data['assets'] ?? [],
-                    ]);
+                        'creator_id' => $guest->id,
+                        'creator_type' => $guest->getMorphClass(),
+                        'borrowable_id' => $event->id,
+                        'borrowable_type' => $event->getMorphClass(),
+                    ];
+
+                    $this->borrowingRepository->create($borrowingData);
                 }
             } catch (\Throwable $th) {
                 throw $th;

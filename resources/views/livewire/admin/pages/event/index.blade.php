@@ -454,28 +454,16 @@
                 {{ __('Are you sure you want to delete this event?') }}
             </h2>
 
-            @if ($errors->isNotEmpty())
-                <div
-                    class="mb-6 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700/50">
-                    <div class="flex items-center gap-3 text-red-600 dark:text-red-400">
-                        <x-heroicon-s-exclamation-triangle class="h-6 w-6" />
-                        <div>
-                            <h3 class="font-semibold">{{ __('Oops, something went wrong!') }}</h3>
-                            <p>{{ $errors->first() }}</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 {{ __('This action cannot be undone.') }}
             </p>
+
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 {{ __('Please confirm that you want to delete this event by clicking the button below.') }}
             </p>
 
             <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
@@ -492,19 +480,12 @@
                 {{ __('Are you sure you want to approve this event?') }}
             </h2>
 
-            @if ($errors->isNotEmpty())
-                <div class="mt-6 p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-300"
-                    role="alert">
-                    <span class="font-medium">Error!</span> {{ $errors->first() }}
-                </div>
-            @else
-                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    {{ __('This action cannot be undone.') }}
-                </p>
-            @endif
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('This action cannot be undone.') }}
+            </p>
 
             <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
@@ -526,7 +507,7 @@
             </p>
 
             <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 

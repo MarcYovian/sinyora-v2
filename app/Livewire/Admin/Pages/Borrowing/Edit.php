@@ -6,6 +6,7 @@ use App\Enums\BorrowingStatus;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Asset;
 use App\Models\Borrowing;
+use App\Models\Event;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -24,8 +25,6 @@ class Edit extends Component
         $this->authorize('access', 'admin.asset-borrowings.edit');
 
         $this->form->setBorrowing($borrowing);
-
-        // dd($this->form);
     }
 
     public function addAsset()
@@ -98,6 +97,12 @@ class Edit extends Component
     public function cancel()
     {
         $this->form->reset();
+    }
+
+    #[Computed]
+    public function events()
+    {
+        return Event::all();
     }
 
     public function render()

@@ -55,7 +55,7 @@ class AssetAvailability implements ValidationRule
 
         $availableQuantity = $asset->quantity - $totalBorrowed;
         if ($value > $availableQuantity) {
-            $fail("Jumlah tidak tersedia. Stok tersisa: {$availableQuantity}");
+            $fail("Jumlah aset {$asset->name} tidak tersedia. Stok tersisa: {$availableQuantity}");
         }
     }
 }

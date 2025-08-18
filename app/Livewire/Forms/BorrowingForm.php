@@ -10,6 +10,7 @@ use App\Repositories\Eloquent\EloquentEventRepository;
 use App\Rules\AssetAvailability;
 use App\Rules\ValidBorrowingPeriod;
 use App\Services\BorrowingManagementService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -152,7 +153,8 @@ class BorrowingForm extends Form
 
     public function setBorrowing(?Borrowing $borrowing)
     {
-        $this->borrowing = $borrowing->load('event');
+        $this->borrowing = $borrowing->load(['event', 'assets']);
+        // dd($this->borrowing, class_basename($borrowing->borrowable_type)); // Debugging line to check the borrowing data
         if ($borrowing) {
             $this->assets = $borrowing->assets->map(function ($asset) {
                 return [
@@ -160,11 +162,19 @@ class BorrowingForm extends Form
                     'quantity' => $asset->pivot->quantity,
                 ];
             })->toArray();
+
             $this->start_datetime = $borrowing->start_datetime->format('Y-m-d\TH:i');
             $this->end_datetime = $borrowing->end_datetime->format('Y-m-d\TH:i');
             $this->notes = $borrowing->notes ?? '';
-            $this->borrower = $borrowing->borrower;
-            $this->borrower_phone = $borrowing->borrower_phone;
+            $this->borrower = $borrowing->borrower ?? '';
+            $this->borrower_phone = $borrowing->borrower_phone ?? '';
+            $this->borrowable_type = strtolower(class_basename($borrowing->borrowable_type));
+            if ($this->borrowable_type === 'event') {
+                $this->borrowable_id = $borrowing->borrowable_id;
+            } elseif ($this->borrowable_type === 'activity') {
+                $this->activity_name = $borrowing->event->name ?? '';
+                $this->activity_location = $borrowing->event->location ?? '';
+            }
         }
     }
 
@@ -173,7 +183,7 @@ class BorrowingForm extends Form
         $validated = $this->validate();
 
         try {
-            $this->borrowingManagementService->createNewBorrowing($validated);
+            app(BorrowingManagementService::class)->createNewBorrowing($validated);
             $this->reset();
         } catch (\Exception $e) {
             Log::error('Error creating event: ' . $e->getMessage());
@@ -183,96 +193,62 @@ class BorrowingForm extends Form
 
     public function update()
     {
-        $this->validate();
+        $validated = $this->validate();
 
-        $this->borrowing->update([
-            'start_datetime' => $this->start_datetime,
-            'end_datetime' => $this->end_datetime,
-            'notes' => $this->notes,
-            'borrower' => $this->borrower,
-            'borrower_phone' => $this->borrower_phone,
-        ]);
-
-        $this->borrowing->assets()->sync($this->assets);
-
-        $this->reset();
+        try {
+            if (!$this->borrowing) {
+                throw new \Exception('Borrowing instance is missing.');
+            }
+            app(BorrowingManagementService::class)->updateBorrowing($this->borrowing, $validated);
+        } catch (\Exception $e) {
+            Log::error('Error updating event: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => __('Failed to update event. Please try again.')]);
+        }
     }
 
-    public function destroy()
+    public function destroy($deleteId)
     {
-        if ($this->borrowing) {
-            $this->borrowing->assets()->detach();
-            $this->borrowing->delete();
+        try {
+            $deleted = app(BorrowingManagementService::class)->deleteBorrowing($deleteId);
+            $this->reset();
+            return $deleted;
+        } catch (\Exception $e) {
+            $this->addError('borrowing', 'Terjadi kesalahan sistem saat menghapus peminjaman.');
+            Log::error('Error deleting event: ' . $e->getMessage());
         }
-
-        $this->reset();
     }
 
     public function approve($approveId)
     {
-        $this->borrowing = Borrowing::with('assets')->find($approveId);
-
-        if (!$this->borrowing) {
-            $this->addError('borrowing', 'Borrowing not found.');
-            return;
+        try {
+            app(BorrowingManagementService::class)->approveBorrowing($approveId);
+            $this->reset();
+        } catch (ValidationException $e) {
+            Log::error('Approval Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => $e->validator->errors()->first()]);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Approval Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => 'Data peminjaman tidak ditemukan.']);
+        } catch (\Exception $e) {
+            Log::error('Approval Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => 'Terjadi kesalahan sistem saat menyetujui peminjaman.']);
         }
-
-        if ($this->borrowing->status !== BorrowingStatus::PENDING) {
-            $this->addError('borrowing', 'Borrowing status is not pending.');
-            return;
-        }
-
-        foreach ($this->borrowing->assets as $asset) {
-            if (!$asset->is_active) {
-                $this->addError('borrowing', "Asset {$asset->name} is not active.");
-                return;
-            }
-
-            // Jalankan manual validasi AssetAvailability
-            $rule = new AssetAvailability(
-                assetId: $asset->id,
-                startDate: $this->borrowing->start_datetime,
-                endDate: $this->borrowing->end_datetime,
-                excludeBorrowingId: $this->borrowing->id
-            );
-
-            // Gunakan closure fail palsu
-            $errors = [];
-            $rule->validate('assets.quantity', $asset->pivot->quantity, function ($message) use (&$errors) {
-                $errors[] = $message;
-            });
-
-            if (!empty($errors)) {
-                $this->addError('borrowing', "Asset {$asset->name}: {$errors[0]}");
-                return;
-            }
-        }
-
-        $this->borrowing->update([
-            'status' => BorrowingStatus::APPROVED,
-        ]);
-
-        $this->reset();
     }
 
     public function reject($rejectId)
     {
-        $this->borrowing = Borrowing::find($rejectId);
-
-        if (!$this->borrowing) {
-            $this->addError('borrowing', 'Borrowing not found.');
-            return;
+        try {
+            app(BorrowingManagementService::class)->rejectBorrowing($rejectId);
+            $this->reset();
+        } catch (ValidationException $e) {
+            Log::error('Rejection Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => $e->validator->errors()->first()]);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Rejection Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => 'Data peminjaman tidak ditemukan.']);
+        } catch (\Exception $e) {
+            Log::error('Rejection Error: ' . $e->getMessage());
+            throw ValidationException::withMessages(['error' => 'Terjadi kesalahan sistem saat menolak peminjaman.']);
         }
-
-        if ($this->borrowing->status !== BorrowingStatus::PENDING) {
-            $this->addError('borrowing', 'Borrowing status is not pending.');
-            return;
-        }
-
-        $this->borrowing->update([
-            'status' => BorrowingStatus::REJECTED,
-        ]);
-
-        $this->reset();
     }
 }

@@ -41,14 +41,14 @@
             </div>
 
             {{-- Indikator Loading --}}
-            <div wire:loading.flex class="items-center justify-center w-full py-4">
+            <div wire:loading.flex wire:target="search, filterStatus" class="items-center justify-center w-full py-4">
                 <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
                     <span>Memuat data...</span>
                 </div>
             </div>
 
-            <div wire:loading.remove>
+            <div wire:loading.remove wire:target="search, filterStatus">
                 {{-- Tampilan Card untuk Mobile (Mobile First) --}}
                 <div class="grid grid-cols-1 gap-4 md:hidden">
                     @forelse ($borrowings as $borrowing)
@@ -562,7 +562,7 @@
                 </p>
 
                 <div class="mt-6 flex justify-end gap-3">
-                    <x-button variant="secondary" size="sm" x-on:click="$dispatch('close')">
+                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
                         Cancel
                     </x-button>
                     <x-button variant="success" size="sm">
@@ -573,7 +573,7 @@
         </form>
     </x-modal>
 
-    <x-modal name="reject-borrowing-confirmation" focusable>
+    <x-modal name="reject-borrowing-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="reject">
             <div class="p-6">
                 <div class="flex items-center gap-3 mb-4">
@@ -590,7 +590,7 @@
                 </p>
 
                 <div class="mt-6 flex justify-end gap-3">
-                    <x-button variant="secondary" size="sm" x-on:click="$dispatch('close')">
+                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
                         Cancel
                     </x-button>
                     <x-button variant="danger" size="sm">
@@ -601,40 +601,30 @@
         </form>
     </x-modal>
 
-    <x-modal name="delete-borrowing-confirmation" focusable>
-        @if ($this->borrowing)
-            <form wire:submit="destroy">
-                <div class="p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="p-2 rounded-full bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300">
-                            <x-heroicon-s-x-mark class="h-6 w-6" />
-                        </div>
-                        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                            Confirm Deletion
-                        </h2>
+    <x-modal name="delete-borrowing-confirmation" :show="$errors->isNotEmpty()" focusable>
+        <form wire:submit="destroy">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 rounded-full bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300">
+                        <x-heroicon-s-x-mark class="h-6 w-6" />
                     </div>
-
-                    @if ($this->borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">
-                            Are you sure you want to delete this borrowing request? This will permanently delete the
-                            request.
-                        </p>
-                    @else
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">
-                            Are you sure you want to cancel this borrowing request? This will cancel the request.
-                        </p>
-                    @endif
-
-                    <div class="mt-6 flex justify-end gap-3">
-                        <x-button variant="secondary" size="sm" x-on:click="$dispatch('close')">
-                            Cancel
-                        </x-button>
-                        <x-button variant="danger" size="sm">
-                            Confirm Deletion
-                        </x-button>
-                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        Confirm Deletion
+                    </h2>
                 </div>
-            </form>
-        @endif
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Are you sure you want to cancel this borrowing request? This will cancel the request.
+                </p>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
+                        Cancel
+                    </x-button>
+                    <x-button variant="danger" size="sm">
+                        Confirm Deletion
+                    </x-button>
+                </div>
+            </div>
+        </form>
     </x-modal>
 </div>

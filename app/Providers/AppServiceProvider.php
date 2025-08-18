@@ -4,6 +4,16 @@ namespace App\Providers;
 
 use App\Models\CustomPermission;
 use App\Models\User;
+use App\Repositories\Contracts\ActivityRepositoryInterface;
+use App\Repositories\Contracts\BorrowingRepositoryInterface;
+use App\Repositories\Contracts\EventRecurrenceRepositoryInterface;
+use App\Repositories\Contracts\EventRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Eloquent\EloquentActivityRepository;
+use App\Repositories\Eloquent\EloquentBorrowingRepository;
+use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
+use App\Repositories\Eloquent\EloquentEventRepository;
+use App\Repositories\Eloquent\EloquentUserRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -16,7 +26,30 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            BorrowingRepositoryInterface::class,
+            EloquentBorrowingRepository::class
+        );
+
+        $this->app->bind(
+            EventRepositoryInterface::class,
+            EloquentEventRepository::class
+        );
+
+        $this->app->bind(
+            ActivityRepositoryInterface::class,
+            EloquentActivityRepository::class
+        );
+
+        $this->app->bind(
+            EventRecurrenceRepositoryInterface::class,
+            EloquentEventRecurrenceRepository::class
+        );
+
+        $this->app->bind(
+            UserRepositoryInterface::class,
+            EloquentUserRepository::class
+        );
     }
 
     /**
