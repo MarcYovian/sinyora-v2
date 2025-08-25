@@ -4,12 +4,15 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Admin\Pages\Document\DocumentModal;
 use App\Models\Document as ModelsDocument;
-use App\Models\User;
+use App\Models\User as ModelsUser;
+use App\Services\DocumentManagementService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -19,8 +22,15 @@ class Document extends Component
     use WithPagination, AuthorizesRequests, WithFileUploads;
     #[Layout('layouts.app')]
 
-    public $attachment = null;
     public ModelsDocument $document;
+    public $attachment = null;
+
+    #[Url(keep: true)]
+    public string $search = '';
+
+    #[Url(as: 'status', keep: true)]
+    public string $filterStatus = '';
+
 
     public function rules(): array
     {
@@ -53,29 +63,24 @@ class Document extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
-            // Simpan data submitter
-            $user = User::find(Auth::id());
+        try {
+            $file = $this->attachment;
+            $user = ModelsUser::find(Auth::id());
 
-            // Simpan attachment
-            if ($this->attachment) {
-                $path = $this->attachment->store('documents/proposals', 'public');
-                $mimeType = Storage::disk('public')->mimeType($path);
-                $user->documents()->create([
-                    'document_path' => $path,
-                    'original_file_name' => $this->attachment->getClientOriginalName(),
-                    'mime_type' => $mimeType,
-                    'status' => 'pending',
-                ]);
-            }
+            app(DocumentManagementService::class)->storeNewDocument($file, $user);
 
+            toastr()->success('Dokumen berhasil diunggah.');
             $this->dispatch('close-modal', 'add-document-modal');
-        });
+            $this->reset();
+        } catch (\Exception $e) {
+            Log::error('Gagal mengunggah dokumen: ' . $e->getMessage());
+            toastr()->error('Gagal mengunggah dokumen, silakan coba lagi.');
+        }
     }
 
-    public function confirmDelete(ModelsDocument $document)
+    public function confirmDelete(int $documentId)
     {
-        $this->document = $document;
+        $this->document = ModelsDocument::find($documentId);
         if (!$this->document) {
             toastr()->error(__('Document not found.'));
             return;
@@ -96,25 +101,37 @@ class Document extends Component
             return;
         }
 
-        DB::transaction(function () {
-            // Hapus file dari storage
-            Storage::disk('public')->delete($this->document->document_path);
-
-            // Hapus data dokumen
-            $this->document->delete();
-
+        try {
+            app(DocumentManagementService::class)->deleteDocument($this->document);
             toastr()->success(__('Document deleted successfully.'));
-        });
-
-        $this->dispatch('close-modal', 'delete-document-confirmation');
+            $this->dispatch('close-modal', 'delete-document-confirmation');
+        } catch (\Exception $e) {
+            Log::error('Gagal menghapus dokumen: ' . $e->getMessage());
+            toastr()->error('Gagal menghapus dokumen, silakan coba lagi.');
+        }
     }
 
     public function render()
     {
-        $table_heads = ['#', 'Submitters', 'Filename', 'Mime Type', 'Status', 'Actions'];
-
-        $documents = ModelsDocument::with(['submitter'])
-            ->orderBy('created_at', 'desc')
+        $table_heads = ['#', 'Subject', 'Submitter', 'Upload Date', 'Status', 'Processed By', 'Actions'];
+        $search = $this->search;
+        $filterStatus = $this->filterStatus;
+        $documents = ModelsDocument::query()
+            ->with(['submitter', 'processor'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('subject', 'like', "%{$search}%")
+                        ->orWhere('doc_num', 'like', "%{$search}%")
+                        ->orWhere('original_file_name', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('submitter', function ($subQuery) use ($search) {
+                        $subQuery->where('name', 'like', "%{$search}%");
+                    });
+            })
+            ->when($filterStatus, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->latest()
             ->paginate(10);
 
         return view('livewire.admin.pages.document', [

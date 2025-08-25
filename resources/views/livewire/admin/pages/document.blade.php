@@ -1,75 +1,217 @@
 <div>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Data Documents') }}
+    <header class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+            {{ __('Manajemen Data Dokumen') }}
         </h2>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Kelola semua data dokumen yang masuk.
+        </p>
     </header>
 
-    <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            @can('add document')
-                <x-button type="button" variant="primary" wire:click="add" class="items-center max-w-xs gap-2">
-                    <x-heroicon-s-plus class="w-5 h-5" />
+    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+        <div class="p-4 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                @can('add document')
+                    <x-button type="button" variant="primary" wire:click="add" class="w-full sm:w-auto">
+                        <x-heroicon-s-plus class="w-5 h-5" />
+                        <span>{{ __('Tambah Dokumen') }}</span>
+                    </x-button>
+                @endcan
+                <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
+                    <div class="w-full sm:w-auto sm:flex-grow">
+                        <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
+                            placeholder="{{ __('Cari subjek, no. dokumen, atau pengaju...') }}" />
+                    </div>
+                    <div class="w-full sm:w-48">
+                        <x-select wire:model.live="filterStatus" class="w-full">
+                            <option value="">{{ __('Semua Status') }}</option>
+                            @foreach (App\Enums\DocumentStatus::cases() as $status)
+                                <option value="{{ $status->value }}">{{ $status->label() }}</option>
+                            @endforeach
+                        </x-select>
+                    </div>
+                    @if ($search || $filterStatus)
+                        <x-button type="button" wire:click="resetFilters" variant="secondary" class="w-full sm:w-auto">
+                            {{ __('Reset') }}
+                        </x-button>
+                    @endif
+                </div>
+            </div>
 
-                    <span>{{ __('Add Document') }}</span>
-                </x-button>
-            @endcan
+            <div wire:loading.flex wire:target="search, filterStatus" class="items-center justify-center w-full py-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
+                    <span>Memuat data...</span>
+                </div>
+            </div>
 
+            <div wire:loading.remove wire:target="search, filterStatus">
+                <div class="grid grid-cols-1 gap-4 md:hidden">
+                    @forelse ($documents as $document)
+                        <div wire:key="document-card-{{ $document->id }}"
+                            class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                            <div class="p-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="space-y-1">
+                                        @if ($document->subject)
+                                            <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                                {{ $document->subject }}
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                No: {{ $document->doc_num ?? '-' }}
+                                            </p>
+                                        @else
+                                            <p class="font-semibold text-gray-600 dark:text-gray-400 italic">
+                                                {{ $document->original_file_name }}
+                                            </p>
+                                            <p class="text-xs text-yellow-600 dark:text-yellow-500">
+                                                [Menunggu Analisis Informasi...]
+                                            </p>
+                                        @endif
 
-            <div class="w-full md:w-1/2">
-                <x-search placeholder="Search Document by submitters.." />
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 pt-1">
+                                            Oleh: {{ $document->submitter->name }}
+                                        </p>
+
+                                        <div class="pt-1">
+                                            <x-status-badge :status="$document->status" />
+                                        </div>
+                                    </div>
+
+                                    {{-- Kanan: Dropdown Aksi --}}
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-1.5 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            @can('delete document')
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmDelete({{ $document->id }})"
+                                                    class="text-red-600 dark:text-red-500">
+                                                    Hapus
+                                                </x-dropdown-link>
+                                            @endcan
+                                        </x-slot>
+                                    </x-dropdown>
+                                </div>
+
+                                {{-- Bagian Body: Info Tambahan (Tanggal & Pemroses) --}}
+                                <div class="mt-3 pt-3 border-t dark:border-gray-700 space-y-2 text-sm">
+                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                        <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2 flex-shrink-0" />
+                                        <span>
+                                            Diunggah:
+                                            {{ $document->created_at->translatedFormat('d M Y, H:i') }}
+                                        </span>
+                                    </div>
+                                    @if ($document->processor)
+                                        <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                            <x-heroicon-o-user class="w-4 h-4 mr-2 flex-shrink-0" />
+                                            <span>Diproses oleh: {{ $document->processor->name }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Bagian Footer: Tombol Aksi Utama --}}
+                            @can('view document details')
+                                <div class="bg-gray-50 dark:bg-gray-900/50 px-4 py-2 flex items-center justify-end">
+                                    <x-button wire:click="viewDetails({{ $document->id }})" variant="secondary"
+                                        size="sm">
+                                        Lihat Detail
+                                    </x-button>
+                                </div>
+                            @endcan
+                        </div>
+                    @empty
+                        {{-- Tampilan jika data kosong --}}
+                        <div class="text-center py-12 text-gray-500 dark:text-gray-400 col-span-1">
+                            <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                            <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data dokumen') }}</h4>
+                            <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau unggah dokumen baru.') }}</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="hidden md:block">
+                    <x-table title="Data Documents" :heads="$table_heads">
+                        @forelse ($documents as $key => $document)
+                            <tr wire:key="document-row-{{ $document->id }}"
+                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $documents->firstItem() + $loop->index }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if ($document->subject)
+                                        {{-- Tampilkan jika subjek hasil analisis AI SUDAH ADA --}}
+                                        <div class="font-semibold text-gray-800 dark:text-gray-200">
+                                            {{ $document->subject }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            No: {{ $document->doc_num ?? '-' }}
+                                        </div>
+                                    @else
+                                        {{-- Tampilkan jika subjek BELUM ADA (menunggu analisis) --}}
+                                        <div class="font-semibold text-gray-600 dark:text-gray-400 italic">
+                                            {{ $document->original_file_name }}
+                                        </div>
+                                        <div class="text-xs text-yellow-600 dark:text-yellow-500">
+                                            [Menunggu Analisis Informasi...]
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $document->submitter->name }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $document->created_at->translatedFormat('d M Y') }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <x-status-badge :status="$document->status" />
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    @if ($document->processor)
+                                        <div>{{ $document->processor->name }}</div>
+                                        <div>({{ $document->processed_at->translatedFormat('d M') }})</div>
+                                    @else
+                                        {{ __('-') }}
+                                    @endif
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
+                                    <div class="flex flex-col items-center gap-2">
+                                        @can('view document details')
+                                            <x-button size="sm" variant="primary" type="button"
+                                                wire:click="viewDetails({{ $document->id }})">
+                                                {{ __('Detail') }}
+                                            </x-button>
+                                        @endcan
+                                        @can('delete document')
+                                            @if ($document->status !== 'done')
+                                                <x-button size="sm" variant="danger" type="button"
+                                                    wire:click="confirmDelete({{ $document->id }})">
+                                                    {{ __('Delete') }}
+                                                </x-button>
+                                            @endif
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr class="bg-white dark:bg-gray-800">
+                                <td colspan="{{ count($table_heads) }}"
+                                    class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
+                                    {{ __('No data available') }}
+                                </td>
+                            </tr>
+                        @endforelse
+                    </x-table>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 text-gray-900 dark:text-gray-100">
-            <x-table title="Data Documents" :heads="$table_heads">
-                @forelse ($documents as $key => $document)
-                    <tr wire:key="document-{{ $document->id }}"
-                        class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $key + $documents->firstItem() }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $document->submitter->name }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $document->original_file_name }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $document->mime_type }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $document->status }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            <div class="flex flex-col items-center gap-2">
-                                @can('view document details')
-                                    <x-button size="sm" variant="primary" type="button"
-                                        wire:click="viewDetails({{ $document->id }})">
-                                        {{ __('Detail') }}
-                                    </x-button>
-                                @endcan
-                                @can('delete document')
-                                    @if ($document->status !== 'done')
-                                        <x-button size="sm" variant="danger" type="button"
-                                            wire:click="confirmDelete({{ $document }})">
-                                            {{ __('Delete') }}
-                                        </x-button>
-                                    @endif
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr class="bg-white dark:bg-gray-800">
-                        <td colspan="{{ count($table_heads) }}"
-                            class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                            {{ __('No data available') }}
-                        </td>
-                    </tr>
-                @endforelse
-            </x-table>
-        </div>
         <div class="px-6 py-4">
             {{ $documents->links() }}
         </div>
@@ -118,8 +260,9 @@
                             {{-- Ikon --}}
                             <div
                                 class="mb-4 flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-700">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-500 dark:text-gray-400"
-                                    fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="none"
+                                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M12 16.5V9.75m0 0l-3 3m3-3l3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                                 </svg>
@@ -127,7 +270,8 @@
 
                             {{-- Teks Panduan --}}
                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                <span class="font-bold text-primary-600 dark:text-primary-400">Klik untuk memilih</span>
+                                <span class="font-bold text-primary-600 dark:text-primary-400">Klik untuk
+                                    memilih</span>
                                 atau seret & lepas file
                             </p>
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -162,7 +306,8 @@
                                     </div>
                                 </div>
 
-                                <p x-show="!isUploading" class="text-xs text-gray-500 dark:text-gray-400 mt-1">File siap
+                                <p x-show="!isUploading" class="text-xs text-gray-500 dark:text-gray-400 mt-1">File
+                                    siap
                                     diunggah.</p>
                             </div>
 

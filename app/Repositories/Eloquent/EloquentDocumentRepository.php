@@ -2,7 +2,11 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\DataTransferObjects\StoreDocumentData;
+use App\DataTransferObjects\UpdateDocumentAnalysisData;
 use App\Models\Document;
+use App\Models\GuestSubmitter;
+use App\Models\User;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -21,9 +25,14 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function create(array $data): Document
+    public function create(User|GuestSubmitter $submitter, StoreDocumentData $data): Document
     {
-        return Document::create($data);
+        return $submitter->documents()->create([
+            'document_path' => $data->document_path,
+            'original_file_name' => $data->original_file_name,
+            'mime_type' => $data->mime_type,
+            'status' => $data->status
+        ]);
     }
 
     /**
@@ -49,6 +58,14 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
     /**
      * @inheritDoc
      */
+    public function findOrFail(int $id): Document
+    {
+        return Document::findOrFail($id);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function update(int $id, array $data): bool
     {
         $document = $this->findById($id);
@@ -56,5 +73,20 @@ class EloquentDocumentRepository implements DocumentRepositoryInterface
             return $document->update($data);
         }
         return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function updateAnalysisResult(int $id, UpdateDocumentAnalysisData $data): Document
+    {
+        $document = $this->findOrFail($id);
+
+        // 2. Memperbarui atribut dan menyimpan
+        $document->fill($data->toArray());
+        $document->save();
+
+        // 3. Mengembalikan model yang sudah diperbarui
+        return $document;
     }
 }

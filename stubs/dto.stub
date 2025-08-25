@@ -1,0 +1,13 @@
+<?php
+
+namespace App\DataTransferObjects;
+
+use Spatie\LaravelData\Data;
+
+class {{DTOName}} extends Data
+{
+    public function __construct(
+
+    )
+    {}
+}

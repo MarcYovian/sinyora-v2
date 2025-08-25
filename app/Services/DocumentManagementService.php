@@ -2,11 +2,17 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\StoreDocumentData;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
+use App\Models\Document;
+use App\Models\GuestSubmitter;
+use App\Models\User;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentManagementService
 {
@@ -18,6 +24,23 @@ class DocumentManagementService
         DocumentRepositoryInterface $documentRepository
     ) {
         $this->documentRepository = $documentRepository;
+    }
+
+    public function storeNewDocument(UploadedFile $file, User|GuestSubmitter $submitter)
+    {
+        return DB::transaction(function () use ($file, $submitter) {
+            $path = $file->store('documents/proposals', 'public');
+            $mimeType = Storage::disk('public')->mimeType($path);
+
+            $documentData = new StoreDocumentData(
+                document_path: $path,
+                original_file_name: $file->getClientOriginalName(),
+                mime_type: $mimeType,
+                status: DocumentStatus::PENDING
+            );
+
+            return $this->documentRepository->create($submitter, $documentData);
+        });
     }
 
     public function updateDocumentWithAnalysis(array $data)
@@ -57,6 +80,15 @@ class DocumentManagementService
             } catch (\Exception $e) {
                 throw $e;
             }
+        });
+    }
+
+
+    public function deleteDocument(Document $document)
+    {
+        return DB::transaction(function () use ($document) {
+            Storage::disk('public')->delete($document->document_path);
+            return $this->documentRepository->delete($document->id);
         });
     }
 }

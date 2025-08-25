@@ -5,14 +5,24 @@ namespace App\Providers;
 use App\Models\CustomPermission;
 use App\Models\User;
 use App\Repositories\Contracts\ActivityRepositoryInterface;
+use App\Repositories\Contracts\AssetRepositoryInterface;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
+use App\Repositories\Contracts\DocumentRepositoryInterface;
+use App\Repositories\Contracts\EventCategoryRepositoryInterface;
 use App\Repositories\Contracts\EventRecurrenceRepositoryInterface;
 use App\Repositories\Contracts\EventRepositoryInterface;
+use App\Repositories\Contracts\LocationRepositoryInterface;
+use App\Repositories\Contracts\OrganizationRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentActivityRepository;
+use App\Repositories\Eloquent\EloquentAssetRepository;
 use App\Repositories\Eloquent\EloquentBorrowingRepository;
+use App\Repositories\Eloquent\EloquentDocumentRepository;
+use App\Repositories\Eloquent\EloquentEventCategoryRepository;
 use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
 use App\Repositories\Eloquent\EloquentEventRepository;
+use App\Repositories\Eloquent\EloquentLocationRepository;
+use App\Repositories\Eloquent\EloquentOrganizationRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -49,6 +59,31 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             UserRepositoryInterface::class,
             EloquentUserRepository::class
+        );
+
+        $this->app->bind(
+            DocumentRepositoryInterface::class,
+            EloquentDocumentRepository::class
+        );
+
+        $this->app->bind(
+            LocationRepositoryInterface::class,
+            EloquentLocationRepository::class
+        );
+
+        $this->app->bind(
+            OrganizationRepositoryInterface::class,
+            EloquentOrganizationRepository::class
+        );
+
+        $this->app->bind(
+            AssetRepositoryInterface::class,
+            EloquentAssetRepository::class
+        );
+
+        $this->app->bind(
+            EventCategoryRepositoryInterface::class,
+            EloquentEventCategoryRepository::class
         );
     }
 

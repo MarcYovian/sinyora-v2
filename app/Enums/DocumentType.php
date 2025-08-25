@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\ProvidesEnumUtilities;
+
 enum DocumentType: string
 {
+    use ProvidesEnumUtilities;
+
     case BORROWING = 'peminjaman';
     case LICENSING = 'perizinan';
     case INVITATION = 'undangan';
