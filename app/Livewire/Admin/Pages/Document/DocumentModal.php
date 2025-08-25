@@ -212,16 +212,16 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'subjek' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['document_information']['subjects'][$index]) || !is_array($this->form->analysisResult['data']['document_information']['subjects'])) {
+        if (!isset($this->form->analysisResult['document_information']['subjects'][$index]) || !is_array($this->form->analysisResult['document_information']['subjects'])) {
             // Jika tidak ada subjek, inisialisasi sebagai array kosong
-            $this->form->analysisResult['data']['document_information']['subjects'] = [];
+            $this->form->analysisResult['document_information']['subjects'] = [];
         }
 
         // Hapus subjek berdasarkan index
-        if (isset($this->form->analysisResult['data']['document_information']['subjects'][$index])) {
-            unset($this->form->analysisResult['data']['document_information']['subjects'][$index]);
+        if (isset($this->form->analysisResult['document_information']['subjects'][$index])) {
+            unset($this->form->analysisResult['document_information']['subjects'][$index]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['data']['document_information']['subjects'] = array_values($this->form->analysisResult['data']['document_information']['subjects']);
+            $this->form->analysisResult['document_information']['subjects'] = array_values($this->form->analysisResult['document_information']['subjects']);
         }
     }
 
@@ -230,16 +230,16 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['document_information']['recipients'][$index]) || !is_array($this->form->analysisResult['data']['document_information']['recipients'])) {
+        if (!isset($this->form->analysisResult['document_information']['recipients'][$index]) || !is_array($this->form->analysisResult['document_information']['recipients'])) {
             // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->form->analysisResult['data']['document_information']['recipients'] = [];
+            $this->form->analysisResult['document_information']['recipients'] = [];
         }
 
         // Hapus penerima berdasarkan index
-        if (isset($this->form->analysisResult['data']['document_information']['recipients'][$index])) {
-            unset($this->form->analysisResult['data']['document_information']['recipients'][$index]);
+        if (isset($this->form->analysisResult['document_information']['recipients'][$index])) {
+            unset($this->form->analysisResult['document_information']['recipients'][$index]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['data']['document_information']['recipients'] = array_values($this->form->analysisResult['data']['document_information']['recipients']);
+            $this->form->analysisResult['document_information']['recipients'] = array_values($this->form->analysisResult['document_information']['recipients']);
         }
     }
 
@@ -247,12 +247,12 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (!isset($this->form->analysisResult['data']['document_information']['emitter_organizations']) || !is_array($this->form->analysisResult['data']['document_information']['emitter_organizations'])) {
-            $this->form->analysisResult['data']['document_information']['emitter_organizations'] = [];
+        if (!isset($this->form->analysisResult['document_information']['emitter_organizations']) || !is_array($this->form->analysisResult['document_information']['emitter_organizations'])) {
+            $this->form->analysisResult['document_information']['emitter_organizations'] = [];
         }
 
         // Tambahkan penerima baru
-        $this->form->analysisResult['data']['document_information']['emitter_organizations'][] = [
+        $this->form->analysisResult['document_information']['emitter_organizations'][] = [
             'nama' => '',
         ];
     }
@@ -260,29 +260,28 @@ class DocumentModal extends Component
     public function removeOrganization($index)
     {
         if (!$this->isEditing) return;
-
         // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['document_information']['emitter_organizations'][$index]) || !is_array($this->form->analysisResult['data']['document_information']['emitter_organizations'])) {
+        if (!isset($this->form->analysisResult['document_information']['emitter_organizations'][$index]) || !is_array($this->form->analysisResult['document_information']['emitter_organizations'])) {
             // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->form->analysisResult['data']['document_information']['emitter_organizations'] = [];
+            $this->form->analysisResult['document_information']['emitter_organizations'] = [];
         }
 
         // Hapus penerima berdasarkan index
-        if (isset($this->form->analysisResult['data']['document_information']['emitter_organizations'][$index])) {
-            unset($this->form->analysisResult['data']['document_information']['emitter_organizations'][$index]);
+        if (isset($this->form->analysisResult['document_information']['emitter_organizations'][$index])) {
+            unset($this->form->analysisResult['document_information']['emitter_organizations'][$index]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['data']['document_information']['emitter_organizations'] = array_values($this->form->analysisResult['data']['document_information']['emitter_organizations']);
+            $this->form->analysisResult['document_information']['emitter_organizations'] = array_values($this->form->analysisResult['document_information']['emitter_organizations']);
         }
     }
 
     public function addOrganizers(int $eventIndex)
     {
         // Pastikan array 'organizers' ada sebelum menambahkan
-        if (!isset($this->form->analysisResult['data']['events'][$eventIndex]['organizers'])) {
-            $this->form->analysisResult['data']['events'][$eventIndex]['organizers'] = [];
+        if (!isset($this->form->analysisResult['events'][$eventIndex]['organizers'])) {
+            $this->form->analysisResult['events'][$eventIndex]['organizers'] = [];
         }
 
-        $this->form->analysisResult['data']['events'][$eventIndex]['organizers'][] = [
+        $this->form->analysisResult['events'][$eventIndex]['organizers'][] = [
             'name' => '',
             'contact' => '',
         ];
@@ -290,11 +289,11 @@ class DocumentModal extends Component
 
     public function removeOrganizer(int $eventIndex, int $organizerIndex)
     {
-        if (isset($this->form->analysisResult['data']['events'][$eventIndex]['organizers'][$organizerIndex])) {
-            unset($this->form->analysisResult['data']['events'][$eventIndex]['organizers'][$organizerIndex]);
+        if (isset($this->form->analysisResult['events'][$eventIndex]['organizers'][$organizerIndex])) {
+            unset($this->form->analysisResult['events'][$eventIndex]['organizers'][$organizerIndex]);
             // Re-index array agar tidak ada "lubang"
-            $this->form->analysisResult['data']['events'][$eventIndex]['organizers'] = array_values(
-                $this->form->analysisResult['data']['events'][$eventIndex]['organizers']
+            $this->form->analysisResult['events'][$eventIndex]['organizers'] = array_values(
+                $this->form->analysisResult['events'][$eventIndex]['organizers']
             );
         }
     }
@@ -304,12 +303,12 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'penerima_surat' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['document_information']['recipients']) || !is_array($this->form->analysisResult['data']['document_information']['recipients'])) {
-            $this->form->analysisResult['data']['document_information']['recipients'] = [];
+        if (!isset($this->form->analysisResult['document_information']['recipients']) || !is_array($this->form->analysisResult['document_information']['recipients'])) {
+            $this->form->analysisResult['document_information']['recipients'] = [];
         }
 
         // Tambahkan penerima baru
-        $this->form->analysisResult['data']['document_information']['recipients'][] = [
+        $this->form->analysisResult['document_information']['recipients'][] = [
             'name' => '',
             'position' => '',
         ];
@@ -320,12 +319,12 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'jadwal' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['data']['events'][$eventIndex]['schedule'])) {
-            $this->form->analysisResult['data']['events'][$eventIndex]['schedule'] = [];
+        if (!isset($this->form->analysisResult['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['events'][$eventIndex]['schedule'])) {
+            $this->form->analysisResult['events'][$eventIndex]['schedule'] = [];
         }
 
         // Tambahkan item jadwal baru
-        $this->form->analysisResult['data']['events'][$eventIndex]['schedule'][] = [
+        $this->form->analysisResult['events'][$eventIndex]['schedule'][] = [
             'description' => '',
             'duration' => '',
             'startTime' => '',
@@ -338,16 +337,16 @@ class DocumentModal extends Component
         if (!$this->isEditing) return;
 
         // Pastikan 'jadwal' ada dan merupakan array
-        if (!isset($this->form->analysisResult['data']['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['data']['events'][$eventIndex]['schedule'])) {
+        if (!isset($this->form->analysisResult['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['events'][$eventIndex]['schedule'])) {
             // Jika tidak ada jadwal, inisialisasi sebagai array kosong
-            $this->form->analysisResult['data']['events'][$eventIndex]['schedule'] = [];
+            $this->form->analysisResult['events'][$eventIndex]['schedule'] = [];
         }
 
         // Hapus item jadwal berdasarkan index
-        if (isset($this->form->analysisResult['data']['events'][$eventIndex]['schedule'][$itemIndex])) {
-            unset($this->form->analysisResult['data']['events'][$eventIndex]['schedule'][$itemIndex]);
+        if (isset($this->form->analysisResult['events'][$eventIndex]['schedule'][$itemIndex])) {
+            unset($this->form->analysisResult['events'][$eventIndex]['schedule'][$itemIndex]);
             // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['data']['events'][$eventIndex]['schedule'] = array_values($this->form->analysisResult['data']['events'][$eventIndex]['schedule']);
+            $this->form->analysisResult['events'][$eventIndex]['schedule'] = array_values($this->form->analysisResult['events'][$eventIndex]['schedule']);
         }
     }
 
@@ -355,9 +354,9 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (isset($this->form->analysisResult['data']['signature_blocks'][$index])) {
-            unset($this->form->analysisResult['data']['signature_blocks'][$index]);
-            $this->form->analysisResult['data']['signature_blocks'] = array_values($this->form->analysisResult['data']['signature_blocks']);
+        if (isset($this->form->analysisResult['signature_blocks'][$index])) {
+            unset($this->form->analysisResult['signature_blocks'][$index]);
+            $this->form->analysisResult['signature_blocks'] = array_values($this->form->analysisResult['signature_blocks']);
         }
     }
 
@@ -365,11 +364,11 @@ class DocumentModal extends Component
     {
         if (!$this->isEditing) return;
 
-        if (!isset($this->form->analysisResult['data']['signature_blocks']) || !is_array($this->form->analysisResult['data']['signature_blocks'])) {
-            $this->form->analysisResult['data']['signature_blocks'] = [];
+        if (!isset($this->form->analysisResult['signature_blocks']) || !is_array($this->form->analysisResult['signature_blocks'])) {
+            $this->form->analysisResult['signature_blocks'] = [];
         }
 
-        $this->form->analysisResult['data']['signature_blocks'][] = [
+        $this->form->analysisResult['signature_blocks'][] = [
             'name' => '',
             'position' => '',
         ];
