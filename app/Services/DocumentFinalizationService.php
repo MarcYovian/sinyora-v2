@@ -29,7 +29,7 @@ class DocumentFinalizationService
 
             foreach (data_get($data, 'events') as $event) {
                 if ($type === DocumentType::LICENSING->value) {
-                    $this->eventCreationService->createEventFromDocument($document, $event);
+                    $this->eventCreationService->createEventFromDocument($document, $event, data_get($data, 'document_information'));
                 } elseif ($type === DocumentType::BORROWING->value) {
                     $this->borrowingManagementService->createBorrowingFromDocument($document, $event);
                 } elseif ($type === DocumentType::INVITATION->value) {

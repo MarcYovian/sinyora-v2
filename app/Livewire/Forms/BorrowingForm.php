@@ -140,17 +140,6 @@ class BorrowingForm extends Form
         ];
     }
 
-    public function __construct(\Livewire\Component $component, $propertyName)
-    {
-        parent::__construct($component, $propertyName);
-
-        $this->borrowingManagementService = new BorrowingManagementService(
-            new EloquentBorrowingRepository(),
-            new EloquentEventRepository(),
-            new EloquentActivityRepository()
-        );
-    }
-
     public function setBorrowing(?Borrowing $borrowing)
     {
         $this->borrowing = $borrowing->load(['event', 'assets']);

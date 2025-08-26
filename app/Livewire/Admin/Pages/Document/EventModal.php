@@ -78,6 +78,7 @@ class EventModal extends Component
     public function save()
     {
         app(DocumentFinalizationService::class)->finalize($this->data);
+        $this->dispatch('refresh-documents');
         toastr()->success(__('Data Dokumen berhasil diproses dan disimpan.'));
         $this->dispatch('close-modal', 'event-modal');
     }

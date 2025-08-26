@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -111,6 +112,7 @@ class Document extends Component
         }
     }
 
+    #[On('refresh-documents')]
     public function render()
     {
         $table_heads = ['#', 'Subject', 'Submitter', 'Upload Date', 'Status', 'Processed By', 'Actions'];

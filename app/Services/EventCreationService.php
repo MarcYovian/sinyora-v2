@@ -147,10 +147,10 @@ class EventCreationService
         });
     }
 
-    public function createEventFromDocument(Document $document, array $data)
+    public function createEventFromDocument(Document $document, array $data, array $information)
     {
         $user = $this->userRepository->findById(Auth::id());
-        $organizationId = data_get($data, 'document_information.final_organization_id');
+        $organizationId = data_get($information, 'final_organization_id');
 
         foreach (data_get($data, 'parsed_dates.dates', []) as $date) {
             $startDateTime = Carbon::parse($date['start']);

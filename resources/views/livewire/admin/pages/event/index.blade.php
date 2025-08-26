@@ -1,205 +1,243 @@
 <div>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Data Events') }}
+    <header class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+            {{ __('Manajemen Kegiatan Kapel') }}
         </h2>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Kelola semua kegiatan kapel yang masuk.
+        </p>
     </header>
 
-    <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                <x-heroicon-s-plus class="w-5 h-5" />
+    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+        <div class="p-4 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                    <x-heroicon-s-plus class="w-5 h-5" />
 
-                <span>{{ __('Create') }}</span>
-            </x-button>
+                    <span>{{ __('Tambah Kegiatan') }}</span>
+                </x-button>
 
-            <div class="w-full md:w-1/2">
-                <x-search placeholder="Search event by name.." />
-            </div>
-        </div>
-
-        <div class="p-4 md:p-6">
-            <div class="grid grid-cols-1 gap-4 md:hidden">
-                @forelse ($events as $event)
-                    <div wire:key="event-card-{{ $event->id }}"
-                        class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
-                        <div class="p-4 border-b dark:border-gray-700">
-                            <div class="flex items-start justify-between">
-                                <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ $event->name }}</h3>
-                                <x-dropdown align="right" width="48">
-                                    <x-slot name="trigger">
-                                        <button
-                                            class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                            </svg>
-                                        </button>
-                                    </x-slot>
-                                    <x-slot name="content">
-                                        <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
-                                            Detail
-                                        </x-dropdown-link>
-                                        <x-dropdown-link href="#" wire:click="edit({{ $event->id }})">
-                                            Edit
-                                        </x-dropdown-link>
-                                        @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
-                                            <x-dropdown-link href="#"
-                                                wire:click="confirmApprove({{ $event->id }})">
-                                                Approve
-                                            </x-dropdown-link>
-                                            <x-dropdown-link href="#"
-                                                wire:click="confirmReject({{ $event->id }})">
-                                                Reject
-                                            </x-dropdown-link>
-                                        @endif
-                                        <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                        <x-dropdown-link href="#" wire:click="confirmDelete({{ $event->id }})"
-                                            class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
-                                    </x-slot>
-                                </x-dropdown>
-                            </div>
-                            <x-status-badge :status="$event->status" class="mt-2" />
-                        </div>
-                        <div class="p-4 space-y-3 text-sm">
-                            <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                <span>
-                                    {{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
-                                    -
-                                    {{ Carbon\Carbon::parse($event->end_recurring)->translatedFormat('d M Y') }}
-                                </span>
-                            </div>
-                            <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
-                                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2 0h2v2h-2V9zm2-4h-2v2h2V5z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <span>{{ $event->organization->name }}</span>
-                            </div>
-                            {{-- Kategori --}}
-                            <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                <div class="w-3 h-3 rounded-full mr-2"
-                                    style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}"></div>
-                                <span>{{ $event->eventCategory->name }}</span>
-                            </div>
-                            {{-- Lokasi --}}
-                            <div class="flex items-start text-gray-600 dark:text-gray-300">
-                                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
-                                        d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <span>{{ $event->locations->pluck('name')->implode(', ') }}</span>
-                            </div>
-                        </div>
+                <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
+                    <div class="w-full sm:w-auto sm:flex-grow">
+                        <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
+                            placeholder="{{ __('Cari nama kegiatan...') }}" />
                     </div>
-                @empty
-                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                        {{ __('No data available') }}
+                    <div class="w-full sm:w-48">
+                        <x-select wire:model.live="filterStatus" class="w-full">
+                            <option value="">{{ __('Semua Status') }}</option>
+                            @foreach (App\Enums\EventApprovalStatus::cases() as $status)
+                                <option value="{{ $status->value }}">{{ $status->label() }}</option>
+                            @endforeach
+                        </x-select>
                     </div>
-                @endforelse
+                    @if ($search || $filterStatus)
+                        <x-button type="button" wire:click="resetFilters" variant="secondary" class="w-full sm:w-auto">
+                            {{ __('Reset') }}
+                        </x-button>
+                    @endif
+                </div>
             </div>
 
-            <div class="hidden md:block">
-                <x-table title="Data Events" :heads="$table_heads">
-                    @forelse ($events as $key => $event)
-                        <tr wire:key="event-table-{{ $event->id }}"
-                            class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                                {{ $key + $events->firstItem() }}
-                            </td>
-                            {{-- Event --}}
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800 dark:text-gray-200">{{ $event->name }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $event->organization->name }}
-                                </div>
-                            </td>
-                            {{-- Period --}}
-                            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                <div>{{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
-                                </div>
-                                <div class="text-xs">sampai</div>
-                                <div>{{ Carbon\Carbon::parse($event->end_recurring)->translatedFormat('d M Y') }}</div>
-                            </td>
-                            {{-- Category --}}
-                            <td class="px-6 py-4 text-sm">
-                                <span
-                                    class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 font-medium text-gray-900 ring-1 ring-inset ring-gray-200"
-                                    style="background-color: {{ $event->eventCategory->color }}20; color: {{ $event->eventCategory->color }}">
-                                    <svg class="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true" fill="currentColor">
-                                        <circle cx="3" cy="3" r="3" />
-                                    </svg>
-                                    {{ $event->eventCategory->name }}
-                                </span>
-                            </td>
-                            {{-- Locations --}}
-                            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                {{ $event->locations->pluck('name')->implode(', ') }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <x-status-badge :status="$event->status" />
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <x-dropdown align="right" width="48">
-                                    <x-slot name="trigger">
-                                        <button
-                                            class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                            </svg>
-                                        </button>
-                                    </x-slot>
-                                    <x-slot name="content">
-                                        <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
-                                            Detail
-                                        </x-dropdown-link>
-                                        @if (
-                                            $event->status !== App\Enums\EventApprovalStatus::APPROVED &&
-                                                $event->status !== App\Enums\EventApprovalStatus::REJECTED)
+            {{-- Indikator Loading --}}
+            <div wire:loading.flex wire:target="search, filterStatus" class="items-center justify-center w-full py-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
+                    <span>Memuat data...</span>
+                </div>
+            </div>
+
+            <div wire:loading.remove wire:target="search, filterStatus">
+                <div class="grid grid-cols-1 gap-4 md:hidden">
+                    @forelse ($events as $event)
+                        <div wire:key="event-card-{{ $event->id }}"
+                            class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
+                            <div class="p-4 border-b dark:border-gray-700">
+                                <div class="flex items-start justify-between">
+                                    <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ $event->name }}
+                                    </h3>
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path
+                                                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
+                                                Detail
+                                            </x-dropdown-link>
                                             <x-dropdown-link href="#" wire:click="edit({{ $event->id }})">
                                                 Edit
                                             </x-dropdown-link>
-                                        @endif
-                                        @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                            @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmApprove({{ $event->id }})">
+                                                    Approve
+                                                </x-dropdown-link>
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmReject({{ $event->id }})">
+                                                    Reject
+                                                </x-dropdown-link>
+                                            @endif
+                                            <div class="border-t border-gray-100 dark:border-gray-600"></div>
                                             <x-dropdown-link href="#"
-                                                wire:click="confirmApprove({{ $event->id }})">
-                                                Approve
-                                            </x-dropdown-link>
-                                            <x-dropdown-link href="#"
-                                                wire:click="confirmReject({{ $event->id }})">
-                                                Reject
-                                            </x-dropdown-link>
-                                        @endif
-                                        <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                        <x-dropdown-link href="#"
-                                            wire:click="confirmDelete({{ $event->id }})"
-                                            class="text-red-600 dark:text-red-500">
-                                            Delete
-                                        </x-dropdown-link>
-                                    </x-slot>
-                                </x-dropdown>
-                            </td>
-                        </tr>
+                                                wire:click="confirmDelete({{ $event->id }})"
+                                                class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
+                                        </x-slot>
+                                    </x-dropdown>
+                                </div>
+                                <x-status-badge :status="$event->status" class="mt-2" />
+                            </div>
+                            <div class="p-4 space-y-3 text-sm">
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+                                    <span>
+                                        {{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
+                                        -
+                                        {{ Carbon\Carbon::parse($event->end_recurring)->translatedFormat('d M Y') }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2 0h2v2h-2V9zm2-4h-2v2h2V5z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ $event->organization->name ?? '-' }}</span>
+                                </div>
+                                {{-- Kategori --}}
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <div class="w-3 h-3 rounded-full mr-2"
+                                        style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}">
+                                    </div>
+                                    <span>{{ $event->eventCategory->name }}</span>
+                                </div>
+                                {{-- Lokasi --}}
+                                <div class="flex items-start text-gray-600 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ $event->locations->pluck('name')->implode(', ') }}</span>
+                                </div>
+                            </div>
+                        </div>
                     @empty
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td colspan="{{ count($table_heads) }}"
-                                class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                                {{ __('No data available') }}
-                            </td>
-                        </tr>
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            {{ __('No data available') }}
+                        </div>
                     @endforelse
-                </x-table>
+                </div>
+
+                <div class="hidden md:block">
+                    <x-table title="Data Events" :heads="$table_heads">
+                        @forelse ($events as $key => $event)
+                            <tr wire:key="event-table-{{ $event->id }}"
+                                class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
+                                    {{ $key + $events->firstItem() }}
+                                </td>
+                                {{-- Event --}}
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-gray-800 dark:text-gray-200">{{ $event->name }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $event->organization->name ?? '-' }}
+                                    </div>
+                                </td>
+                                {{-- Period --}}
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    <div>{{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
+                                    </div>
+                                    <div class="text-xs">sampai</div>
+                                    <div>{{ Carbon\Carbon::parse($event->end_recurring)->translatedFormat('d M Y') }}
+                                    </div>
+                                </td>
+                                {{-- Category --}}
+                                <td class="px-6 py-4 text-sm">
+                                    <span
+                                        class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 font-medium text-gray-900 ring-1 ring-inset ring-gray-200"
+                                        style="background-color: {{ $event->eventCategory->color }}20; color: {{ $event->eventCategory->color }}">
+                                        <svg class="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true"
+                                            fill="currentColor">
+                                            <circle cx="3" cy="3" r="3" />
+                                        </svg>
+                                        {{ $event->eventCategory->name }}
+                                    </span>
+                                </td>
+                                {{-- Locations --}}
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ $event->locations->pluck('name')->implode(', ') }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <x-status-badge :status="$event->status" />
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path
+                                                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
+                                                Detail
+                                            </x-dropdown-link>
+                                            @if (
+                                                $event->status !== App\Enums\EventApprovalStatus::APPROVED &&
+                                                    $event->status !== App\Enums\EventApprovalStatus::REJECTED)
+                                                <x-dropdown-link href="#"
+                                                    wire:click="edit({{ $event->id }})">
+                                                    Edit
+                                                </x-dropdown-link>
+                                            @endif
+                                            @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmApprove({{ $event->id }})">
+                                                    Approve
+                                                </x-dropdown-link>
+                                                <x-dropdown-link href="#"
+                                                    wire:click="confirmReject({{ $event->id }})">
+                                                    Reject
+                                                </x-dropdown-link>
+                                            @endif
+                                            <div class="border-t border-gray-100 dark:border-gray-600"></div>
+                                            <x-dropdown-link href="#"
+                                                wire:click="confirmDelete({{ $event->id }})"
+                                                class="text-red-600 dark:text-red-500">
+                                                Delete
+                                            </x-dropdown-link>
+                                        </x-slot>
+                                    </x-dropdown>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr class="bg-white dark:bg-gray-800">
+                                <td colspan="{{ count($table_heads) }}"
+                                    class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
+                                    {{ __('No data available') }}
+                                </td>
+                            </tr>
+                        @endforelse
+                    </x-table>
+                </div>
             </div>
-            <div class="px-4 md:px-6 py-4">
-                {{ $events->links() }}
-            </div>
+        </div>
+
+        <div class="px-4 md:px-6 py-4">
+            {{ $events->links() }}
         </div>
     </div>
 

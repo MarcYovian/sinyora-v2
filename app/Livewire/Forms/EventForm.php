@@ -98,7 +98,7 @@ class EventForm extends Form
         // dd($this->event->toArray());
         if ($this->event) {
             $this->name = $this->event->name;
-            $this->description = $this->event->description;
+            $this->description = $this->event->description ?? '';
             $this->event_category_id = $this->event->event_category_id;
             $this->organization_id = $this->event->organization_id;
             $firstRecurrence = $this->event->firstRecurrence;

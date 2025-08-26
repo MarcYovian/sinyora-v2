@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -22,7 +23,6 @@ class Index extends Component
     #[Layout('layouts.app')]
 
     public EventForm $form;
-    public $search = '';
     public $editId = null;
     public $deleteId = null;
     public $approveId = null;
@@ -31,6 +31,12 @@ class Index extends Component
     public $categories;
     public $organizations;
     public $locations;
+
+    #[Url(keep: true)]
+    public string $search = '';
+
+    #[Url(as: 'status', keep: true)]
+    public string $filterStatus = '';
 
     public function mount()
     {
@@ -159,6 +165,12 @@ class Index extends Component
         }
     }
 
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filterStatus');
+        $this->resetPage();
+    }
+
     public function render()
     {
         $this->authorize('access', 'admin.events.index');
@@ -182,8 +194,10 @@ class Index extends Component
                     })
                     ->orWhereHas('eventRecurrences', function ($query) {
                         $query->where('date', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhere('status', 'like', '%' . $this->search . '%');
+                    });
+            })
+            ->when($this->filterStatus, function ($query) {
+                $query->where('status', $this->filterStatus);
             })
             ->latest()
             ->paginate(10);
