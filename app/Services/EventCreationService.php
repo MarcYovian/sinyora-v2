@@ -5,11 +5,14 @@ namespace App\Services;
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
 use App\Exceptions\ScheduleConflictException;
+use App\Models\CustomLocation;
+use App\Models\Document;
 use App\Models\Event;
 use App\Models\GuestSubmitter;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
 use App\Repositories\Contracts\EventRecurrenceRepositoryInterface;
 use App\Repositories\Contracts\EventRepositoryInterface;
+use App\Repositories\Contracts\LicensingDocumentRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -18,24 +21,17 @@ use Illuminate\Support\Facades\DB;
 
 class EventCreationService
 {
-    protected $eventRepository;
-    protected $eventRecurrenceRepository;
-    protected $userRepository;
-    protected $borrowingRepository;
     /**
      * Create a new class instance.
      */
     public function __construct(
-        EventRepositoryInterface $eventRepository,
-        EventRecurrenceRepositoryInterface $eventRecurrenceRepository,
-        UserRepositoryInterface $userRepository,
-        BorrowingRepositoryInterface $borrowingRepository
-    ) {
-        $this->eventRepository = $eventRepository;
-        $this->eventRecurrenceRepository = $eventRecurrenceRepository;
-        $this->userRepository = $userRepository;
-        $this->borrowingRepository = $borrowingRepository;
-    }
+        protected EventRepositoryInterface $eventRepository,
+        protected EventRecurrenceRepositoryInterface $eventRecurrenceRepository,
+        protected UserRepositoryInterface $userRepository,
+        protected BorrowingRepositoryInterface $borrowingRepository,
+        protected LicensingDocumentRepositoryInterface $licensingDocumentRepository,
+        protected BorrowingManagementService $borrowingManagementService
+    ) {}
 
     public function createEvent(array $data)
     {
@@ -149,6 +145,52 @@ class EventCreationService
                 throw $th;
             }
         });
+    }
+
+    public function createEventFromDocument(Document $document, array $data)
+    {
+        $user = $this->userRepository->findById(Auth::id());
+        $organizationId = data_get($data, 'document_information.final_organization_id');
+
+        foreach (data_get($data, 'parsed_dates.dates', []) as $date) {
+            $startDateTime = Carbon::parse($date['start']);
+            $endDateTime = Carbon::parse($date['end']);
+
+            $licensing = $this->licensingDocumentRepository->create([
+                'description' => $data['eventName'],
+                'start_datetime' => $startDateTime,
+                'end_datetime' => $endDateTime,
+            ]);
+
+            $event = $this->eventRepository->create($user, new Event([
+                'name' => $data['eventName'],
+                'start_recurring' => $startDateTime->format('Y-m-d'),
+                'end_recurring' => $endDateTime->format('Y-m-d'),
+                'status' => EventApprovalStatus::PENDING,
+                'recurrence_type' => EventRecurrenceType::DAILY->value,
+                'organization_id' => $organizationId,
+                'event_category_id' => $data['fivetask_categories']['id'],
+                'document_typable_id' => $licensing->id,
+                'document_typable_type' => $licensing->getMorphClass(),
+            ]));
+
+            $this->syncLocationsToEvent($event, $data['location_data']);
+
+            $document->licensingDocuments()->attach($licensing->id);
+
+            $recurrenceData = $this->generateSegmentsForOccurrence($startDateTime, $endDateTime);
+            $this->eventRecurrenceRepository->create($event, $recurrenceData);
+
+            if (!empty($data['equipment'])) {
+                $this->borrowingManagementService->createBorrowingForEvent(
+                    event: $event,
+                    eventData: $data,
+                    start: $startDateTime,
+                    end: $endDateTime,
+                    documentable: $licensing
+                );
+            }
+        }
     }
 
     public function getEventById(?int $id): ?Event
@@ -340,5 +382,28 @@ class EventCreationService
             EventRecurrenceType::MONTHLY->value => '1 month',
             default => '1 day', // Default fallback
         };
+    }
+
+    private function syncLocationsToEvent(Event $event, array $locationData): void
+    {
+        $locationIds = collect($locationData)
+            ->whereNotNull('location_id')
+            ->where('source', 'location')
+            ->where('match_status', 'matched')
+            ->pluck('location_id')
+            ->filter();
+
+        if ($locationIds->isNotEmpty()) {
+            $event->locations()->sync($locationIds->all());
+        }
+
+        $customLocations = collect($locationData)
+            ->where('source', 'custom')
+            ->all();
+
+        foreach ($customLocations as $loc) {
+            $customLocation = CustomLocation::firstOrCreate(['name' => $loc['name']]);
+            $event->customLocations()->attach($customLocation->id);
+        }
     }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Pages\Document;
 
 use App\Livewire\Forms\DocumentForm;
 use App\Models\Document;
+use App\Services\DocumentFinalizationService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -20,9 +21,10 @@ class EventModal extends Component
     public function setData(array $data)
     {
         $this->data = $data;
+
         foreach ($this->data['events'] as $index => &$event) { // Gunakan referensi (&) untuk memodifikasi langsung
 
-            $dateRanges = Arr::get($event, 'dates', []);
+            $dateRanges = Arr::get($event, 'parsed_dates.dates', []);
             if (empty($dateRanges)) {
                 continue; // Lanjut ke event berikutnya jika tidak ada data tanggal
             }
@@ -75,35 +77,8 @@ class EventModal extends Component
 
     public function save()
     {
-        $data = collect($this->data)->toRecursive();
-
-        $finalOrgId = data_get($data, 'document_information.final_organization_id');
-
-        if (!$finalOrgId) {
-            // Gunakan data_get untuk mengakses data dengan aman, mencegah error "Undefined array key"
-            $organizations = data_get($data, 'document_information.emitter_organizations', collect());
-
-            // Pastikan $organizations adalah collection sebelum memanggil method filter
-            if ($organizations instanceof Collection) {
-                $matchedOrgs = $organizations
-                    ->filter(fn($value) => data_get($value, 'match_status') === 'matched')
-                    ->values(); // Keep it as a collection
-
-                if ($matchedOrgs->count() === 1) {
-                    // Gunakan data_get lagi untuk keamanan
-                    $orgId = data_get($matchedOrgs->first(), 'nama_organisasi_id');
-                    if ($orgId) {
-                        // Gunakan data_set untuk menetapkan nilai dengan aman
-                        data_set($data, 'document_information.final_organization_id', $orgId);
-                    }
-                }
-            }
-        }
-
-        $this->form->setData($data->toArray());
-        $this->form->storeDocument();
-        toastr()->success(__('Data Dokumen berhasil disimpan.'));
-
+        app(DocumentFinalizationService::class)->finalize($this->data);
+        toastr()->success(__('Data Dokumen berhasil diproses dan disimpan.'));
         $this->dispatch('close-modal', 'event-modal');
     }
 

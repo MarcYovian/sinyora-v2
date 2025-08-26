@@ -23,6 +23,8 @@ class Borrowing extends Model
         'creator_type',
         'borrowable_id',
         'borrowable_type',
+        'document_typable_id',
+        'document_typable_type',
     ];
 
     protected function casts()

@@ -42,6 +42,10 @@ class Event extends Model
         'recurrence_type',
         'organization_id',
         'event_category_id',
+        'creator_id',
+        'creator_type',
+        'document_typable_id',
+        'document_typable_type',
     ];
 
     protected $casts = [
