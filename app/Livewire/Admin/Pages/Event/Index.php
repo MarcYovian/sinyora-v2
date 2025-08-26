@@ -165,6 +165,17 @@ class Index extends Component
         }
     }
 
+    public function addCustomSchedule()
+    {
+        $this->form->addCustomSchedule();
+    }
+
+    // Metode BARU untuk di-trigger dari view
+    public function removeCustomSchedule($index)
+    {
+        $this->form->removeCustomSchedule($index);
+    }
+
     public function resetFilters(): void
     {
         $this->reset('search', 'filterStatus');

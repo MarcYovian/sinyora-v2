@@ -241,7 +241,7 @@
         </div>
     </div>
 
-    <x-modal name="event-modal" :show="$errors->isNotEmpty()" maxWidth="5xl" focusable>
+    <x-modal name="event-modal" :show="$errors->isNotEmpty()" maxWidth="6xl" focusable>
         <form wire:submit="save" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
             <!-- Header with close button -->
             <div class="flex items-start justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -338,20 +338,81 @@
                             class="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-gray-700 pb-3 mb-6">
                             {{ __('Schedule') }}
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <x-input-label for="specific_datetime_start" value="Start Date & Time" />
-                                <x-text-input wire:model="form.datetime_start" id="specific_datetime_start"
-                                    type="datetime-local" class="w-full mt-2" />
-                                <x-input-error :messages="$errors->get('form.datetime_start')" class="mt-2" />
+
+                        @if ($form->recurrence_type !== App\Enums\EventRecurrenceType::CUSTOM)
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <x-input-label for="specific_datetime_start" value="Start Date & Time" />
+                                    <x-text-input wire:model="form.datetime_start" id="specific_datetime_start"
+                                        type="datetime-local" class="w-full mt-2" />
+                                    <x-input-error :messages="$errors->get('form.datetime_start')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <x-input-label for="specific_datetime_end" value="End Date & Time" />
+                                    <x-text-input wire:model="form.datetime_end" id="specific_datetime_end"
+                                        type="datetime-local" class="w-full mt-2" />
+                                    <x-input-error :messages="$errors->get('form.datetime_end')" class="mt-2" />
+                                </div>
                             </div>
-                            <div>
-                                <x-input-label for="specific_datetime_end" value="End Date & Time" />
-                                <x-text-input wire:model="form.datetime_end" id="specific_datetime_end"
-                                    type="datetime-local" class="w-full mt-2" />
-                                <x-input-error :messages="$errors->get('form.datetime_end')" class="mt-2" />
+                        @endif
+
+                        @if ($form->recurrence_type === App\Enums\EventRecurrenceType::CUSTOM)
+                            <div class="space-y-4 animate-fade-in" wire:key="custom-schedules">
+                                <x-input-label value="{{ __('Custom Schedules') }}" />
+
+                                @foreach ($form->custom_schedules as $index => $schedule)
+                                    <div wire:key="schedule-{{ $index }}"
+                                        class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] items-end gap-4 p-4 border dark:border-gray-700 rounded-lg">
+                                        {{-- Start Datetime --}}
+                                        <div class="w-full">
+                                            <x-input-label for="custom_start_{{ $index }}"
+                                                value="Start Date & Time" class="text-xs" />
+                                            <x-text-input
+                                                wire:model="form.custom_schedules.{{ $index }}.datetime_start"
+                                                id="custom_start_{{ $index }}" type="datetime-local"
+                                                class="w-full mt-1" />
+                                            <x-input-error :messages="$errors->get(
+                                                'form.custom_schedules.' . $index . '.datetime_start',
+                                            )" class="mt-2" />
+                                        </div>
+
+                                        {{-- End Datetime --}}
+                                        <div class="w-full">
+                                            <x-input-label for="custom_end_{{ $index }}"
+                                                value="End Date & Time" class="text-xs" />
+                                            <x-text-input
+                                                wire:model="form.custom_schedules.{{ $index }}.datetime_end"
+                                                id="custom_end_{{ $index }}" type="datetime-local"
+                                                class="w-full mt-1" />
+                                            <x-input-error :messages="$errors->get(
+                                                'form.custom_schedules.' . $index . '.datetime_end',
+                                            )" class="mt-2" />
+                                        </div>
+
+                                        {{-- Tombol Hapus --}}
+                                        <div class="w-full md:w-auto">
+                                            @if (count($form->custom_schedules) > 1)
+                                                <x-danger-button type="button"
+                                                    wire:click="removeCustomSchedule({{ $index }})"
+                                                    wire:loading.attr="disabled"
+                                                    class="w-full h-10 flex items-center justify-center">
+                                                    <x-heroicon-o-trash class="w-5 h-5" />
+                                                </x-danger-button>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                <div class="pt-4">
+                                    <x-secondary-button type="button" wire:click="addCustomSchedule"
+                                        class="w-full sm:w-auto justify-center">
+                                        <x-heroicon-s-plus class="w-5 h-5 mr-2" />
+                                        {{ __('Tambah Jadwal Lain') }}
+                                    </x-secondary-button>
+                                </div>
+                                <x-input-error :messages="$errors->get('form.custom_schedules')" class="mt-2" />
                             </div>
-                        </div>
+                        @endif
                     </div>
 
                 </div>

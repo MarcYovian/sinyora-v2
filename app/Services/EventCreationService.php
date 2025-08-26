@@ -35,7 +35,11 @@ class EventCreationService
 
     public function createEvent(array $data)
     {
-        $recurrences = $this->handleRecurrences($data);
+        if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
+            $recurrences = $this->handleCustomRecurrences($data);
+        } else {
+            $recurrences = $this->handleRecurrences($data);
+        }
 
         $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $data['locations']);
         if ($conflicts->count() > 0) {
@@ -49,17 +53,27 @@ class EventCreationService
 
             throw new ScheduleConflictException($errorMessage);
         }
-        $isDailyOrCustom = $data['recurrence_type'] === EventRecurrenceType::DAILY->value || $data['recurrence_type'] === EventRecurrenceType::CUSTOM->value;
 
-        return DB::transaction(function () use ($data, $isDailyOrCustom, $recurrences) {
+        if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
+            $start_recurring = min($recurrences)['date'];
+            $end_recurring = max($recurrences)['date'];
+        } elseif ($data['recurrence_type'] === EventRecurrenceType::DAILY->value) {
+            $start_recurring = Carbon::parse($data['datetime_start'])->format('Y-m-d');
+            $end_recurring = Carbon::parse($data['datetime_end'])->format('Y-m-d');
+        } else {
+            $start_recurring = $data['start_recurring'];
+            $end_recurring = $data['end_recurring'];
+        }
+
+        return DB::transaction(function () use ($data, $start_recurring, $end_recurring, $recurrences) {
             try {
                 $user = $this->userRepository->findById(Auth::id());
 
                 $eventData = [
                     'name' => $data['name'],
                     'description' => $data['description'],
-                    'start_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_start'])->format('Y-m-d') : $data['start_recurring'],
-                    'end_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_end'])->format('Y-m-d') : $data['end_recurring'],
+                    'start_recurring' => $start_recurring,
+                    'end_recurring' => $end_recurring,
                     'status' => EventApprovalStatus::PENDING,
                     'recurrence_type' => $data['recurrence_type'],
                     'organization_id' => $data['organization_id'],
@@ -338,6 +352,20 @@ class EventCreationService
             // Generate and merge the date/time segments for this single occurrence.
             $segments = $this->generateSegmentsForOccurrence($occurrenceStartDate, $occurrenceEndDate);
             $allRecurrences = array_merge($allRecurrences, $segments);
+        }
+
+        return $allRecurrences;
+    }
+
+    private function handleCustomRecurrences($data)
+    {
+        $allRecurrences = [];
+
+        foreach ($data['custom_schedules'] as $schedule) {
+            $startDate = Carbon::parse($schedule['datetime_start']);
+            $endDate = Carbon::parse($schedule['datetime_end']);
+
+            $allRecurrences = array_merge($allRecurrences, $this->generateSegmentsForOccurrence($startDate, $endDate));
         }
 
         return $allRecurrences;

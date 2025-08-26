@@ -32,6 +32,7 @@ class EventForm extends Form
     public string $start_recurring = '';
     public string $end_recurring = '';
     public array $locations = [];
+    public array $custom_schedules = [];
 
     protected function rules(): array
     {
@@ -40,20 +41,50 @@ class EventForm extends Form
             'description' => ['nullable', 'string', 'max:65535'],
             'event_category_id' => ['nullable', Rule::exists('event_categories', 'id')],
             'organization_id' => ['nullable', Rule::exists('organizations', 'id')],
-            'datetime_start' => ['required', 'dateformat:Y-m-d\TH:i', 'before_or_equal:datetime_end'],
-            'datetime_end' => ['required', 'dateformat:Y-m-d\TH:i', 'after_or_equal:datetime_start'],
+            'datetime_start' => [
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM),
+                'nullable',
+                'dateformat:Y-m-d\TH:i',
+                'before_or_equal:datetime_end'
+            ],
+            'datetime_end' => [
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM),
+                'nullable',
+                'dateformat:Y-m-d\TH:i',
+                'after_or_equal:datetime_start'
+            ],
             'recurrence_type' => ['required', Rule::in(EventRecurrenceType::values())],
             'start_recurring' => [
-                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM && $this->recurrence_type !== EventRecurrenceType::DAILY),
+                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])),
+                'nullable',
                 'date_format:Y-m-d'
             ],
             'end_recurring' => [
-                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM && $this->recurrence_type !== EventRecurrenceType::DAILY),
+                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])),
+                'nullable',
                 'date_format:Y-m-d',
                 'after_or_equal:start_recurring'
             ],
             'locations' => ['required', 'array', 'min:1'],
             'locations.*' => [Rule::exists('locations', 'id')],
+            'custom_schedules' => [
+                Rule::when(fn() => $this->recurrence_type === EventRecurrenceType::CUSTOM->value, [
+                    'required',
+                    'array',
+                    'min:1'
+                ]),
+
+            ],
+            'custom_schedules.*.datetime_start' => [
+                'required',
+                'date_format:Y-m-d\TH:i',
+                'before_or_equal:custom_schedules.*.datetime_end'
+            ],
+            'custom_schedules.*.datetime_end' => [
+                'required',
+                'date_format:Y-m-d\TH:i',
+                'after_or_equal:custom_schedules.*.datetime_start'
+            ],
         ];
     }
 
@@ -89,6 +120,15 @@ class EventForm extends Form
             'end_recurring.date_format' => __('The end recurring date must be in the format Y-m-d.'),
             'start_recurring.after_or_equal' => __('The start recurring date must be after or equal to the start date.'),
             'locations.array' => __('The locations must be an array.'),
+            'custom_schedules.array' => __('The custom schedules must be an array.'),
+            'custom_schedules.required' => __('At least one custom schedule is required.'),
+            'custom_schedules.min' => __('You must select at least one custom schedule.'),
+            'custom_schedules.*.datetime_start.required' => __('The start date is required.'),
+            'custom_schedules.*.datetime_start.date_format' => __('The start date must be in the format Y-m-d\TH:i.'),
+            'custom_schedules.*.datetime_start.before_or_equal' => __('The start date must be before or equal to the end date.'),
+            'custom_schedules.*.datetime_end.required' => __('The end date is required.'),
+            'custom_schedules.*.datetime_end.date_format' => __('The end date must be in the format Y-m-d\TH:i.'),
+            'custom_schedules.*.datetime_end.after_or_equal' => __('The end date must be after or equal to the start date.'),
         ];
     }
 
@@ -101,26 +141,41 @@ class EventForm extends Form
             $this->description = $this->event->description ?? '';
             $this->event_category_id = $this->event->event_category_id;
             $this->organization_id = $this->event->organization_id;
-            $firstRecurrence = $this->event->firstRecurrence;
 
-            if ($firstRecurrence) {
-                $this->datetime_start = Carbon::parse(
-                    $firstRecurrence->date->format('Y-m-d') . ' ' . $firstRecurrence->time_start->format('H:i')
-                )->format('Y-m-d\TH:i');
-
-                $continuousEndDate = $this->event->getContinuousEndDate();
-                if ($continuousEndDate) {
-                    $this->datetime_end = $continuousEndDate->format('Y-m-d\TH:i');
+            if ($this->recurrence_type === EventRecurrenceType::CUSTOM) {
+                $this->custom_schedules = [];
+                foreach ($this->event->eventRecurrences as $recurrence) {
+                    $this->custom_schedules[] = [
+                        'datetime_start' => Carbon::parse($recurrence->date->format('Y-m-d') . ' ' . $recurrence->time_start->format('H:i'))->format('Y-m-d\TH:i'),
+                        'datetime_end' => Carbon::parse($recurrence->date->format('Y-m-d') . ' ' . $recurrence->time_end->format('H:i'))->format('Y-m-d\TH:i'),
+                    ];
+                }
+                // Jika tidak ada jadwal, pastikan ada satu baris kosong
+                if (empty($this->custom_schedules)) {
+                    $this->custom_schedules = [['datetime_start' => '', 'datetime_end' => '']];
                 }
             } else {
-                // Jika tidak ada jadwal sama sekali, kosongkan
-                $this->datetime_start = '';
-                $this->datetime_end = '';
+                $firstRecurrence = $this->event->firstRecurrence;
+
+                if ($firstRecurrence) {
+                    $this->datetime_start = Carbon::parse(
+                        $firstRecurrence->date->format('Y-m-d') . ' ' . $firstRecurrence->time_start->format('H:i')
+                    )->format('Y-m-d\TH:i');
+
+                    $continuousEndDate = $this->event->getContinuousEndDate();
+                    if ($continuousEndDate) {
+                        $this->datetime_end = $continuousEndDate->format('Y-m-d\TH:i');
+                    }
+                } else {
+                    // Jika tidak ada jadwal sama sekali, kosongkan
+                    $this->datetime_start = '';
+                    $this->datetime_end = '';
+                }
             }
 
             $this->recurrence_type = $this->event->recurrence_type;
 
-            if ($this->recurrence_type === EventRecurrenceType::WEEKLY || $this->recurrence_type === EventRecurrenceType::BIWEEKLY || $this->recurrence_type === EventRecurrenceType::MONTHLY) {
+            if (in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])) {
                 $this->start_recurring = Carbon::parse($this->event->start_recurring)->format('Y-m-d');
                 $this->end_recurring = Carbon::parse($this->event->end_recurring)->format('Y-m-d');
             } else {
@@ -130,6 +185,18 @@ class EventForm extends Form
 
             $this->locations = $this->event->locations()->pluck('locations.id')->toArray();
         }
+    }
+
+    public function addCustomSchedule()
+    {
+        $this->custom_schedules[] = ['datetime_start' => '', 'datetime_end' => ''];
+    }
+
+    // Metode BARU untuk menghapus baris jadwal custom
+    public function removeCustomSchedule($index)
+    {
+        unset($this->custom_schedules[$index]);
+        $this->custom_schedules = array_values($this->custom_schedules); // Re-index array
     }
 
     public function store(): void
