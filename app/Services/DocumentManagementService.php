@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DataTransferObjects\StoreDocumentData;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
+use App\Events\DocumentProposalCreated;
 use App\Models\Document;
 use App\Models\GuestSubmitter;
 use App\Models\User;
@@ -28,7 +29,7 @@ class DocumentManagementService
 
     public function storeNewDocument(UploadedFile $file, User|GuestSubmitter $submitter)
     {
-        return DB::transaction(function () use ($file, $submitter) {
+        $document = DB::transaction(function () use ($file, $submitter) {
             $path = $file->store('documents/proposals', 'public');
             $mimeType = Storage::disk('public')->mimeType($path);
 
@@ -41,6 +42,16 @@ class DocumentManagementService
 
             return $this->documentRepository->create($submitter, $documentData);
         });
+
+        if ($document && $submitter instanceof GuestSubmitter) {
+            DocumentProposalCreated::dispatch($submitter, $document);
+        }
+
+        if ($document && $submitter instanceof User) {
+            // DocumentProposalCreated::dispatch($submitter, $document);
+        }
+
+        return $document;
     }
 
     public function updateDocumentWithAnalysis(array $data)

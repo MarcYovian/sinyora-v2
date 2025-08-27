@@ -3,10 +3,7 @@
 namespace App\Livewire\Pages\Event;
 
 use App\Models\GuestSubmitter;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\File;
+use App\Services\DocumentManagementService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -31,10 +28,9 @@ class DocumentProposalForm extends Component
 
     public function save()
     {
-        $this->validate();
+        try {
+            $this->validate();
 
-        DB::transaction(function () {
-            // Simpan data submitter
             $guest  = GuestSubmitter::firstOrCreate(
                 ['email' => $this->email],
                 [
@@ -43,22 +39,15 @@ class DocumentProposalForm extends Component
                 ]
             );
 
-            // Simpan attachment
-            if ($this->attachment) {
-                $path = $this->attachment->store('documents/proposals', 'public');
-                $mimeType = Storage::disk('public')->mimeType($path);
-                $guest->documents()->create([
-                    'document_path' => $path,
-                    'original_file_name' => $this->attachment->getClientOriginalName(),
-                    'mime_type' => $mimeType,
-                    'status' => 'pending',
-                ]);
-                toastr()->success('Dokumen proposal berhasil diajukan.');
-                $this->dispatch('close-modal', 'proposal-modal');
-            } else {
-                toastr()->error('Gagal mengunggah dokumen. Silakan coba lagi.');
-            }
-        });
+            app(DocumentManagementService::class)->storeNewDocument($this->attachment, $guest);
+
+            toastr()->success('Dokumen proposal berhasil diajukan.');
+            $this->dispatch('close-modal', 'proposal-modal');
+
+            $this->reset();
+        } catch (\Exception $e) {
+            toastr()->error($e->getMessage());
+        }
     }
 
     public function removeDocument()

@@ -76,6 +76,8 @@ class EventProposalForm extends Form
 
         try {
             app(EventCreationService::class)->createEventForGuest($validated);
+
+            $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {

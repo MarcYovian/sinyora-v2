@@ -37,8 +37,8 @@ class ManualProposalForm extends Component
         } else {
             $this->form->assets = [];
         }
-        try {
 
+        try {
             $this->form->store();
             toastr()->success('Proposal created successfully');
             $this->dispatch('close-modal', 'proposal-modal');
