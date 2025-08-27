@@ -117,7 +117,7 @@
                                     <div class="w-3 h-3 rounded-full mr-2"
                                         style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}">
                                     </div>
-                                    <span>{{ $event->eventCategory->name }}</span>
+                                    <span>{{ $event->eventCategory->name ?? '-' }}</span>
                                 </div>
                                 {{-- Lokasi --}}
                                 <div class="flex items-start text-gray-600 dark:text-gray-300">
@@ -165,12 +165,12 @@
                                 <td class="px-6 py-4 text-sm">
                                     <span
                                         class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 font-medium text-gray-900 ring-1 ring-inset ring-gray-200"
-                                        style="background-color: {{ $event->eventCategory->color }}20; color: {{ $event->eventCategory->color }}">
+                                        style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}20; color: {{ $event->eventCategory->color ?? '#9ca3af' }}">
                                         <svg class="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true"
                                             fill="currentColor">
                                             <circle cx="3" cy="3" r="3" />
                                         </svg>
-                                        {{ $event->eventCategory->name }}
+                                        {{ $event->eventCategory->name ?? '-' }}
                                     </span>
                                 </td>
                                 {{-- Locations --}}

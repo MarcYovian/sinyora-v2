@@ -141,16 +141,38 @@ class EventForm extends Form
             $this->description = $this->event->description ?? '';
             $this->event_category_id = $this->event->event_category_id;
             $this->organization_id = $this->event->organization_id;
+            $this->recurrence_type = $this->event->recurrence_type;
 
             if ($this->recurrence_type === EventRecurrenceType::CUSTOM) {
+                $recurrences = $this->event->eventRecurrences()->orderBy('date', 'asc')->orderBy('time_start', 'asc')->get();
+
                 $this->custom_schedules = [];
-                foreach ($this->event->eventRecurrences as $recurrence) {
-                    $this->custom_schedules[] = [
-                        'datetime_start' => Carbon::parse($recurrence->date->format('Y-m-d') . ' ' . $recurrence->time_start->format('H:i'))->format('Y-m-d\TH:i'),
-                        'datetime_end' => Carbon::parse($recurrence->date->format('Y-m-d') . ' ' . $recurrence->time_end->format('H:i'))->format('Y-m-d\TH:i'),
-                    ];
+                $count = $recurrences->count();
+
+                if ($count > 0) {
+                    for ($i = 0; $i < $count; $i++) {
+                        $blockStartRecurrence = $recurrences->get($i);
+                        while (
+                            ($i + 1) < $count &&
+                            $recurrences->get($i)->time_end->format('H:i:s') === '23:59:59' &&
+                            $recurrences->get($i + 1)->time_start->format('H:i:s') === '00:00:00' &&
+                            $recurrences->get($i + 1)->date->isSameDay($recurrences->get($i)->date->copy()->addDay())
+                        ) {
+                            $i++;
+                        }
+
+                        $blockEndRecurrence = $recurrences->get($i);
+
+                        $startDateTime = Carbon::parse($blockStartRecurrence->date->format('Y-m-d') . ' ' . $blockStartRecurrence->time_start->format('H:i'));
+                        $endDateTime = Carbon::parse($blockEndRecurrence->date->format('Y-m-d') . ' ' . $blockEndRecurrence->time_end->format('H:i'));
+
+                        $this->custom_schedules[] = [
+                            'datetime_start' => $startDateTime->format('Y-m-d\TH:i'),
+                            'datetime_end' => $endDateTime->format('Y-m-d\TH:i'),
+                        ];
+                    }
                 }
-                // Jika tidak ada jadwal, pastikan ada satu baris kosong
+
                 if (empty($this->custom_schedules)) {
                     $this->custom_schedules = [['datetime_start' => '', 'datetime_end' => '']];
                 }
@@ -172,8 +194,6 @@ class EventForm extends Form
                     $this->datetime_end = '';
                 }
             }
-
-            $this->recurrence_type = $this->event->recurrence_type;
 
             if (in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])) {
                 $this->start_recurring = Carbon::parse($this->event->start_recurring)->format('Y-m-d');

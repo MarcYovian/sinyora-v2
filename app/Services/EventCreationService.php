@@ -37,33 +37,21 @@ class EventCreationService
     {
         if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
             $recurrences = $this->handleCustomRecurrences($data);
+            $dates = array_column($recurrences, 'date');
+            $start_recurring = !empty($dates) ? min($dates) : null;
+            $end_recurring = !empty($dates) ? max($dates) : null;
         } else {
             $recurrences = $this->handleRecurrences($data);
+            if ($data['recurrence_type'] === EventRecurrenceType::DAILY->value) {
+                $start_recurring = Carbon::parse($data['datetime_start'])->format('Y-m-d');
+                $end_recurring = Carbon::parse($data['datetime_end'])->format('Y-m-d');
+            } else {
+                $start_recurring = $data['start_recurring'];
+                $end_recurring = $data['end_recurring'];
+            }
         }
 
-        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $data['locations']);
-        if ($conflicts->count() > 0) {
-            $firstConflict = $conflicts->first();
-            $errorMessage = sprintf(
-                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
-                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
-                Carbon::parse($firstConflict->time_start)->format('H:i'),
-                Carbon::parse($firstConflict->time_end)->format('H:i')
-            );
-
-            throw new ScheduleConflictException($errorMessage);
-        }
-
-        if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
-            $start_recurring = min($recurrences)['date'];
-            $end_recurring = max($recurrences)['date'];
-        } elseif ($data['recurrence_type'] === EventRecurrenceType::DAILY->value) {
-            $start_recurring = Carbon::parse($data['datetime_start'])->format('Y-m-d');
-            $end_recurring = Carbon::parse($data['datetime_end'])->format('Y-m-d');
-        } else {
-            $start_recurring = $data['start_recurring'];
-            $end_recurring = $data['end_recurring'];
-        }
+        $this->checkForConflicts($recurrences, $data['locations']);
 
         return DB::transaction(function () use ($data, $start_recurring, $end_recurring, $recurrences) {
             try {
@@ -99,18 +87,7 @@ class EventCreationService
 
         $recurrences = $this->handleRecurrences($data);
 
-        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $data['locations']);
-        if ($conflicts->count() > 0) {
-            $firstConflict = $conflicts->first();
-            $errorMessage = sprintf(
-                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
-                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
-                Carbon::parse($firstConflict->time_start)->format('H:i'),
-                Carbon::parse($firstConflict->time_end)->format('H:i')
-            );
-
-            throw new ScheduleConflictException($errorMessage);
-        }
+        $this->checkForConflicts($recurrences, $data['locations']);
 
         return DB::transaction(function () use ($data, $recurrences) {
             try {
@@ -214,30 +191,31 @@ class EventCreationService
 
     public function updateEvent(Event $event, array $data)
     {
-        $recurrences = $this->handleRecurrences($data);
-
-        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $data['locations']);
-        if ($conflicts->count() > 0) {
-            $firstConflict = $conflicts->first();
-            $errorMessage = sprintf(
-                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
-                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
-                Carbon::parse($firstConflict->time_start)->format('H:i'),
-                Carbon::parse($firstConflict->time_end)->format('H:i')
-            );
-
-            throw new ScheduleConflictException($errorMessage);
+        if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
+            $recurrences = $this->handleCustomRecurrences($data);
+            $dates = array_column($recurrences, 'date');
+            $start_recurring = !empty($dates) ? min($dates) : null;
+            $end_recurring = !empty($dates) ? max($dates) : null;
+        } else {
+            $recurrences = $this->handleRecurrences($data);
+            if ($data['recurrence_type'] === EventRecurrenceType::DAILY->value) {
+                $start_recurring = Carbon::parse($data['datetime_start'])->format('Y-m-d');
+                $end_recurring = Carbon::parse($data['datetime_end'])->format('Y-m-d');
+            } else {
+                $start_recurring = $data['start_recurring'];
+                $end_recurring = $data['end_recurring'];
+            }
         }
 
-        $isDailyOrCustom = $data['recurrence_type'] === EventRecurrenceType::DAILY->value || $data['recurrence_type'] === EventRecurrenceType::CUSTOM->value;
-        // dd($data);
-        return DB::transaction(function () use ($event, $data, $isDailyOrCustom, $recurrences) {
+        $this->checkForConflicts($recurrences, $data['locations']);
+
+        return DB::transaction(function () use ($event, $data, $start_recurring, $end_recurring, $recurrences) {
             try {
                 $eventData = [
                     'name' => $data['name'],
                     'description' => $data['description'],
-                    'start_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_start'])->format('Y-m-d') : $data['start_recurring'],
-                    'end_recurring' => $isDailyOrCustom ? Carbon::parse($data['datetime_end'])->format('Y-m-d') : $data['end_recurring'],
+                    'start_recurring' => $start_recurring,
+                    'end_recurring' => $end_recurring,
                     'recurrence_type' => $data['recurrence_type'],
                     'organization_id' => $data['organization_id'],
                     'event_category_id' => $data['event_category_id'],
@@ -432,6 +410,23 @@ class EventCreationService
         foreach ($customLocations as $loc) {
             $customLocation = CustomLocation::firstOrCreate(['name' => $loc['name']]);
             $event->customLocations()->attach($customLocation->id);
+        }
+    }
+
+    private function checkForConflicts(array $recurrences, array $locationIds): void
+    {
+        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locationIds);
+
+        if ($conflicts->count() > 0) {
+            $firstConflict = $conflicts->first();
+            $errorMessage = sprintf(
+                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
+                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
+                Carbon::parse($firstConflict->time_start)->format('H:i'),
+                Carbon::parse($firstConflict->time_end)->format('H:i')
+            );
+
+            throw new ScheduleConflictException($errorMessage);
         }
     }
 }

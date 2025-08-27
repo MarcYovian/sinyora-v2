@@ -15,8 +15,8 @@ class EventRecurrence extends Model
 
     protected $casts = [
         'date' => 'date:Y-m-d',
-        'time_start' => 'datetime:H:i:s',
-        'time_end' => 'datetime:H:i:s',
+        'time_start' => 'date:H:i:s',
+        'time_end' => 'date:H:i:s',
     ];
 
     public function event()
