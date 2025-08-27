@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
 use App\Exceptions\ScheduleConflictException;
+use App\Mail\EventProposalSubmitted;
+use App\Mail\NewEventProposalAdmin;
 use App\Models\CustomLocation;
 use App\Models\Document;
 use App\Models\Event;
@@ -18,6 +20,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class EventCreationService
 {
@@ -131,6 +134,14 @@ class EventCreationService
                     ];
 
                     $this->borrowingRepository->create($borrowingData);
+                }
+
+                Mail::to($guest->email)->queue(new EventProposalSubmitted($guest, $event));
+
+                $adminsAndManagers = $this->userRepository->getAdminsAndManagers();
+
+                if ($adminsAndManagers->isNotEmpty()) {
+                    Mail::to($adminsAndManagers)->queue(new NewEventProposalAdmin($guest, $event));
                 }
             } catch (\Throwable $th) {
                 throw $th;

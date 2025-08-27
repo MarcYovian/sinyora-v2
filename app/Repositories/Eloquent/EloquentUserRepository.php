@@ -114,4 +114,9 @@ class EloquentUserRepository implements UserRepositoryInterface
         $user->save();
         return $user;
     }
+
+    public function getAdminsAndManagers(): Collection
+    {
+        return User::role(['admin', 'pengurus kapel'])->get();
+    }
 }

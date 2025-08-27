@@ -16,4 +16,5 @@ interface UserRepositoryInterface
     public function delete(int $id): bool;
     public function resetPassword(int $id, string $newPassword): bool;
     public function changePassword(int $id, string $currentPassword, string $newPassword): bool;
+    public function getAdminsAndManagers(): Collection;
 }
