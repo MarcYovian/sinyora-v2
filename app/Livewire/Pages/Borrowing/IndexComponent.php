@@ -3,7 +3,10 @@
 namespace App\Livewire\Pages\Borrowing;
 
 use App\Models\Asset;
+use App\Models\AssetCategory;
 use App\Models\Borrowing;
+use App\Repositories\Contracts\AssetRepositoryInterface;
+use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -13,16 +16,26 @@ class IndexComponent extends Component
     #[Layout('components.layouts.app')]
     #[Title('Jadwal Peminjaman')]
 
-    public $assets;
     public $borrowings;
+
+    // Properti untuk filter dan pencarian
+    public string $search = '';
+    public string $selectedCategory = '';
+    public string $sortBy = 'latest';
+
+    public string $startDate;
+    public string $endDate;
 
     public function mount()
     {
-        $this->assets = Asset::with('assetCategory')->latest()->get();
+        $this->startDate = now()->format('Y-m-d');
+        $this->endDate = now()->format('Y-m-d');
+
         $this->borrowings = Borrowing::with(['event', 'assets', 'creator'])
             ->approved()
             ->where('end_datetime', '>=', now())
             ->orderBy('start_datetime')
+            ->limit(5) // Batasi untuk performa
             ->get();
     }
 
@@ -31,8 +44,53 @@ class IndexComponent extends Component
         $this->dispatch('open-modal', 'proposal-modal');
     }
 
+    public function resetFilters()
+    {
+        $this->search = '';
+        $this->selectedCategory = '';
+        $this->sortBy = 'latest';
+        $this->startDate = now()->format('Y-m-d');
+        $this->endDate = now()->format('Y-m-d');
+    }
+
+    public function setDateRange(string $start, string $end)
+    {
+        $this->startDate = $start;
+        $this->endDate = $end;
+    }
+
     public function render()
     {
-        return view('livewire.pages.borrowing.index-component');
+        $startDateTime = Carbon::parse($this->startDate)->startOfDay()->toDateTimeString();
+        $endDateTime = Carbon::parse($this->endDate)->endOfDay()->toDateTimeString();
+
+        // Panggil repository untuk mendapatkan aset yang tersedia
+        $availableAssets = app(AssetRepositoryInterface::class)->getAvailableAssetsBetween($startDateTime, $endDateTime);
+
+        // Lakukan filtering dan searching di atas collection hasil repository
+        $assets = $availableAssets
+            ->when($this->search, function ($collection) {
+                return $collection->filter(function ($asset) {
+                    return str_contains(strtolower($asset->name), strtolower($this->search));
+                });
+            })
+            ->when($this->selectedCategory, function ($collection) {
+                return $collection->where('asset_category_id', $this->selectedCategory);
+            });
+
+        // Terapkan pengurutan pada collection
+        $assets = match ($this->sortBy) {
+            'oldest' => $assets->sortBy('created_at'),
+            'name_asc' => $assets->sortBy('name'),
+            'name_desc' => $assets->sortByDesc('name'),
+            default => $assets->sortByDesc('created_at'), // latest
+        };
+
+        $assetCategories = AssetCategory::orderBy('name')->get();
+
+        return view('livewire.pages.borrowing.index-component', [
+            'assets' => $assets,
+            'assetCategories' => $assetCategories,
+        ]);
     }
 }
