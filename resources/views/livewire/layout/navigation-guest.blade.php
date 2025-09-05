@@ -124,7 +124,7 @@
                             <div class="flex items-center space-x-3">
                                 <div
                                     class="p-1 rounded-lg bg-[#FEC006]/10 group-hover:bg-[#FEC006]/20 transition-colors">
-                                    <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
+                                    <x-heroicon-s-calendar-days class="h-5 w-5 text-[#FEC006]" />
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-900">{{ __('Jadwal Kegiatan') }}</p>
@@ -132,23 +132,27 @@
                                 </div>
                             </div>
                         </x-dropdown-link>
+                        <x-dropdown-link href="{{ route('borrowing.assets.index') }}" wire:navigate class="group">
+                            <div class="flex items-center space-x-3">
+                                <div
+                                    class="p-1 rounded-lg bg-[#FEC006]/10 group-hover:bg-[#FEC006]/20 transition-colors">
+                                    <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ __('Jadwal Peminjaman Aset') }}</p>
+                                    <p class="text-xs text-gray-500">{{ __('lihat peminjaman aset kapel') }}</p>
+                                </div>
+                            </div>
+                        </x-dropdown-link>
                     </div>
                 </div>
 
-                <x-nav-link href="{{ route('articles.index') }}" wire:navigate
+                <x-nav-link href="{{ route('articles.index') }}" :active="request()->routeIs('articles.index')" wire:navigate
                     x-bind:class="{
                         'text-[#825700] hover:text-[#FEC006]': scrolled,
                         'text-white hover:text-[#FEC006]': !scrolled
                     }">
                     {{ __('Artikel') }}
-                </x-nav-link>
-
-                <x-nav-link href="{{ route('home.index') }}/#contact"
-                    x-bind:class="{
-                        'text-[#825700] hover:text-[#FEC006]': scrolled,
-                        'text-white hover:text-[#FEC006]': !scrolled
-                    }">
-                    {{ __('Kontak') }}
                 </x-nav-link>
             </div>
 
@@ -218,6 +222,12 @@
                         </div>
                     </x-mobile-nav-link>
                     <x-mobile-nav-link href="{{ route('events.index') }}" wire:navigate class="pl-4">
+                        <div class="flex items-center space-x-3">
+                            <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
+                            <span>{{ __('Jadwal Kegiatan') }}</span>
+                        </div>
+                    </x-mobile-nav-link>
+                    <x-mobile-nav-link href="{{ route('borrowing.assets.index') }}" wire:navigate class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
                             <span>{{ __('Jadwal Kegiatan') }}</span>
