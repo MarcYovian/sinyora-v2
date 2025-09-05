@@ -13,7 +13,6 @@
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
                     <x-heroicon-s-plus class="w-5 h-5" />
-
                     <span>{{ __('Tambah Kegiatan') }}</span>
                 </x-button>
 
@@ -47,6 +46,7 @@
             </div>
 
             <div wire:loading.remove wire:target="search, filterStatus">
+                {{-- Tampilan Mobile (Card) --}}
                 <div class="grid grid-cols-1 gap-4 md:hidden">
                     @forelse ($events as $event)
                         <div wire:key="event-card-{{ $event->id }}"
@@ -55,37 +55,33 @@
                                 <div class="flex items-start justify-between">
                                     <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ $event->name }}
                                     </h3>
+                                    {{-- Dropdown di mobile relatif terhadap card, jadi tidak ada masalah z-index --}}
                                     <x-dropdown align="right" width="48">
                                         <x-slot name="trigger">
                                             <button
                                                 class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path
-                                                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
+                                                <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
                                             </button>
                                         </x-slot>
                                         <x-slot name="content">
                                             <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
                                                 Detail
                                             </x-dropdown-link>
-                                            <x-dropdown-link href="#" wire:click="edit({{ $event->id }})">
+                                            <x-dropdown-link wire:click="edit({{ $event->id }})">
                                                 Edit
                                             </x-dropdown-link>
                                             @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmApprove({{ $event->id }})">
+                                                <x-dropdown-link wire:click="confirmApprove({{ $event->id }})">
                                                     Approve
                                                 </x-dropdown-link>
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmReject({{ $event->id }})">
+                                                <x-dropdown-link wire:click="confirmReject({{ $event->id }})">
                                                     Reject
                                                 </x-dropdown-link>
                                             @endif
                                             <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                            <x-dropdown-link href="#"
-                                                wire:click="confirmDelete({{ $event->id }})"
-                                                class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
+                                            <x-dropdown-link wire:click="confirmDelete({{ $event->id }})"
+                                                class="text-red-600 dark:text-red-500">Delete
+                                            </x-dropdown-link>
                                         </x-slot>
                                     </x-dropdown>
                                 </div>
@@ -133,38 +129,40 @@
                         </div>
                     @empty
                         <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                            {{ __('No data available') }}
+                            {{ __('Tidak ada data yang tersedia') }}
                         </div>
                     @endforelse
                 </div>
 
+                {{-- Tampilan Desktop (Tabel) --}}
                 <div class="hidden md:block">
-                    <x-table title="Data Events" :heads="$table_heads">
+                    <x-table title="Data Kegiatan" :heads="$table_heads">
                         @forelse ($events as $key => $event)
                             <tr wire:key="event-table-{{ $event->id }}"
-                                class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
+                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                                     {{ $key + $events->firstItem() }}
                                 </td>
                                 {{-- Event --}}
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-gray-800 dark:text-gray-200">{{ $event->name }}</div>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-semibold text-gray-900 dark:text-gray-200">{{ $event->name }}
+                                    </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">
                                         {{ $event->organization->name ?? '-' }}
                                     </div>
                                 </td>
                                 {{-- Period --}}
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
                                     <div>{{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
                                     </div>
-                                    <div class="text-xs">sampai</div>
+                                    <div class="text-xs text-gray-400">sampai</div>
                                     <div>{{ Carbon\Carbon::parse($event->end_recurring)->translatedFormat('d M Y') }}
                                     </div>
                                 </td>
                                 {{-- Category --}}
-                                <td class="px-6 py-4 text-sm">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <span
-                                        class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 font-medium text-gray-900 ring-1 ring-inset ring-gray-200"
+                                        class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium"
                                         style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}20; color: {{ $event->eventCategory->color ?? '#9ca3af' }}">
                                         <svg class="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true"
                                             fill="currentColor">
@@ -174,21 +172,40 @@
                                     </span>
                                 </td>
                                 {{-- Locations --}}
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                    {{ $event->locations->pluck('name')->implode(', ') }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-300" style="min-width: 180px;">
+                                    @php
+                                        $locationsName = $event->locations->pluck('name');
+                                        $locationCount = $locationsName->count();
+                                    @endphp
+                                    @if ($locationCount > 0)
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-gray-800 dark:text-gray-200 truncate"
+                                                title="{{ $locationsName->first() }}">
+                                                {{ $locationsName->first() }}
+                                            </span>
+                                            @if ($locationCount > 1)
+                                                <span
+                                                    class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                                    title="{{ $locationsName->slice(1)->implode(', ') }}">
+                                                    +{{ $locationCount - 1 }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        -
+                                    @endif
                                 </td>
-                                <td class="px-6 py-4">
+                                {{-- Status --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <x-status-badge :status="$event->status" />
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                {{-- Actions --}}
+                                <td class="px-6 py-4 text-right whitespace-nowrap relative">
                                     <x-dropdown align="right" width="48">
                                         <x-slot name="trigger">
                                             <button
-                                                class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path
-                                                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
+                                                class="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-teal-500 transition">
+                                                <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
                                             </button>
                                         </x-slot>
                                         <x-slot name="content">
@@ -198,25 +215,21 @@
                                             @if (
                                                 $event->status !== App\Enums\EventApprovalStatus::APPROVED &&
                                                     $event->status !== App\Enums\EventApprovalStatus::REJECTED)
-                                                <x-dropdown-link href="#"
-                                                    wire:click="edit({{ $event->id }})">
+                                                <x-dropdown-link wire:click="edit({{ $event->id }})">
                                                     Edit
                                                 </x-dropdown-link>
                                             @endif
                                             @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmApprove({{ $event->id }})">
+                                                <x-dropdown-link wire:click="confirmApprove({{ $event->id }})">
                                                     Approve
                                                 </x-dropdown-link>
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmReject({{ $event->id }})">
+                                                <x-dropdown-link wire:click="confirmReject({{ $event->id }})">
                                                     Reject
                                                 </x-dropdown-link>
                                             @endif
                                             <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                            <x-dropdown-link href="#"
-                                                wire:click="confirmDelete({{ $event->id }})"
-                                                class="text-red-600 dark:text-red-500">
+                                            <x-dropdown-link wire:click="confirmDelete({{ $event->id }})"
+                                                class="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">
                                                 Delete
                                             </x-dropdown-link>
                                         </x-slot>
@@ -224,10 +237,10 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr class="bg-white dark:bg-gray-800">
+                            <tr>
                                 <td colspan="{{ count($table_heads) }}"
-                                    class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                                    {{ __('No data available') }}
+                                    class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    {{ __('Tidak ada data yang tersedia.') }}
                                 </td>
                             </tr>
                         @endforelse
@@ -236,7 +249,7 @@
             </div>
         </div>
 
-        <div class="px-4 md:px-6 py-4">
+        <div class="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
             {{ $events->links() }}
         </div>
     </div>

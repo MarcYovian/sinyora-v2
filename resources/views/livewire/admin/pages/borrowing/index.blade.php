@@ -80,18 +80,17 @@
                                             @endcan
                                             @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
                                                 @can('approve borrowing asset')
-                                                    <x-dropdown-link href="#"
+                                                    <x-dropdown-link
                                                         wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
                                                 @endcan
                                                 @can('reject borowing asset')
-                                                    <x-dropdown-link href="#"
+                                                    <x-dropdown-link
                                                         wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
                                                 @endcan
                                             @endif
                                             <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                                             @can('delete asset borrowing')
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmDelete({{ $borrowing->id }})"
+                                                <x-dropdown-link wire:click="confirmDelete({{ $borrowing->id }})"
                                                     class="text-red-600 dark:text-red-500">Delete
                                                 </x-dropdown-link>
                                             @endcan
@@ -162,7 +161,7 @@
                                         </x-slot>
                                         <x-slot name="content">
                                             @can('view asset borrowing details')
-                                                <x-dropdown-link href="#"
+                                                <x-dropdown-link
                                                     wire:click="show({{ $borrowing->id }})">Detail</x-dropdown-link>
                                             @endcan
                                             @can('edit asset borrowing')
@@ -171,18 +170,17 @@
                                             @endcan
                                             @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
                                                 @can('approve borrowing asset')
-                                                    <x-dropdown-link href="#"
+                                                    <x-dropdown-link
                                                         wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
                                                 @endcan
                                                 @can('reject borowing asset')
-                                                    <x-dropdown-link href="#"
+                                                    <x-dropdown-link
                                                         wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
                                                 @endcan
                                             @endif
                                             <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                                             @can('delete asset borrowing')
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmDelete({{ $borrowing->id }})"
+                                                <x-dropdown-link wire:click="confirmDelete({{ $borrowing->id }})"
                                                     class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
                                             @endcan
                                         </x-slot>
@@ -411,7 +409,8 @@
                                     @endif
 
                                     @can('edit asset borrowing')
-                                        <x-button variant="secondary" class="w-full" href="#">
+                                        <x-button variant="secondary" class="w-full"
+                                            href="{{ route('admin.asset-borrowings.edit', $this->borrowing) }}">
                                             <x-heroicon-s-pencil class="h-5 w-5 mr-2" />
                                             Edit Request
                                         </x-button>

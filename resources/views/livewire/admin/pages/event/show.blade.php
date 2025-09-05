@@ -1,36 +1,57 @@
 <div class="py-8">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $event->name }}</h1>
-                <div class="flex items-center gap-2 mt-2">
-                    <span
-                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $event->status->color() }}">
-                        {{ $event->status->label() }}
-                    </span>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                        Dibuat {{ $event->created_at->diffForHumans() }}
-                    </span>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <x-button variant="secondary" :href="route('admin.events.index')">
-                    Kembali ke Acara
-                </x-button>
-                @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
-                    <x-button variant="primary" type="button" wire:click="confirmEdit({{ $event->id }})">
-                        Ubah Acara
-                    </x-button>
-                @endif
-
-            </div>
-        </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
             <div class="lg:col-span-2 space-y-6">
+
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $event->name }}</h1>
+                            <span
+                                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $event->status->color() }}">
+                                {{ $event->status->label() }}
+                            </span>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Dibuat oleh {{ $event->creator->name }} &bull; {{ $event->created_at->diffForHumans() }}
+                        </p>
+
+                        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+                            <div class="flex items-start gap-3">
+                                <x-heroicon-o-tag class="h-6 w-6 text-indigo-500 flex-shrink-0" />
+                                <div>
+                                    <p class="font-semibold text-gray-800 dark:text-gray-200">Kategori</p>
+                                    <p class="text-gray-600 dark:text-gray-400">{{ $event->eventCategory->name ?? '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <x-heroicon-o-calendar-days class="h-6 w-6 text-indigo-500 flex-shrink-0" />
+                                <div>
+                                    <p class="font-semibold text-gray-800 dark:text-gray-200">Rentang Acara</p>
+                                    <p class="text-gray-600 dark:text-gray-400">
+                                        {{ $event->start_recurring->format('d M Y') }} -
+                                        {{ $event->end_recurring->format('d M Y') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <x-heroicon-o-map-pin class="h-6 w-6 text-indigo-500 flex-shrink-0" />
+                                <div>
+                                    <p class="font-semibold text-gray-800 dark:text-gray-200">Lokasi</p>
+                                    <p class="text-gray-600 dark:text-gray-400">
+                                        {{ $event->locations->pluck('name')->join(', ') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Deskripsi Acara</h2>
-                        <div class="prose dark:prose-invert max-w-none text-sm text-gray-500 dark:text-gray-400">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Deskripsi Acara</h2>
+                        <div class="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
                             {!! nl2br(e($event->description)) !!}
                         </div>
                     </div>
@@ -38,180 +59,166 @@
 
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Detail Jadwal</h2>
+                        <div class="border-b dark:border-gray-700 pb-4 mb-4">
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Jadwal Pelaksanaan</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Pola perulangan: <span
+                                    class="font-semibold">{{ $event->recurrence_type->label() }}</span>
+                            </p>
+                        </div>
                         <div class="space-y-4">
-                            {{-- Bagian ringkasan tetap sama --}}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tipe Perulangan</p>
-                                    <p class="mt-1 text-gray-900 dark:text-gray-100">
-                                        {{ $event->recurrence_type->label() }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rentang Tanggal</p>
-                                    <p class="mt-1 text-gray-900 dark:text-gray-100">
-                                        {{ $event->start_recurring->format('d M Y') }} -
-                                        {{ $event->end_recurring->format('d M Y') }}
-                                    </p>
-                                </div>
-                            </div>
+                            @forelse ($mergedSchedules as $schedule)
+                                @php
+                                    // Cek apakah acara ini multi-hari atau tidak.
+                                    // Metode isSameDay() dari Carbon akan mengembalikan true jika tanggal, bulan, dan tahunnya sama.
+                                    $isMultiDay = !$schedule['start']->isSameDay($schedule['end']);
+                                @endphp
 
-                            {{-- Tabel jadwal yang diperbarui --}}
-                            <div class="mt-6">
-                                <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Jadwal Pelaksanaan
-                                </h3>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead class="bg-gray-50 dark:bg-gray-700">
-                                            <tr>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Waktu Mulai
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Waktu Selesai
-                                                </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Durasi
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody
-                                            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                            @forelse ($mergedSchedules as $schedule)
-                                                <tr>
-                                                    <td
-                                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        <div>{{ $schedule['start']->isoFormat('dddd, D MMMM YYYY') }}
-                                                        </div>
-                                                        <div class="text-gray-500">
-                                                            {{ $schedule['start']->format('H:i') }} WIB</div>
-                                                    </td>
-                                                    <td
-                                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        <div>{{ $schedule['end']->isoFormat('dddd, D MMMM YYYY') }}
-                                                        </div>
-                                                        <div class="text-gray-500">
-                                                            {{ $schedule['end']->format('H:i') }} WIB</div>
-                                                    </td>
-                                                    <td
-                                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                        {{ $schedule['duration'] }}
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="3" class="px-6 py-4 text-center text-gray-500">
-                                                        Tidak ada data jadwal ditemukan.
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                <div
+                                    class="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200">
+
+                                    @if ($isMultiDay)
+                                        <div
+                                            class="flex-shrink-0 text-center bg-gray-100 dark:bg-gray-700 rounded-lg p-3 w-24">
+                                            <p class="text-sm font-bold text-red-600 dark:text-red-400">
+                                                {{ $schedule['start']->format('M Y') }}
+                                            </p>
+                                            <div class="flex items-center justify-center gap-1 mt-1">
+                                                <p class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                                    {{ $schedule['start']->format('d') }}
+                                                </p>
+                                                <x-heroicon-s-arrow-right class="h-4 w-4 text-gray-400" />
+                                                <p class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                                    {{ $schedule['end']->format('d') }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow pt-1">
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100">
+                                                Acara Berlangsung Beberapa Hari
+                                            </p>
+                                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                                <span class="font-medium">Mulai:</span>
+                                                {{ $schedule['start']->isoFormat('dddd, D MMM YYYY • HH:mm') }}
+                                            </p>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                                <span class="font-medium">Selesai:</span>
+                                                {{ $schedule['end']->isoFormat('dddd, D MMM YYYY • HH:mm') }}
+                                            </p>
+                                            <p class="mt-2 text-xs text-gray-500">
+                                                Total Durasi: {{ $schedule['duration'] }}
+                                            </p>
+                                        </div>
+                                    @else
+                                        <div
+                                            class="flex-shrink-0 text-center bg-gray-100 dark:bg-gray-700 rounded-lg p-2 w-20">
+                                            <p class="text-sm font-bold text-red-600 dark:text-red-400">
+                                                {{ $schedule['start']->format('M') }}</p>
+                                            <p class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                                {{ $schedule['start']->format('d') }}</p>
+                                            <p class="text-xs text-gray-500">{{ $schedule['start']->format('Y') }}</p>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100">
+                                                {{ $schedule['start']->isoFormat('dddd') }}</p>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                                {{ $schedule['start']->format('H:i') }} -
+                                                {{ $schedule['end']->format('H:i') }} WIB
+                                                <span class="text-gray-400 dark:text-gray-500 mx-1">•</span>
+                                                Durasi: {{ $schedule['duration'] }}
+                                            </p>
+                                        </div>
+                                    @endif
+
                                 </div>
-                            </div>
+                            @empty
+                                <div
+                                    class="text-center py-8 px-4 border-2 border-dashed rounded-lg dark:border-gray-700">
+                                    <x-heroicon-o-x-mark class="mx-auto h-10 w-10 text-gray-400" />
+                                    <p class="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Tidak ada
+                                        data jadwal ditemukan.</p>
+                                </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Lokasi Acara</h2>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Lokasi Acara</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach ($event->locations as $location)
-                                <div
-                                    class="border rounded-lg overflow-hidden hover:shadow-md transition-shadow dark:border-gray-700">
-                                    <div class="flex">
-                                        @if ($location->image)
-                                            <div class="flex-shrink-0">
-                                                <img class="h-32 w-32 object-cover"
-                                                    src="{{ Storage::url($location->image) }}"
-                                                    alt="{{ $location->name }}">
-                                            </div>
-                                        @endif
-                                        <div class="p-4">
-                                            <h3 class="font-medium text-gray-900 dark:text-gray-100">
-                                                {{ $location->name }}</h3>
-                                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $location->description }}</p>
-                                            <div class="mt-2">
-                                                <span
-                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                {{ $location->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
-                                                    {{ $location->is_active ? 'Aktif' : 'Tidak Aktif' }}
-                                                </span>
-                                            </div>
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($location->name) }}"
+                                    target="_blank" rel="noopener noreferrer"
+                                    class="block rounded-lg border dark:border-gray-700 overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                                    @if ($location->image && Storage::exists($location->image))
+                                        <img class="h-40 w-full object-cover"
+                                            src="{{ Storage::url($location->image) }}" alt="{{ $location->name }}">
+                                    @else
+                                        <div
+                                            class="h-40 w-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                            <x-heroicon-o-photo class="h-12 w-12 text-gray-400" />
                                         </div>
+                                    @endif
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-start">
+                                            <h3
+                                                class="font-bold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                                                {{ $location->name }}</h3>
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $location->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                                                {{ $location->is_active ? 'Aktif' : 'Nonaktif' }}
+                                            </span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                                            {{ $location->description }}</p>
                                     </div>
-                                </div>
+                                </a>
                             @endforeach
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-6">
+            <div class="lg:sticky top-20 space-y-6 self-start">
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Informasi Acara</h2>
-                        <div class="space-y-4">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Kategori</p>
-                                <div class="mt-1 flex items-center">
-                                    <span class="h-4 w-4 rounded-full mr-2"
-                                        style="background-color: {{ $event->eventCategory->color }}"></span>
-                                    <span
-                                        class="text-gray-900 dark:text-gray-100">{{ $event->eventCategory->name }}</span>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Organisasi</p>
-                                <p class="mt-1 text-gray-900 dark:text-gray-100">{{ $event->organization->name }}</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $event->organization->description }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Dibuat Oleh</p>
-                                <p class="mt-1 text-gray-900 dark:text-gray-100">{{ $event->creator->name }}</p>
-                            </div>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Tindakan</h2>
+                        <div class="space-y-3">
+                            <x-button variant="secondary" :href="route('admin.events.index')" class="w-full justify-center">
+                                Kembali ke Daftar Acara
+                            </x-button>
+                            @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                <x-button variant="primary" type="button"
+                                    wire:click="confirmEdit({{ $event->id }})" class="w-full justify-center">
+                                    Ubah Acara
+                                </x-button>
+                            @endif
+                            <x-button variant="danger" class="w-full justify-center" type="button"
+                                wire:click="confirmDelete({{ $event->id }})">
+                                Hapus Acara
+                            </x-button>
                         </div>
                     </div>
                 </div>
-
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Status Persetujuan</h2>
-                        <div class="space-y-4">
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Tambahan</h2>
+                        <div class="space-y-4 text-sm">
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Status Saat Ini</p>
+                                <p class="font-medium text-gray-500 dark:text-gray-400">Organisasi</p>
+                                <p class="mt-1 font-semibold text-gray-900 dark:text-gray-100">
+                                    {{ $event->organization->name }}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-500 dark:text-gray-400">Status Persetujuan</p>
                                 <p class="mt-1">
                                     <span
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                                        {{ $event->status->color() }}">
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $event->status->color() }}">
                                         {{ $event->status->label() }}
                                     </span>
                                 </p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                    <div class="p-6">
-                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Tindakan Acara</h2>
-                        <div class="space-y-2">
-                            {{-- <x-button variant="primary" class="w-full"
-                                href="{{ route('admin.events.recurrences.index', $event) }}">
-                                Ubah Detail Acara
-                            </x-button> --}}
-
-                            <x-button variant="danger" class="w-full" type="button"
-                                wire:click="confirmDelete({{ $event->id }})">
-                                Hapus Acara
-                            </x-button>
                         </div>
                     </div>
                 </div>

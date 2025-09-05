@@ -32,11 +32,11 @@ class Index extends Component
     public $organizations;
     public $locations;
 
-    #[Url(keep: true)]
-    public string $search = '';
+    #[Url(as: 'q')]
+    public ?string $search = '';
 
-    #[Url(as: 'status', keep: true)]
-    public string $filterStatus = '';
+    #[Url(as: 'status')]
+    public ?string $filterStatus = '';
 
     public function mount()
     {
