@@ -614,9 +614,16 @@
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                 {{ __('Are you sure you want to reject this event?') }}
             </h2>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('This action cannot be undone.') }}
-            </p>
+
+            <div class="mt-6">
+                <x-input-label for="rejection_reason" value="{{ __('Alasan Penolakan') }}" class="sr-only" />
+
+                <textarea wire:model="form.rejection_reason" id="rejection_reason" rows="4"
+                    class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+                    placeholder="{{ __('Reason for rejection') }}"></textarea>
+
+                <x-input-error :messages="$errors->get('form.rejection_reason')" class="mt-2" />
+            </div>
 
             <div class="mt-6 flex justify-end">
                 <x-secondary-button type="button" x-on:click="$dispatch('close')">

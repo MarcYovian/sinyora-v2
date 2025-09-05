@@ -39,6 +39,7 @@ class Event extends Model
         'start_recurring',
         'end_recurring',
         'status',
+        'rejection_reason',
         'recurrence_type',
         'organization_id',
         'event_category_id',

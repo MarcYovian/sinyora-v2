@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Contracts;
 
+use App\Enums\EventApprovalStatus;
 use App\Models\Event;
 use App\Models\GuestSubmitter;
 use App\Models\User;
@@ -15,4 +16,5 @@ interface EventRepositoryInterface
     public function update(int $id, array $data): bool;
     public function delete(int $id): bool;
     public function findByOrganizationId(int $organizationId): Collection;
+    public function changeStatus(Event $event, EventApprovalStatus $status, ?string $rejectionReason = null): bool;
 }

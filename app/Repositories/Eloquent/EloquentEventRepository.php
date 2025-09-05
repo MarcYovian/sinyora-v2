@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\EventApprovalStatus;
 use App\Models\Event;
 use App\Models\GuestSubmitter;
 use App\Models\User;
@@ -73,5 +74,17 @@ class EloquentEventRepository implements EventRepositoryInterface
             return $event->update($data);
         }
         return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function changeStatus(Event $event, EventApprovalStatus $status, ?string $rejectionReason = null): bool
+    {
+        $event->status = $status;
+        if ($status === EventApprovalStatus::REJECTED && $rejectionReason !== null) {
+            $event->rejection_reason = $rejectionReason;
+        }
+        return $event->save();
     }
 }

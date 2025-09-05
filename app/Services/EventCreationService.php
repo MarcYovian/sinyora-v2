@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\EventApprovalStatus;
 use App\Enums\EventRecurrenceType;
+use App\Events\EventApproved;
 use App\Events\EventProposalCreated;
+use App\Events\EventRejected;
 use App\Exceptions\ScheduleConflictException;
 use App\Mail\EventProposalSubmitted;
 use App\Mail\NewEventProposalAdmin;
@@ -265,48 +267,54 @@ class EventCreationService
 
     public function approveEvent(Event $event): bool
     {
-        if ($event->status !== EventApprovalStatus::PENDING) {
-            throw new \Exception('Only pending events can be approved.');
+        try {
+            if ($event->status !== EventApprovalStatus::PENDING) {
+                throw new \Exception('Only pending events can be approved.');
+            }
+
+            $event->load(['eventRecurrences', 'locations']);
+            $recurrences = $event->eventRecurrences->map(function ($recurrence) {
+                return [
+                    'date' => $recurrence->date,
+                    'time_start' => $recurrence->time_start,
+                    'time_end' => $recurrence->time_end,
+                ];
+            })->toArray();
+
+            $locations = $event->locations->pluck('id')->toArray();
+            $this->checkForConflicts($recurrences, $locations);
+
+            $updated = $this->eventRepository->changeStatus($event, EventApprovalStatus::APPROVED);
+            if (!$updated) {
+                throw new \Exception('Failed to update event status.');
+            }
+
+            EventApproved::dispatch($event->creator, $event);
+
+            return $updated;
+        } catch (\Throwable $th) {
+            throw new \Exception('Failed to approve event: ' . $th->getMessage());
         }
-
-        $event->load(['eventRecurrences', 'locations']);
-        $recurrences = $event->eventRecurrences->map(function ($recurrence) {
-            return [
-                'date' => $recurrence->date,
-                'time_start' => $recurrence->time_start,
-                'time_end' => $recurrence->time_end,
-            ];
-        })->toArray();
-
-        $locations = $event->locations->pluck('id')->toArray();
-        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locations);
-
-        if ($conflicts->count() > 0) {
-            $firstConflict = $conflicts->first();
-            $errorMessage = sprintf(
-                'Sudah ada kegiatan lain pada tanggal %s antara jam %s - %s.',
-                Carbon::parse($firstConflict->date)->isoFormat('D MMMM YYYY'),
-                Carbon::parse($firstConflict->time_start)->format('H:i'),
-                Carbon::parse($firstConflict->time_end)->format('H:i')
-            );
-
-            throw new ScheduleConflictException($errorMessage);
-        }
-
-        $event->status = EventApprovalStatus::APPROVED;
-
-        return $event->save();
     }
 
-    public function rejectEvent(Event $event): bool
+    public function rejectEvent(Event $event, string $rejectionReason): bool
     {
-        if ($event->status !== EventApprovalStatus::PENDING) {
-            throw new \Exception('Only pending events can be rejected.');
+        try {
+            if ($event->status !== EventApprovalStatus::PENDING) {
+                throw new \Exception('Only pending events can be rejected.');
+            }
+
+            $updated = $this->eventRepository->changeStatus($event, EventApprovalStatus::REJECTED, $rejectionReason);
+            if (!$updated) {
+                throw new \Exception('Failed to update event status.');
+            }
+
+            EventRejected::dispatch($event->creator, $event, $rejectionReason);
+
+            return $updated;
+        } catch (\Throwable $th) {
+            throw new \Exception('Failed to reject event: ' . $th->getMessage());
         }
-
-        $event->status = EventApprovalStatus::REJECTED;
-
-        return $event->save();
     }
 
     private function handleRecurrences(array $data): array

@@ -33,6 +33,7 @@ class EventForm extends Form
     public string $end_recurring = '';
     public array $locations = [];
     public array $custom_schedules = [];
+    public string $rejection_reason = '';
 
     protected function rules(): array
     {
@@ -279,8 +280,11 @@ class EventForm extends Form
 
     public function reject()
     {
+        if ($this->rejection_reason === '') {
+            throw ValidationException::withMessages(['rejection_reason' => 'Rejection reason is required.']);
+        }
         try {
-            app(EventCreationService::class)->rejectEvent($this->event);
+            app(EventCreationService::class)->rejectEvent($this->event, $this->rejection_reason);
             $this->reset();
         } catch (\Exception $e) {
             Log::error('Error rejecting event: ' . $e->getMessage());
