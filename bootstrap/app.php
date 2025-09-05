@@ -2,6 +2,7 @@
 
 use App\Console\Commands\MakeRepositoryCommand;
 use App\Console\Commands\MakeServiceCommand;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,4 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withExceptions(function (Exceptions $exceptions) {
         //
+    })
+    ->withSchedule(function (Schedule $schedule) {
+        $schedule->command('queue:work --queue=notifications,default --stop-when-empty')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onOneServer();
     })->create();
