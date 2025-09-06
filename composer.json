@@ -15,6 +15,7 @@
         "livewire/volt": "^1.7.0",
         "spatie/laravel-data": "^4.17",
         "spatie/laravel-permission": "^6.16",
+        "spatie/laravel-sitemap": "^7.3",
         "yoeunes/toastr": "^3.1"
     },
     "require-dev": {
