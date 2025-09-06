@@ -35,4 +35,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground()
             ->onOneServer();
+
+        $schedule->command('sitemap:generate')->weekly();
     })->create();
