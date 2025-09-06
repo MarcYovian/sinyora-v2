@@ -4,8 +4,8 @@ namespace App\Livewire\Pages\Article;
 
 use App\Models\Article;
 use App\Models\ArticleCategory;
+use App\Services\SEOService;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -14,7 +14,6 @@ class Index extends Component
     use WithPagination;
 
     #[Layout('components.layouts.app')]
-    #[Title('Artikel')]
 
     public $selectedCategory = '';
     public $search = '';
@@ -25,8 +24,34 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function render()
+    public function render(SEOService $seo)
     {
+        $pageTitle = 'Artikel Kapel';
+        $pageDescription = 'Kumpulan artikel inspiratif, berita terbaru, dan wawasan rohani dari Kapel St. Yohanes Rasul. Temukan bacaan yang menguatkan iman Anda.';
+
+        if ($this->selectedCategory) {
+            $category = ArticleCategory::find($this->selectedCategory);
+            if ($category) {
+                $pageTitle = 'Artikel Kategori: ' . $category->name;
+                $pageDescription = 'Jelajahi semua artikel, berita, dan renungan dalam kategori ' . $category->name . ' di situs Kapel St. Yohanes Rasul.';
+            }
+        }
+
+        // Panggil SEOService
+        $seo->setTitle($pageTitle);
+        $seo->setDescription($pageDescription);
+
+        $seo->setKeywords([
+            'artikel rohani katolik',
+            'renungan harian',
+            'berita gereja',
+            'wawasan iman',
+            'artikel kapel surabaya',
+            'inspirasi katolik'
+        ]);
+
+        $seo->setOgImage(asset('images/seo/articles-page-ogimage.png'));
+
         $categories = ArticleCategory::all();
         $popularCategories = ArticleCategory::withCount(['articles' => function ($query) {
             $query->published();

@@ -30,6 +30,7 @@ use App\Repositories\Eloquent\EloquentLicensingDocumentRepository;
 use App\Repositories\Eloquent\EloquentLocationRepository;
 use App\Repositories\Eloquent\EloquentOrganizationRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Services\SEOService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -42,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(SEOService::class, function ($app) {
+            return new SEOService();
+        });
         $this->app->bind(
             BorrowingRepositoryInterface::class,
             EloquentBorrowingRepository::class

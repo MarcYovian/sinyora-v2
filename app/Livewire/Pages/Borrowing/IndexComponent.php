@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Borrowing;
 use App\Repositories\Contracts\AssetRepositoryInterface;
+use App\Services\SEOService;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -14,7 +15,6 @@ use Livewire\Component;
 class IndexComponent extends Component
 {
     #[Layout('components.layouts.app')]
-    #[Title('Jadwal Peminjaman')]
 
     public $borrowings;
 
@@ -26,7 +26,7 @@ class IndexComponent extends Component
     public string $startDate;
     public string $endDate;
 
-    public function mount()
+    public function mount(SEOService $seo)
     {
         $this->startDate = now()->format('Y-m-d');
         $this->endDate = now()->format('Y-m-d');
@@ -37,6 +37,23 @@ class IndexComponent extends Component
             ->orderBy('start_datetime')
             ->limit(5) // Batasi untuk performa
             ->get();
+
+        $seo->setTitle('Peminjaman Aset Kapel St. Yohanes Rasul Surabaya');
+
+        $seo->setDescription(
+            'Layanan peminjaman aset Kapel St. Yohanes Rasul. Cek ketersediaan barang seperti kursi, meja, sound system, dan lainnya untuk mendukung kegiatan dan acara Anda.'
+        );
+
+        $seo->setKeywords([
+            'peminjaman aset gereja',
+            'sewa inventaris kapel',
+            'ketersediaan aset',
+            'formulir peminjaman barang',
+            'aset kapel surabaya',
+            'pinjam sound system gereja'
+        ]);
+
+        $seo->setOgImage(asset('images/seo/borrowing-assets-page-ogimage.png'));
     }
 
     public function createRequest()

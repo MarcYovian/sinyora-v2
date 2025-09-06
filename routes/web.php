@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', \App\Livewire\Pages\Home\Index::class)
     ->name('home.index');
 
-Route::get('/event', \App\Livewire\Pages\Event\Index::class)
+Route::get('/events', \App\Livewire\Pages\Event\Index::class)
     ->name('events.index');
 
 Route::get('/articles', \App\Livewire\Pages\Article\Index::class)
