@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Sitemap\Contracts\Sitemapable;
+use Spatie\Sitemap\Tags\Url;
 
-class Article extends Model
+class Article extends Model implements Sitemapable
 {
     use HasFactory, SoftDeletes;
 
@@ -60,5 +62,13 @@ class Article extends Model
     protected function draft(Builder $query)
     {
         $query->where('is_published', false)->where('published_at', null);
+    }
+
+    public function toSitemapTag(): Url | string | array
+    {
+        return Url::create(route('articles.show', $this))
+            ->setLastModificationDate($this->updated_at)
+            ->setChangeFrequency(Url::CHANGE_FREQUENCY_MONTHLY)
+            ->setPriority(0.8);
     }
 }

@@ -41,7 +41,7 @@ class GenerateSitemap extends Command
             ->add(Url::create(route('borrowing.assets.index'))->setPriority(0.8)->setChangeFrequency(Url::CHANGE_FREQUENCY_MONTHLY))
 
             // 2. Tambahkan halaman dinamis dari database (contoh: artikel)
-            // ->add(Article::published()->get())
+            ->add(Article::published()->get())
 
             // Simpan file sitemap
             ->writeToFile($sitemapPath);
