@@ -230,7 +230,7 @@
                     <x-mobile-nav-link href="{{ route('borrowing.assets.index') }}" wire:navigate class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
-                            <span>{{ __('Jadwal Kegiatan') }}</span>
+                            <span>{{ __('Jadwal Pinjaman Aset') }}</span>
                         </div>
                     </x-mobile-nav-link>
                 </div>
