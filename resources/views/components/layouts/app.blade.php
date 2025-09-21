@@ -60,7 +60,6 @@
             background-color: white;
         }
 
-        /* Fade background saat keluar */
         #global-loader.is-leaving {
             opacity: 0;
             background-color: transparent;
@@ -162,13 +161,24 @@
     @livewireScripts
 
     <script>
+        let livewireReady = false;
+        let animationReady = false;
+
         function hideLoader() {
             const loader = document.getElementById("global-loader");
             if (loader && !loader.classList.contains("is-leaving")) {
                 loader.classList.add("is-leaving");
                 setTimeout(() => {
                     loader.style.display = "none";
-                }, 600); // lebih lama biar smooth
+                }, 600);
+            }
+        }
+
+        function checkAndHideLoader() {
+            if (livewireReady && animationReady) {
+                hideLoader();
+                livewireReady = false;
+                animationReady = false;
             }
         }
 
@@ -176,7 +186,7 @@
             // Reset huruf
             loader.querySelectorAll(".splash-char").forEach((char) => {
                 char.style.animation = "none";
-                char.offsetHeight; // reflow
+                char.offsetHeight;
                 char.style.animation = "";
             });
 
@@ -184,8 +194,17 @@
             const underline = loader.querySelector(".splash-underline");
             if (underline) {
                 underline.style.animation = "none";
-                underline.offsetHeight; // reflow
+                underline.offsetHeight;
                 underline.style.animation = "";
+                animationReady = false;
+
+                // tunggu animasi selesai
+                underline.addEventListener("animationend", () => {
+                    animationReady = true;
+                    checkAndHideLoader();
+                }, {
+                    once: true
+                });
             }
         }
 
@@ -203,12 +222,18 @@
 
         // Saat selesai navigasi
         document.addEventListener("livewire:navigated", () => {
-            hideLoader();
+            livewireReady = true;
+            checkAndHideLoader();
         });
 
         // Saat load pertama
         document.addEventListener("DOMContentLoaded", () => {
-            setTimeout(hideLoader, 1800);
+            const loader = document.getElementById("global-loader");
+            if (loader) {
+                resetLoaderAnimation(loader);
+                livewireReady = true;
+                checkAndHideLoader();
+            }
         });
     </script>
 </body>
