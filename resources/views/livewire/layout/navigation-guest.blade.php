@@ -48,7 +48,7 @@
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
             <div class="flex-shrink-0 flex items-center">
-                <a href="{{ route('home.index') }}" wire:navigate
+                <a href="{{ route('home.index') }}"
                     class="flex items-center space-x-3 focus:outline-none focus:ring-2 focus:ring-[#FEC006] focus:ring-offset-2 rounded-md">
                     <img src="{{ asset('images/logo.png') }}" class="h-10 w-auto" alt="Sinyora Logo" />
                     <span
@@ -64,7 +64,7 @@
 
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center space-x-8">
-                <x-nav-link :href="route('home.index')" wire:navigate :active="request()->routeIs('home.index')"
+                <x-nav-link :href="route('home.index')" :active="request()->routeIs('home.index')"
                     x-bind:class="{
                         'text-[#825700] hover:text-[#FEC006]': scrolled,
                         'text-white hover:text-[#FEC006]': !scrolled
@@ -120,7 +120,7 @@
                                 </div>
                             </div>
                         </x-dropdown-link>
-                        <x-dropdown-link href="{{ route('events.index') }}" wire:navigate class="group">
+                        <x-dropdown-link href="{{ route('events.index') }}" class="group">
                             <div class="flex items-center space-x-3">
                                 <div
                                     class="p-1 rounded-lg bg-[#FEC006]/10 group-hover:bg-[#FEC006]/20 transition-colors">
@@ -132,7 +132,7 @@
                                 </div>
                             </div>
                         </x-dropdown-link>
-                        <x-dropdown-link href="{{ route('borrowing.assets.index') }}" wire:navigate class="group">
+                        <x-dropdown-link href="{{ route('borrowing.assets.index') }}" class="group">
                             <div class="flex items-center space-x-3">
                                 <div
                                     class="p-1 rounded-lg bg-[#FEC006]/10 group-hover:bg-[#FEC006]/20 transition-colors">
@@ -147,7 +147,7 @@
                     </div>
                 </div>
 
-                <x-nav-link href="{{ route('articles.index') }}" :active="request()->routeIs('articles.index')" wire:navigate
+                <x-nav-link href="{{ route('articles.index') }}" :active="request()->routeIs('articles.index')"
                     x-bind:class="{
                         'text-[#825700] hover:text-[#FEC006]': scrolled,
                         'text-white hover:text-[#FEC006]': !scrolled
@@ -188,7 +188,7 @@
         x-transition:leave-end="mobile-menu-leave-to" @click.away="mobileMenuOpen = false"
         class="md:hidden bg-white/95 backdrop-blur-lg shadow-xl" x-cloak>
         <div class="px-2 pt-2 pb-4 space-y-1 sm:px-3">
-            <x-mobile-nav-link :href="route('home.index')" wire:navigate :active="request()->routeIs('home.index')">
+            <x-mobile-nav-link :href="route('home.index')" :active="request()->routeIs('home.index')">
                 {{ __('Beranda') }}
             </x-mobile-nav-link>
 
@@ -221,13 +221,13 @@
                             <span>{{ __('Jadwal Misa') }}</span>
                         </div>
                     </x-mobile-nav-link>
-                    <x-mobile-nav-link href="{{ route('events.index') }}" wire:navigate class="pl-4">
+                    <x-mobile-nav-link href="{{ route('events.index') }}" class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
                             <span>{{ __('Jadwal Kegiatan') }}</span>
                         </div>
                     </x-mobile-nav-link>
-                    <x-mobile-nav-link href="{{ route('borrowing.assets.index') }}" wire:navigate class="pl-4">
+                    <x-mobile-nav-link href="{{ route('borrowing.assets.index') }}" class="pl-4">
                         <div class="flex items-center space-x-3">
                             <x-heroicon-s-clipboard-document-list class="h-5 w-5 text-[#FEC006]" />
                             <span>{{ __('Jadwal Pinjaman Aset') }}</span>
@@ -236,7 +236,7 @@
                 </div>
             </div>
 
-            <x-mobile-nav-link href="{{ route('articles.index') }}" wire:navigate>
+            <x-mobile-nav-link href="{{ route('articles.index') }}">
                 {{ __('Artikel') }}
             </x-mobile-nav-link>
             <x-mobile-nav-link href="{{ route('home.index') }}#contact">
