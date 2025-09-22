@@ -1,66 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sinyora - Integrated Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sinyora is a comprehensive web application built with the TALL stack (Tailwind CSS, Alpine.js, Laravel, Livewire) designed to streamline organizational management. It provides a suite of tools for handling events, documents, assets, and more, all within a modern, reactive user interface.
 
-## About Laravel
+## Key Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Event Management:** Schedule, manage, and track internal and external events. Includes features for recurrence, categorization, and approval workflows.
+- **Document Management:** A complete lifecycle for documents, from proposal and creation to analysis and finalization. Supports various document types and signature handling.
+- **Asset & Borrowing System:** Manage organizational assets, track their status, and handle borrowing requests with availability checks.
+- **User & Organization Management:** Tools for managing users, groups, and organizational structures.
+- **Dynamic Frontend:** Built with Livewire and Volt, offering a seamless and interactive user experience without leaving PHP.
+- **Data-Driven:** Utilizes Data Transfer Objects (DTOs) for robust and structured data handling between application layers.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Backend:** Laravel
+- **Frontend:** Livewire, Volt, Tailwind CSS, Alpine.js
+- **Database:** (Configurable, e.g., MySQL, PostgreSQL)
+- **Build Tool:** Vite
 
-## Learning Laravel
+## Getting Started
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Follow these instructions to get a local copy of the project up and running for development and testing purposes.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP (>= 8.2)
+- Composer
+- Node.js & npm
+- A database server (e.g., MySQL, MariaDB)
 
-## Laravel Sponsors
+### Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1.  **Clone the repository:**
+    ```sh
+    git clone https://github.com/your-username/sinyora.git
+    cd sinyora
+    ```
 
-### Premium Partners
+2.  **Install PHP dependencies:**
+    ```sh
+    composer install
+    ```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+3.  **Install JavaScript dependencies:**
+    ```sh
+    npm install
+    ```
+
+4.  **Set up your environment:**
+    - Copy the example environment file and configure it for your local setup (especially database credentials).
+    ```sh
+    cp .env.example .env
+    ```
+    - Open `.env` and set your `DB_*` variables.
+
+5.  **Generate application key:**
+    ```sh
+    php artisan key:generate
+    ```
+
+6.  **Run database migrations:**
+    ```sh
+    php artisan migrate
+    ```
+
+7.  **(Optional) Seed the database with test data:**
+    ```sh
+    php artisan db:seed
+    ```
+
+## Usage
+
+### Development Server
+
+To run the application locally, start the Vite development server and the Laravel server.
+
+1.  **Start the Vite server:**
+    ```sh
+    npm run dev
+    ```
+
+2.  **In a separate terminal, start the Laravel server:**
+    ```sh
+    php artisan serve
+    ```
+
+The application will be available at `http://localhost:8000`.
+
+### Building for Production
+
+To compile and minify frontend assets for production, run:
+```sh
+npm run build
+```
+
+## Running Tests
+
+To run the PHPUnit test suite, execute the following command:
+```sh
+php artisan test
+```
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-## Code of Conduct
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-source software licensed under the [MIT license](https://opensource.org/licenses/MIT).
