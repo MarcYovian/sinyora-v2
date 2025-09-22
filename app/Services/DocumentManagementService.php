@@ -82,9 +82,9 @@ class DocumentManagementService
 
                 $document->signatures()->createMany($signatureBlocks);
 
-                if ($docType === DocumentType::BORROWING) {
-                } elseif ($docType === DocumentType::LICENSING) {
-                } elseif ($docType === DocumentType::INVITATION) {
+                if ($docType === DocumentType::BORROWING->value) {
+                } elseif ($docType === DocumentType::LICENSING->value) {
+                } elseif ($docType === DocumentType::INVITATION->value) {
                 } else {
                     throw new \Exception("Unknown document type: $docType");
                 }
