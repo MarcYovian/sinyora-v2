@@ -30,7 +30,6 @@ class ArticleService
     {
         return DB::transaction(function () use ($data, $article) {
             $payload = $this->preparePayload($data, $article);
-            dd($data->tags);
 
             // Handle image upload
             if ($data->image) {
