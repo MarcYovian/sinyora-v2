@@ -1,4 +1,4 @@
-import "../css/trix.css";
+import "trix";
 import "./bootstrap";
 
 import jQuery from "jquery";

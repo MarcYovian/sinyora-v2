@@ -31,9 +31,8 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             OrganizationSeeder::class,
             // EventSeeder::class,
-            // ArticleCategorySeeder::class,
-            // TagSeeder::class,
-            // ArticleSeeder::class,
+            ArticleCategorySeeder::class,
+            TagSeeder::class,
         ]);
         $user->assignRole('admin');
     }

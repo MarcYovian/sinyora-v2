@@ -1,3 +1,5 @@
+@import "trix/dist/trix.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,4 +8,37 @@
 
 .nav-link-hover {
     @apply transition-colors duration-200 hover:text-[#825700];
+}
+
+.dark .trix-button-row {
+    background: #1f2937; /* gray-800 */
+}
+
+.dark .trix-button {
+    background: #374151; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+}
+
+.dark .trix-button:hover {
+    background: #4b5563; /* gray-600 */
+}
+
+.dark .trix-button.trix-active {
+    background: #1e40af; /* blue-800 */
+}
+
+.dark .trix-dialog {
+    background: #1f2937; /* gray-800 */
+    color: #d1d5db; /* gray-300 */
+}
+
+.dark .trix-input {
+    background-color: #374151 !important; /* gray-700 */
+    border-color: #4b5563 !important; /* gray-600 */
+    color: #d1d5db; /* gray-300 */
+}
+
+/* Menghilangkan border dan outline default dari editor */
+.trix-content.ring-0 {
+    outline: 0;
 }

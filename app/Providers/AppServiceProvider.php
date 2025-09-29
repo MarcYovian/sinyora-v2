@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\CustomPermission;
 use App\Models\User;
 use App\Repositories\Contracts\ActivityRepositoryInterface;
+use App\Repositories\Contracts\ArticleRepositoryInterface;
 use App\Repositories\Contracts\AssetRepositoryInterface;
 use App\Repositories\Contracts\BorrowingDocumentRepositoryInterface;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
@@ -18,6 +19,7 @@ use App\Repositories\Contracts\LocationRepositoryInterface;
 use App\Repositories\Contracts\OrganizationRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentActivityRepository;
+use App\Repositories\Eloquent\EloquentArticleRepository;
 use App\Repositories\Eloquent\EloquentAssetRepository;
 use App\Repositories\Eloquent\EloquentBorrowingDocumentRepository;
 use App\Repositories\Eloquent\EloquentBorrowingRepository;
@@ -110,6 +112,11 @@ class AppServiceProvider extends ServiceProvider
             BorrowingDocumentRepositoryInterface::class,
             EloquentBorrowingDocumentRepository::class
         );
+
+        $this->app->bind(
+            ArticleRepositoryInterface::class,
+            EloquentArticleRepository::class
+        );
     }
 
     /**
@@ -131,15 +138,6 @@ class AppServiceProvider extends ServiceProvider
             return $user->roles()->whereHas('permissions', function ($query) use ($routeName) {
                 $query->where('route_name', $routeName);
             })->exists();
-        });
-
-        Collection::macro('toRecursive', function () {
-            return $this->map(function ($item) {
-                if (is_array($item)) {
-                    return collect($item)->toRecursive();
-                }
-                return $item;
-            });
         });
     }
 }
