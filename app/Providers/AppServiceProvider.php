@@ -9,6 +9,7 @@ use App\Repositories\Contracts\ArticleRepositoryInterface;
 use App\Repositories\Contracts\AssetRepositoryInterface;
 use App\Repositories\Contracts\BorrowingDocumentRepositoryInterface;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
+use App\Repositories\Contracts\ContentSettingRepositoryInterface;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Repositories\Contracts\EventCategoryRepositoryInterface;
 use App\Repositories\Contracts\EventRecurrenceRepositoryInterface;
@@ -23,6 +24,7 @@ use App\Repositories\Eloquent\EloquentArticleRepository;
 use App\Repositories\Eloquent\EloquentAssetRepository;
 use App\Repositories\Eloquent\EloquentBorrowingDocumentRepository;
 use App\Repositories\Eloquent\EloquentBorrowingRepository;
+use App\Repositories\Eloquent\EloquentContentSettingRepository;
 use App\Repositories\Eloquent\EloquentDocumentRepository;
 use App\Repositories\Eloquent\EloquentEventCategoryRepository;
 use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
@@ -33,7 +35,6 @@ use App\Repositories\Eloquent\EloquentLocationRepository;
 use App\Repositories\Eloquent\EloquentOrganizationRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Services\SEOService;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -116,6 +117,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ArticleRepositoryInterface::class,
             EloquentArticleRepository::class
+        );
+
+        $this->app->bind(
+            ContentSettingRepositoryInterface::class,
+            EloquentContentSettingRepository::class
         );
     }
 

@@ -22,17 +22,17 @@
     <!-- Hero Section -->
     <section id="beranda"
         class="relative bg-cover bg-center bg-no-repeat min-h-screen flex items-center justify-center px-6 py-20 md:py-32"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ asset('images/1.jpg') }}');">
+        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ asset($content['hero']['background-image'] ?? 'images/1.jpg') }}');">
         <div class="container mx-auto text-center text-white max-w-4xl px-4">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                Selamat Datang di Kapel St. Yohanes Rasul
+                {{ $content['hero']['title'] ?? 'Selamat Datang di Kapel St. Yohanes Rasul' }}
             </h1>
             <p class="text-lg sm:text-xl md:text-2xl mb-10 opacity-90">
-                Di bawah naungan Paroki Santo Yusup Karangpilang, Surabaya
+                {{ $content['hero']['subtitle'] ?? 'Di bawah naungan Paroki Santo Yusup Karangpilang, Surabaya' }}
             </p>
-            <a href="#jadwal-misa"
+            <a href="{{ $content['hero']['button-url'] ?? '#jadwal-misa' }}"
                 class="inline-block px-8 py-3 bg-[#FFD24C] hover:bg-[#FEC006] text-[#825700] font-semibold rounded-full shadow-lg transform transition hover:scale-105 duration-300 text-lg">
-                Lihat Jadwal Misa
+                {{ $content['hero']['button-text'] ?? 'Lihat Jadwal Misa' }}
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline ml-2" viewBox="0 0 20 20"
                     fill="currentColor">
                     <path fill-rule="evenodd"
@@ -82,17 +82,15 @@
                 <!-- Teks kecil di depan -->
                 <div class="relative z-10">
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
-                        Kapel St. Yohanes Rasul
+                        {{ $content['welcome']['title'] ?? 'Kapel St. Yohanes Rasul' }}
                     </h2>
                     <p class="text-gray-600 text-lg leading-relaxed">
-                        Selamat datang di situs resmi Kapel St. Yohanes Rasul. Kami berharap
-                        informasi di sini dapat membantu umat semakin dekat dengan Kristus. Salam damai dalam Kristus.
-                        Semoga Kapel St. Yohanes Rasul menjadi tempat yang membawa berkat dan sukacita bagi umat semua.
+                        {{ $content['welcome']['content'] ?? 'Selamat datang di Kapel St. Yohanes Rasul, di bawah naungan Paroki Santo Yusup Karangpilang, Surabaya.' }}
                     </p>
                     <div class="mt-8">
-                        <a href="#pelayanan"
+                        <a href="{{ $content['welcome']['button-url'] ?? '#pelayanan' }}"
                             class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#825700] hover:bg-[#6b4900] transition-colors duration-300">
-                            Pelayanan Kami
+                            {{ $content['welcome']['button-text'] ?? 'Pelayanan Kami' }}
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20"
                                 fill="currentColor">
                                 <path fill-rule="evenodd"
@@ -105,7 +103,7 @@
             </div>
             <div
                 class="relative rounded-xl overflow-hidden shadow-2xl transform transition hover:scale-[1.02] duration-500">
-                <img src="{{ asset('images/about.jpg') }}" alt="Kapel St. Yohanes Rasul"
+                <img src="{{ asset($content['welcome']['image'] ?? 'images/about.jpg') }}" alt="Kapel St. Yohanes Rasul"
                     class="w-full h-auto object-cover aspect-video">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
@@ -173,10 +171,10 @@
                 <!-- Teks kecil di depan -->
                 <div class="relative z-10">
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-                        Pelayanan Liturgis Kapela
+                        {{ $content['pelayanan']['title'] ?? 'Pelayanan Liturgis Kapela' }}
                     </h2>
                     <p class="text-gray-600 text-lg max-w-2xl">
-                        Jelajahi dan Temukan Pelayanan Liturgis Kapela St Yohanes Rasul
+                        {{ $content['pelayanan']['subtitle'] ?? 'Jelajahi dan Temukan Pelayanan Liturgis Kapela St Yohanes Rasul' }}
                     </p>
                 </div>
             </div>
@@ -184,82 +182,43 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Service Card 1 -->
-                    <div
-                        class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                        <div class="bg-[#FFD24C]/10 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-book-bible text-3xl text-[#825700]"></i>
+                    @forelse($services as $service)
+                        <div
+                            class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                            <div class="bg-[#FFD24C]/10 p-4 rounded-full inline-flex items-center justify-center mb-4">
+                                {{-- Ikon dinamis --}}
+                                <i class="{{ $service->icon_class }} text-3xl text-[#825700]"></i>
+                            </div>
+                            {{-- Judul dinamis --}}
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $service->title }}</h3>
+                            {{-- Deskripsi dinamis --}}
+                            <p class="text-gray-600 text-sm">{{ $service->description }}</p>
+                            {{-- Link dinamis --}}
+                            <a href="{{ $service->link }}"
+                                class="mt-4 inline-block text-sm text-[#825700] font-medium hover:underline">
+                                Selengkapnya →
+                            </a>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Lektor Pemazmur</h3>
-                        <p class="text-gray-600 text-sm">
-                            Melayani dalam pembacaan Kitab Suci dan Mazmur
-                        </p>
-                        <a href="#" class="mt-4 inline-block text-sm text-[#825700] font-medium hover:underline">
-                            Selengkapnya →
-                        </a>
-                    </div>
-
-                    <!-- Service Card 2 -->
-                    <div
-                        class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                        <div class="bg-[#FFD24C]/10 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-cross text-3xl text-[#825700]"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Misdinar</h3>
-                        <p class="text-gray-600 text-sm">
-                            Melayani dalam perayaan Ekaristi
-                        </p>
-                        <a href="#" class="mt-4 inline-block text-sm text-[#825700] font-medium hover:underline">
-                            Selengkapnya →
-                        </a>
-                    </div>
-
-                    <!-- Service Card 3 -->
-                    <div
-                        class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                        <div class="bg-[#FFD24C]/10 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-users text-3xl text-[#825700]"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">PUK</h3>
-                        <p class="text-gray-600 text-sm">
-                            Pelayanan Umum dan Kebersihan
-                        </p>
-                        <a href="#"
-                            class="mt-4 inline-block text-sm text-[#825700] font-medium hover:underline">
-                            Selengkapnya →
-                        </a>
-                    </div>
-
-                    <!-- Service Card 4 -->
-                    <div
-                        class="bg-white rounded-xl p-6 shadow-md text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                        <div class="bg-[#FFD24C]/10 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-hands-praying text-3xl text-[#825700]"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Paguyuban Organis</h3>
-                        <p class="text-gray-600 text-sm">
-                            Memimpin nyanyian dalam perayaan liturgi
-                        </p>
-                        <a href="#"
-                            class="mt-4 inline-block text-sm text-[#825700] font-medium hover:underline">
-                            Selengkapnya →
-                        </a>
-                    </div>
+                    @empty
+                        <p class="text-gray-500 md:col-span-2">Belum ada data pelayanan yang tersedia.</p>
+                    @endforelse
                 </div>
 
                 <div class="relative rounded-xl overflow-hidden shadow-2xl h-full">
-                    <img src="{{ asset('images/about.jpg') }}" alt="Pelayanan Liturgi"
-                        class="w-full h-full object-cover">
+                    <img src="{{ asset($content['pelayanan']['image'] ?? 'images/about.jpg') }}"
+                        alt="Pelayanan Liturgi" class="w-full h-full object-cover">
                     <div
                         class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 sm:p-8">
                         <div class="text-white">
-                            <h3 class="text-xl font-semibold sm:text-2xl sm:font-bold mb-2">Bergabunglah Dengan Kami
+                            <h3 class="text-xl font-semibold sm:text-2xl sm:font-bold mb-2">
+                                {{ $content['pelayanan']['cta-title'] ?? 'Bergabunglah Dengan Kami' }}
                             </h3>
                             <p class="mb-4 text-sm sm:text-base">
-                                Mari berpartisipasi dalam pelayanan liturgi Kapel St. Yohanes Rasul
+                                {{ $content['pelayanan']['cta-content'] ?? 'Mari berpartisipasi dalam pelayanan liturgi Kapel St. Yohanes Rasul' }}
                             </p>
-                            <a href="#contact"
+                            <a href="{{ $content['pelayanan']['cta-button-url'] ?? '#contact' }}"
                                 class="inline-flex items-center px-2 py-1 border border-transparent text-xs sm:px-6 sm:py-2 sm:text-base font-medium rounded-md shadow-sm text-[#825700] bg-[#FFD24C] hover:bg-[#FEC006]">
-                                Hubungi Kami
+                                {{ $content['pelayanan']['cta-button-text'] ?? 'Hubungi Kami' }}
                             </a>
                         </div>
                     </div>
@@ -310,7 +269,8 @@
                                 placeholder="Nama Anda"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition">
                             @if ($errors->has('contactForm.name'))
-                                <span class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                                <span
+                                    class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
                             @endif
                         </div>
 
@@ -345,7 +305,8 @@
                             <textarea id="message" rows="4" wire:model="contactForm.message" placeholder="Tulis pesan Anda..."
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFD24C] focus:border-transparent transition"></textarea>
                             @if ($errors->has('contactForm.name'))
-                                <span class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
+                                <span
+                                    class="text-red-500 text-sm mt-1">{{ $errors->first('contactForm.name') }}</span>
                             @endif
                         </div>
 

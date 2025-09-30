@@ -3,6 +3,8 @@
 namespace App\Livewire\Pages\Home;
 
 use App\Livewire\Forms\ContactForm;
+use App\Models\ServiceContentSetting;
+use App\Services\ContentService;
 use App\Services\SEOService;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -12,8 +14,11 @@ class Index extends Component
     #[Layout('components.layouts.app')]
 
     public ContactForm $contactForm;
+    public array $content = [];
+    public $services;
 
-    public function mount(SEOService $seo)
+
+    public function mount(SEOService $seo, ContentService $contentService)
     {
         $seo->setTitle('Jadwal Misa & Informasi Umat - Kapel St. Yohanes Rasul', false)
             ->setDescription(
@@ -33,6 +38,9 @@ class Index extends Component
             ])->setOgImage(asset('images/seo/home-page-ogimage.png'));
 
         $this->setupChurchSchema($seo);
+
+        $this->content = $contentService->getPage('home');
+        $this->services = ServiceContentSetting::where('is_active', true)->orderBy('order')->get();
     }
     public function send()
     {
