@@ -125,9 +125,15 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
         ->name('documents.invitation.index');
     // ->middleware(['permission:view invitation documents']);
 
-    Route::get('content/home', \App\Livewire\Admin\Pages\Content\Home::class)
-        ->name('content.home');
-    // ->middleware(['permission:view content home']);
+    Route::group(['prefix' => 'content', 'as' => 'content.'], function () {
+        Route::get('home', \App\Livewire\Admin\Pages\Content\Home::class)
+            ->name('home')
+            ->middleware(['permission:view content home']);
+
+        Route::get('mass-schedules', \App\Livewire\Admin\Pages\Content\MassSchedule::class)
+            ->name('mass-schedules');
+        // ->middleware(['permission:view content mass schedules']);
+    });
 });
 
 Route::post('/trix-attachments', [TrixAttachmentController::class, 'store'])

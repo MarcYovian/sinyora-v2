@@ -22,7 +22,7 @@
     <!-- Hero Section -->
     <section id="beranda"
         class="relative bg-cover bg-center bg-no-repeat min-h-screen flex items-center justify-center px-6 py-20 md:py-32"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ asset($content['hero']['background-image'] ?? 'images/1.jpg') }}');">
+        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url({{ asset($content['hero']['background-image'] ?? 'images/1.jpg') }});">
         <div class="container mx-auto text-center text-white max-w-4xl px-4">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
                 {{ $content['hero']['title'] ?? 'Selamat Datang di Kapel St. Yohanes Rasul' }}
@@ -46,24 +46,76 @@
     <!-- Jadwal Misa -->
     <section id="jadwal-misa" class="bg-[#282834] py-16">
         <div class="container mx-auto px-6 max-w-4xl">
-            <div class="text-center">
+            <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold text-[#FFD24C] mb-4">
-                    Jadwal Misa <span class="text-white">Mingguan</span>
+                    Jadwal Misa <span class="text-white">Ekaristi</span>
                 </h2>
-                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 max-w-md mx-auto">
-                    <div class="flex items-center justify-center space-x-4 mb-6">
-                        <div class="bg-[#FFD24C] p-3 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#825700]" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <p class="text-2xl font-semibold text-white">Minggu Sore: 17.00 WIB</p>
+                <p class="text-white/70 text-lg max-w-2xl mx-auto">
+                    Temukan jadwal misa rutin mingguan dan jadwal perayaan khusus mendatang di kapel kami.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+
+                {{-- Kolom Jadwal Rutin --}}
+                <div>
+                    <h3 class="text-2xl font-semibold text-white mb-6 border-b-2 border-white/20 pb-3">Jadwal Rutin
+                        Mingguan</h3>
+                    <div class="space-y-6">
+                        @forelse($regularSchedules as $day => $schedules)
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                                <p class="text-xl font-bold text-[#FFD24C] mb-4">{{ $day }}</p>
+                                <div class="space-y-3">
+                                    @foreach ($schedules as $schedule)
+                                        <div class="flex items-center space-x-4 text-white">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#FFD24C]"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p class="text-lg">
+                                                <span
+                                                    class="font-semibold">{{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }}
+                                                    WIB</span>
+                                                <span class="text-gray-300 text-sm ml-2">({{ $schedule->label }})</span>
+                                            </p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-white/70">Jadwal rutin belum tersedia.</p>
+                        @endforelse
                     </div>
-                    <p class="text-[#FFD24C] text-sm md:text-base">
-                        *Jadwal bisa berubah saat hari raya tertentu. Silakan pantau pengumuman.
-                    </p>
+                </div>
+
+                {{-- Kolom Jadwal Khusus --}}
+                <div>
+                    <h3 class="text-2xl font-semibold text-white mb-6 border-b-2 border-white/20 pb-3">Jadwal Khusus &
+                        Hari Raya</h3>
+                    <div class="space-y-4">
+                        @forelse($specialSchedules as $schedule)
+                            <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 text-left">
+                                <p class="font-bold text-lg text-white">{{ $schedule['name'] }}</p>
+                                <div class="flex items-center space-x-3 text-[#FFD24C] mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    {{-- Format tanggal dan waktu dari data yang sudah dimapping --}}
+                                    <span class="text-base">
+                                        {{ $schedule['date']->translatedFormat('l, d F Y') }} •
+                                        {{ $schedule['time_start']->format('H:i') }} WIB
+                                    </span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="bg-white/5 rounded-xl p-5">
+                                <p class="text-white/70">Tidak ada jadwal khusus dalam waktu dekat.</p>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
@@ -103,8 +155,8 @@
             </div>
             <div
                 class="relative rounded-xl overflow-hidden shadow-2xl transform transition hover:scale-[1.02] duration-500">
-                <img src="{{ asset($content['welcome']['image'] ?? 'images/about.jpg') }}" alt="Kapel St. Yohanes Rasul"
-                    class="w-full h-auto object-cover aspect-video">
+                <img src="{{ asset($content['welcome']['image'] ?? 'images/about.jpg') }}"
+                    alt="Kapel St. Yohanes Rasul" class="w-full h-auto object-cover aspect-video">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
         </div>

@@ -17,4 +17,5 @@ interface EventRepositoryInterface
     public function delete(int $id): bool;
     public function findByOrganizationId(int $organizationId): Collection;
     public function changeStatus(Event $event, EventApprovalStatus $status, ?string $rejectionReason = null): bool;
+    public function getMassEvents(): Collection;
 }

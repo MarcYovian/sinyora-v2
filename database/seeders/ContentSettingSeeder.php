@@ -54,5 +54,31 @@ class ContentSettingSeeder extends Seeder
         $this->call([
             ServiceContentSeeder::class
         ]);
+        $this->command->info('Home page content seeded successfully.');
+
+        $eventContents = [
+            // Hero Section
+            [
+                ['section' => 'hero', 'key' => 'title', 'type' => 'text', 'value' => 'Kalender Kegiatan Kapel'],
+                ['section' => 'hero', 'key' => 'subtitle', 'type' => 'textarea', 'value' => 'Temukan jadwal kegiatan, perayaan liturgi, dan acara khusus di Kapel St. Yohanes Rasul'],
+                ['section' => 'hero', 'key' => 'button-text', 'type' => 'text', 'value' => 'Lihat Jadwal Misa'],
+                ['section' => 'hero', 'key' => 'button-url', 'type' => 'text', 'value' => '#jadwal-misa'],
+                ['section' => 'hero', 'key' => 'background-image', 'type' => 'image', 'value' => 'images/1.jpg'],
+            ],
+        ];
+
+        foreach ($eventContents as $content) {
+            ContentSetting::updateOrCreate(
+                [
+                    'page' => 'events',
+                    'section' => $content['section'],
+                    'key' => $content['key'],
+                ],
+                [
+                    'type' => $content['type'],
+                    'value' => $content['value'],
+                ]
+            );
+        }
     }
 }

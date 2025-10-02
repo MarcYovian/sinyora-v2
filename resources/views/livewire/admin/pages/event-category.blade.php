@@ -139,8 +139,8 @@
                     <div class="mt-1 relative">
                         <select wire:model="form.is_active" id="is_active" name="is_active"
                             class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
-                            <option value="1">{{ __('Active') }}</option>
-                            <option value="0">{{ __('Inactive') }}</option>
+                            <option value="true">{{ __('Active') }}</option>
+                            <option value="false">{{ __('Inactive') }}</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                             <x-heroicon-s-chevron-down class="h-5 w-5 text-gray-400" />

@@ -87,4 +87,13 @@ class EloquentEventRepository implements EventRepositoryInterface
         }
         return $event->save();
     }
+
+    public function getMassEvents(): Collection
+    {
+        return Event::with(['eventRecurrences:event_id,date,time_start', 'eventCategory:id,name'])
+            ->whereHas('eventCategory', function ($query) {
+                $query->where('is_active', true)->where('name', 'Mass');
+            })
+            ->get();
+    }
 }

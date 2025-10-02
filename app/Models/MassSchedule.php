@@ -18,6 +18,11 @@ class MassSchedule extends Model
         'is_active',
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'start_time' => 'datetime:H:i',
+    ];
+
     protected function dayName(): Attribute
     {
         return Attribute::make(

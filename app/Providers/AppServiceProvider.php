@@ -17,6 +17,7 @@ use App\Repositories\Contracts\EventRepositoryInterface;
 use App\Repositories\Contracts\InvitationDocumentRepositoryInterface;
 use App\Repositories\Contracts\LicensingDocumentRepositoryInterface;
 use App\Repositories\Contracts\LocationRepositoryInterface;
+use App\Repositories\Contracts\MassScheduleRepositoryInterface;
 use App\Repositories\Contracts\OrganizationRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentActivityRepository;
@@ -32,6 +33,7 @@ use App\Repositories\Eloquent\EloquentEventRepository;
 use App\Repositories\Eloquent\EloquentInvitationDocumentRepository;
 use App\Repositories\Eloquent\EloquentLicensingDocumentRepository;
 use App\Repositories\Eloquent\EloquentLocationRepository;
+use App\Repositories\Eloquent\EloquentMassScheduleRepository;
 use App\Repositories\Eloquent\EloquentOrganizationRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Services\SEOService;
@@ -122,6 +124,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ContentSettingRepositoryInterface::class,
             EloquentContentSettingRepository::class
+        );
+
+        $this->app->bind(
+            MassScheduleRepositoryInterface::class,
+            EloquentMassScheduleRepository::class
         );
     }
 

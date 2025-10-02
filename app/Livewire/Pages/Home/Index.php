@@ -5,6 +5,8 @@ namespace App\Livewire\Pages\Home;
 use App\Livewire\Forms\ContactForm;
 use App\Models\ServiceContentSetting;
 use App\Services\ContentService;
+use App\Services\EventService;
+use App\Services\MassScheduleService;
 use App\Services\SEOService;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -16,9 +18,10 @@ class Index extends Component
     public ContactForm $contactForm;
     public array $content = [];
     public $services;
+    // public $regularSchedules;
 
 
-    public function mount(SEOService $seo, ContentService $contentService)
+    public function mount(SEOService $seo, ContentService $contentService, MassScheduleService $massScheduleService)
     {
         $seo->setTitle('Jadwal Misa & Informasi Umat - Kapel St. Yohanes Rasul', false)
             ->setDescription(
@@ -51,7 +54,16 @@ class Index extends Component
 
     public function render()
     {
-        return view('livewire.pages.home.index');
+        $massScheduleService = app(MassScheduleService::class);
+        $regularSchedules = $massScheduleService->getSchedulesForPublic()->groupBy('day_name');
+
+        $specialMassScheduleEventsService = app(EventService::class);
+        $specialSchedules = $specialMassScheduleEventsService->getUpcomingMassSchedule();
+
+        return view('livewire.pages.home.index', [
+            'regularSchedules' => $regularSchedules,
+            'specialSchedules' => $specialSchedules,
+        ]);
     }
 
     private function setupChurchSchema(SEOService $seo): void
