@@ -14,11 +14,12 @@ class ArticleSection extends Component
     public function mount()
     {
         $this->popularArticles = Article::with('category')
+            ->published()
             ->orderByDesc('views')
             ->take(2)
             ->get();
 
-        $this->latestArticles = Article::latest()->take(3)->get();
+        $this->latestArticles = Article::published()->latest()->take(3)->get();
     }
 
     public function placeholder()
