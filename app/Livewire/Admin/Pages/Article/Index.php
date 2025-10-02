@@ -4,7 +4,9 @@ namespace App\Livewire\Admin\Pages\Article;
 
 use App\Livewire\Forms\ArticleForm;
 use App\Models\Article;
+use App\Services\ArticleService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -20,6 +22,13 @@ class Index extends Component
 
     public $search = '';
 
+    protected $articleService;
+
+    public function boot(ArticleService $articleService)
+    {
+        $this->articleService = $articleService;
+    }
+
     public function show(Article $article)
     {
         $this->authorize('access', 'admin.articles.show');
@@ -31,10 +40,7 @@ class Index extends Component
     public function confirmDelete($id)
     {
         $this->authorize('access', 'admin.articles.destroy');
-
-        $article = Article::findOrFail($id);
-        $this->form->setArticle($article);
-
+        $this->article = Article::findOrFail($id);
         $this->dispatch('open-modal', 'delete-article-confirmation');
     }
 
@@ -42,22 +48,29 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.articles.destroy');
 
-        $this->form->delete();
-        $this->form->reset();
-        toastr()->success('Artikel berhasil dihapus');
+        if ($this->articleService->deleteArticle($this->article)) {
+            toastr()->success('Artikel berhasil dihapus');
+        } else {
+            toastr()->error('Gagal menghapus artikel.');
+        }
 
         $this->dispatch('close-modal', 'delete-article-confirmation');
+        $this->article = null;
     }
 
     public function forceDelete()
     {
         $this->authorize('access', 'admin.articles.destroy');
 
-        $this->form->forceDelete();
-        $this->form->reset();
-        toastr()->success('Artikel berhasil dihapus permanen');
-
+        try {
+            $this->articleService->forceDeleteArticle($this->article);
+            toastr()->success('Artikel berhasil dihapus permanen');
+        } catch (\Throwable $e) {
+            Log::error('Gagal hapus permanen artikel: ' . $e->getMessage(), ['exception' => $e]);
+            toastr()->error('Terjadi kesalahan saat menghapus artikel.');
+        }
         $this->dispatch('close-modal', 'delete-article-confirmation');
+        $this->article = null;
     }
 
     public function render()
