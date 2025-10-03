@@ -31,11 +31,11 @@
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             {{ $category->name }}
                         </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
+                        {{-- <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <span
                                 class="w-2 h-2 rounded-full {{ $category->is_active ? 'bg-green-500' : 'bg-red-500' }}"></span>
                             {{ $category->is_active ? 'Active' : 'Inactive' }}
-                        </td>
+                        </td> --}}
                         <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
                             <div class="flex flex-col items-center gap-2">
                                 @can('edit article category')
@@ -89,9 +89,9 @@
                         class="block w-full mt-1" placeholder="{{ __('e.g. Misa, Meeting') }}" />
                     <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
                 </div>
-                {{--
+
                 <!-- Status Field -->
-                <div>
+                {{-- <div>
                     <x-input-label for="is_active" value="{{ __('Status') }}" class="mb-1" />
                     <div class="mt-1 relative">
                         <select wire:model="form.is_active" id="is_active" name="is_active"
