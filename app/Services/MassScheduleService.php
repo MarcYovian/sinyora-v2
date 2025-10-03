@@ -3,13 +3,13 @@
 namespace App\Services;
 
 use App\Repositories\Contracts\MassScheduleRepositoryInterface;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class MassScheduleService
 {
-    protected const CACHE_TAG = 'mass_schedules';
+    // protected const CACHE_TAG = 'mass_schedules';
     protected const CACHE_KEY_ALL_PUBLIC = 'mass_schedules.all_public'; // Key baru untuk data publik
     protected const CACHE_KEY_ID = 'mass_schedules.id.';
 
@@ -18,12 +18,11 @@ class MassScheduleService
      */
     public function __construct(
         protected MassScheduleRepositoryInterface $massScheduleRepository,
-        protected CacheRepository $cache
     ) {}
 
     public function getSchedulesForPublic()
     {
-        return $this->cache->tags(self::CACHE_TAG)->rememberForever(self::CACHE_KEY_ALL_PUBLIC, function () {
+        return Cache::rememberForever(self::CACHE_KEY_ALL_PUBLIC, function () {
             try {
                 return $this->massScheduleRepository->all();
             } catch (ModelNotFoundException $e) {
@@ -56,7 +55,7 @@ class MassScheduleService
     {
         $cacheKey = self::CACHE_KEY_ID . $id;
 
-        return $this->cache->tags(self::CACHE_TAG)->rememberForever($cacheKey, function () use ($id) {
+        return Cache::rememberForever($cacheKey, function () use ($id) {
             try {
                 return $this->massScheduleRepository->find($id);
             } catch (ModelNotFoundException $e) {
@@ -76,7 +75,7 @@ class MassScheduleService
                 throw new ModelNotFoundException("Mass schedule with ID {$id} not found.");
             }
             $result = $this->massScheduleRepository->update($massSchedule, $data);
-            $this->clearCache();
+            $this->clearCache($id);
             return $result;
         } catch (ModelNotFoundException $e) {
             throw new ModelNotFoundException("Mass schedule with ID {$id} not found.");
@@ -94,7 +93,7 @@ class MassScheduleService
                 throw new ModelNotFoundException("Mass schedule with ID {$id} not found.");
             }
             $result = $this->massScheduleRepository->delete($massSchedule);
-            $this->clearCache();
+            $this->clearCache($id);
             return $result;
         } catch (ModelNotFoundException $e) {
             throw new ModelNotFoundException("Mass schedule with ID {$id} not found.");
@@ -104,8 +103,14 @@ class MassScheduleService
         }
     }
 
-    private function clearCache(): void
+    private function clearCache(int $id = null): void
     {
-        $this->cache->tags(self::CACHE_TAG)->flush();
+        // Selalu hapus cache untuk daftar semua jadwal
+        Cache::forget(self::CACHE_KEY_ALL_PUBLIC);
+
+        // Jika ID diberikan (untuk update/delete), hapus juga cache untuk item spesifik tersebut
+        if ($id) {
+            Cache::forget(self::CACHE_KEY_ID . $id);
+        }
     }
 }

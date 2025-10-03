@@ -3,14 +3,13 @@
 namespace App\Services;
 
 use App\Repositories\Contracts\ContentSettingRepositoryInterface;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ContentService
 {
     protected ContentSettingRepositoryInterface $contentSettingRepository;
-    protected CacheRepository $cache;
 
     /**
      * The base cache key for content settings.
@@ -21,12 +20,10 @@ class ContentService
      * Create a new class instance.
      *
      * @param ContentSettingRepositoryInterface $contentSettingRepository
-     * @param CacheRepository $cache
      */
-    public function __construct(ContentSettingRepositoryInterface $contentSettingRepository, CacheRepository $cache)
+    public function __construct(ContentSettingRepositoryInterface $contentSettingRepository)
     {
         $this->contentSettingRepository = $contentSettingRepository;
-        $this->cache = $cache;
     }
 
     /**
@@ -55,7 +52,7 @@ class ContentService
     {
         $cacheKey = self::CACHE_KEY . '.' . $page;
 
-        return $this->cache->rememberForever($cacheKey, function () use ($page) {
+        return Cache::rememberForever($cacheKey, function () use ($page) {
             $settings = $this->contentSettingRepository->getByPage($page);
 
             return $this->formatContent($settings);
@@ -70,7 +67,7 @@ class ContentService
      */
     public function clearCache(string $page): bool
     {
-        return $this->cache->forget(self::CACHE_KEY . '.' . $page);
+        return Cache::forget(self::CACHE_KEY . '.' . $page);
     }
 
     /**
