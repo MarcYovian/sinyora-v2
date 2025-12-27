@@ -37,4 +37,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ->onOneServer();
 
         $schedule->command('sitemap:generate')->weekly();
+
+        $schedule->command('log:clear')->weekly();
     })->create();
