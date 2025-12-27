@@ -1,4 +1,7 @@
 User-agent: *
 Disallow: /admin
+Disallow: /livewire
+Disallow: /sanctum
+Disallow: /_debugbar
 
-Sitemap: https://sinyora.my.id/sitemap.xml
+Sitemap: https://kapelstyohanesrasul.com/sitemap.xml
