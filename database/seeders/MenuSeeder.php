@@ -134,5 +134,21 @@ class MenuSeeder extends Seeder
             'route_name' => 'admin.locations.index',
             'sort' => 17,
         ]);
+
+        // Content Settings Menus
+        Menu::create([
+            'main_menu' => 'Content Settings',
+            'menu' => 'Home Content',
+            'icon' => 'c-home',
+            'route_name' => 'admin.content.home',
+            'sort' => 18,
+        ]);
+        Menu::create([
+            'main_menu' => 'Content Settings',
+            'menu' => 'Mass Schedules',
+            'icon' => 'c-calendar',
+            'route_name' => 'admin.content.mass-schedules',
+            'sort' => 19,
+        ]);
     }
 }
