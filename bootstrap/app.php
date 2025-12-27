@@ -30,12 +30,6 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->command('queue:work --queue=notifications,default --stop-when-empty')
-            ->everyMinute()
-            ->withoutOverlapping()
-            ->runInBackground()
-            ->onOneServer();
-
         $schedule->command('sitemap:generate')->weekly();
 
         $schedule->command('log:clear')->weekly();
