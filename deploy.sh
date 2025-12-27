@@ -46,14 +46,19 @@ php artisan queue:restart
 # php artisan filament:cache-components
 echo "✅ Cache telah dioptimalkan."
 
-# 6. Restart servis PHP (Opsional tapi direkomendasikan)
+# 6. Generate sitemap
+echo "Generating sitemap..."
+php artisan sitemap:generate
+echo "✅ Sitemap telah di-generate."
+
+# 7. Restart servis PHP (Opsional tapi direkomendasikan)
 # Ini memastikan semua perubahan kode di-load oleh PHP.
 # Sesuaikan versi PHP (misal: php8.2-fpm, php8.3-fpm).
 echo "Merestart PHP-FPM..."
 sudo systemctl restart php8.3-fpm
 echo "✅ PHP-FPM telah direstart."
 
-# 7. Nonaktifkan mode maintenance
+# 8. Nonaktifkan mode maintenance
 echo "Menonaktifkan mode maintenance..."
 php artisan up
 echo "✅ Mode maintenance nonaktif."
