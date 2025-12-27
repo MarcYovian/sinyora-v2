@@ -6,7 +6,7 @@
     </div>
 </div>
 <div class="bg-white rounded-b-lg border border-t-0 dark:bg-gray-800 dark:border-gray-700">
-    <div class="w-full overflow-hidden overflow-x-auto border-collapse rounded-xl">
+    <div class="w-full overflow-x-auto overflow-y-visible border-collapse rounded-xl">
         <table class="w-full text-sm border-collapse">
             <thead class="border-b dark:border-gray-700">
                 <tr>

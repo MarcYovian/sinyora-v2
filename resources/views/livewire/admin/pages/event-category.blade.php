@@ -90,8 +90,24 @@
                 <div>
                     <x-input-label for="name" value="{{ __('Name') }}" class="mb-1" />
                     <x-text-input wire:model="form.name" id="name" name="name" type="text"
-                        class="block w-full mt-1" placeholder="{{ __('e.g. Misa, Meeting') }}" />
+                        class="block w-full mt-1" placeholder="{{ __('e.g. Misa, Meeting') }}" 
+                        wire:blur="form.generateSlug" />
                     <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
+                </div>
+
+                <!-- Slug Field -->
+                <div>
+                    <x-input-label for="slug" value="{{ __('Slug') }}" class="mb-1" />
+                    <div class="flex gap-2">
+                        <x-text-input wire:model="form.slug" id="slug" name="slug" type="text"
+                            class="block w-full mt-1" placeholder="{{ __('e.g. misa-ekaristi') }}" />
+                        <button type="button" wire:click="form.generateSlug"
+                            class="mt-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition whitespace-nowrap">
+                            {{ __('Generate') }}
+                        </button>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Unique identifier (lowercase, no spaces)') }}</p>
+                    <x-input-error :messages="$errors->get('form.slug')" class="mt-2" />
                 </div>
 
                 <!-- Color Field with Enhanced Color Picker -->
@@ -147,6 +163,22 @@
                         </div>
                     </div>
                     <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
+                </div>
+
+                <!-- Is Mass Category Toggle -->
+                <div class="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" wire:model="form.is_mass_category" id="is_mass_category"
+                            class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 dark:focus:ring-amber-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div class="flex-1">
+                        <label for="is_mass_category" class="text-sm font-medium text-amber-800 dark:text-amber-300 cursor-pointer">
+                            {{ __('Kategori Misa / Jadwal Khusus') }}
+                        </label>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            {{ __('Centang jika kategori ini digunakan untuk event misa yang akan tampil di "Jadwal Khusus & Hari Raya" pada halaman utama.') }}
+                        </p>
+                    </div>
                 </div>
             </div>
 

@@ -17,13 +17,16 @@ class EventCategory extends Model
      */
     protected $fillable = [
         'name',
+        'slug',
         'color',
         'keywords',
         'is_active',
+        'is_mass_category',
     ];
 
     protected $casts = [
         'keywords' => 'array',
+        'is_mass_category' => 'boolean',
     ];
 
 

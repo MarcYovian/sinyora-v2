@@ -8,7 +8,7 @@
         </p>
     </header>
 
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
         <div class="p-4 sm:p-6 space-y-4">
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
@@ -139,7 +139,7 @@
                     <x-table title="Data Kegiatan" :heads="$table_heads">
                         @forelse ($events as $key => $event)
                             <tr wire:key="event-table-{{ $event->id }}"
-                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 isolate">
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                                     {{ $key + $events->firstItem() }}
                                 </td>
@@ -200,40 +200,45 @@
                                     <x-status-badge :status="$event->status" />
                                 </td>
                                 {{-- Actions --}}
-                                <td class="px-6 py-4 text-right whitespace-nowrap relative">
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button
-                                                class="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-teal-500 transition">
-                                                <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
-                                            </button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
-                                                Detail
-                                            </x-dropdown-link>
-                                            @if (
-                                                $event->status !== App\Enums\EventApprovalStatus::APPROVED &&
-                                                    $event->status !== App\Enums\EventApprovalStatus::REJECTED)
-                                                <x-dropdown-link wire:click="edit({{ $event->id }})">
-                                                    Edit
-                                                </x-dropdown-link>
-                                            @endif
-                                            @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
-                                                <x-dropdown-link wire:click="confirmApprove({{ $event->id }})">
-                                                    Approve
-                                                </x-dropdown-link>
-                                                <x-dropdown-link wire:click="confirmReject({{ $event->id }})">
-                                                    Reject
-                                                </x-dropdown-link>
-                                            @endif
-                                            <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                            <x-dropdown-link wire:click="confirmDelete({{ $event->id }})"
-                                                class="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400">
-                                                Delete
-                                            </x-dropdown-link>
-                                        </x-slot>
-                                    </x-dropdown>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center justify-end space-x-1">
+                                        {{-- Detail Button - Blue/Info --}}
+                                        <x-button tag="a" href="{{ route('admin.events.show', $event) }}"
+                                            variant="info" size="sm" class="!p-2" title="Lihat Detail">
+                                            <x-heroicon-o-eye class="w-4 h-4" />
+                                            <span class="sr-only">Detail</span>
+                                        </x-button>
+
+                                        {{-- Edit Button - Amber/Warning --}}
+                                        @if ($event->status !== App\Enums\EventApprovalStatus::APPROVED && $event->status !== App\Enums\EventApprovalStatus::REJECTED)
+                                            <x-button type="button" variant="warning" size="sm" class="!p-2"
+                                                wire:click="edit({{ $event->id }})" title="Edit Kegiatan">
+                                                <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                                <span class="sr-only">Edit</span>
+                                            </x-button>
+                                        @endif
+
+                                        {{-- Approve/Reject Buttons (only for pending) --}}
+                                        @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                            <x-button type="button" variant="success" size="sm" class="!p-2"
+                                                wire:click="confirmApprove({{ $event->id }})" title="Setujui Kegiatan">
+                                                <x-heroicon-o-check-circle class="w-4 h-4" />
+                                                <span class="sr-only">Approve</span>
+                                            </x-button>
+                                            <x-button type="button" variant="secondary" size="sm" class="!p-2 !bg-orange-100 !text-orange-600 hover:!bg-orange-200 dark:!bg-orange-900/30 dark:!text-orange-400"
+                                                wire:click="confirmReject({{ $event->id }})" title="Tolak Kegiatan">
+                                                <x-heroicon-o-x-circle class="w-4 h-4" />
+                                                <span class="sr-only">Reject</span>
+                                            </x-button>
+                                        @endif
+
+                                        {{-- Delete Button - Red/Danger --}}
+                                        <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                            wire:click="confirmDelete({{ $event->id }})" title="Hapus Kegiatan">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                            <span class="sr-only">Delete</span>
+                                        </x-button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

@@ -92,7 +92,7 @@ class EloquentEventRepository implements EventRepositoryInterface
     {
         return Event::with(['eventRecurrences:event_id,date,time_start', 'eventCategory:id,name'])
             ->whereHas('eventCategory', function ($query) {
-                $query->where('is_active', true)->where('name', 'Mass');
+                $query->where('is_active', true)->where('is_mass_category', true);
             })
             ->get();
     }
