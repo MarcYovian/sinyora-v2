@@ -86,7 +86,7 @@
 
     <!-- Featured Image - Full Display (No Crop) -->
     @if ($featuredImageUrl || $article->featured_image)
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+        <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
             <div class="rounded-xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10">
                 @if ($featuredImageUrl)
                     <img src="{{ $featuredImageUrl }}" alt="{{ $article->title }}"

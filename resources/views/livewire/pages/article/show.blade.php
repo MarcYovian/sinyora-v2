@@ -53,7 +53,7 @@
 
     <!-- Featured Image - Full Display (No Crop) -->
     @if ($article->featured_image)
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+        <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
             <div class="rounded-xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10">
                 <img src="{{ Storage::url($article->featured_image) }}" alt="{{ $article->title }}"
                     class="w-full h-auto">
