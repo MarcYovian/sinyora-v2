@@ -68,8 +68,8 @@
                             <td class="px-6 py-4">{{ $article->user->name ?? 'N/A' }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
-                                    <x-button type="button" variant="secondary" size="sm" class="!p-2"
-                                        wire:click="show({{ $article->id }})">
+                                    <x-button tag="a" href="{{ route('articles.show', $article) }}" target="_blank"
+                                        variant="secondary" size="sm" class="!p-2">
                                         <x-heroicon-o-eye class="w-4 h-4" />
                                         <span class="sr-only">Show</span>
                                     </x-button>
@@ -129,8 +129,8 @@
                         </div>
                         <div
                             class="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 mt-4 pt-4 flex items-center justify-end space-x-2">
-                            <x-button type="button" variant="secondary" size="sm"
-                                wire:click="show({{ $article->id }})">
+                            <x-button tag="a" href="{{ route('articles.show', $article) }}" target="_blank"
+                                variant="secondary" size="sm">
                                 Show
                             </x-button>
                             @can('access', 'admin.articles.edit')

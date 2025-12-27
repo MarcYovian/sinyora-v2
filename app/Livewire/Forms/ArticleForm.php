@@ -3,6 +3,7 @@
 namespace App\Livewire\Forms;
 
 use App\Models\Article;
+use App\Rules\HorizontalImage;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -29,7 +30,7 @@ class ArticleForm extends Form
             'slug' => ['required', 'string', 'max:255', Rule::unique('articles', 'slug')->ignore($this->article?->id)],
             'content' => ['required', 'string', 'min:10'],
             'excerpt' => ['required', 'string', 'min:10'],
-            'image' => ['nullable', 'image', 'max:2048', 'mimes:jpg,jpeg,png,gif'],
+            'image' => ['nullable', 'image', 'max:2048', 'mimes:jpg,jpeg,png,gif,webp', new HorizontalImage],
             'category_id' => ['required', 'exists:article_categories,id'],
             'tags' => ['required', 'array', 'min:1'],
             'is_published' => ['boolean'],

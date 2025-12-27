@@ -12,6 +12,10 @@ Route::get('/events', \App\Livewire\Pages\Event\Index::class)
 Route::get('/articles', \App\Livewire\Pages\Article\Index::class)
     ->name('articles.index');
 
+Route::get('/articles/preview/{token}', \App\Livewire\Pages\Article\Preview::class)
+    ->name('articles.preview')
+    ->middleware(['auth']);
+
 Route::get('/articles/{article:slug}', \App\Livewire\Pages\Article\Show::class)
     ->name('articles.show');
 

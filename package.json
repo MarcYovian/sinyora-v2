@@ -19,6 +19,7 @@
         "vite": "^6.2.4"
     },
     "dependencies": {
+        "cropperjs": "^1.6.2",
         "flowbite": "^3.1.2",
         "jquery": "^3.7.1",
         "trix": "^2.1.15"

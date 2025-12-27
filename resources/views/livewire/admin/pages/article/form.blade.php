@@ -26,7 +26,8 @@
 
                 {{-- Tombol Aksi Utama --}}
                 <div class="flex items-center gap-3">
-                    <x-button size="sm" type="button" variant="secondary" wire:click="preview">
+                    <x-button size="sm" type="button" variant="secondary" wire:click="preview"
+                        x-on:open-preview.window="window.open($event.detail.url, '_blank')">
                         <x-heroicon-o-eye class="h-4 w-3 mr-1" />
                         Preview
                     </x-button>
@@ -138,7 +139,60 @@
                 </div>
 
                 {{-- Featured Image Card --}}
-                <div class="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800 dark:ring-1 dark:ring-gray-700">
+                <div class="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800 dark:ring-1 dark:ring-gray-700"
+                    x-data="{
+                        imageError: '',
+                        isValidating: false,
+                        validateImage(input) {
+                            this.imageError = '';
+                            this.isValidating = true;
+                            
+                            const file = input.files[0];
+                            if (!file) {
+                                this.isValidating = false;
+                                return;
+                            }
+                            
+                            // Check file size (2MB max)
+                            const maxSize = 2 * 1024 * 1024;
+                            if (file.size > maxSize) {
+                                this.imageError = 'Ukuran file terlalu besar. Maksimal 2MB.';
+                                input.value = '';
+                                this.isValidating = false;
+                                return;
+                            }
+                            
+                            // Check image dimensions
+                            const img = new Image();
+                            img.onload = () => {
+                                const width = img.width;
+                                const height = img.height;
+                                const ratio = width / height;
+                                
+                                if (width <= height) {
+                                    this.imageError = `Gambar harus horizontal (landscape). Ukuran saat ini: ${width}×${height}px.`;
+                                    input.value = '';
+                                } else if (ratio < 1.5) {
+                                    this.imageError = `Rasio gambar terlalu kotak. Minimal 3:2. Rasio saat ini: ${ratio.toFixed(2)}:1.`;
+                                    input.value = '';
+                                } else if (ratio > 3.0) {
+                                    this.imageError = `Rasio gambar terlalu lebar. Maksimal 3:1. Rasio saat ini: ${ratio.toFixed(2)}:1.`;
+                                    input.value = '';
+                                } else {
+                                    // Valid - trigger Livewire upload
+                                    this.imageError = '';
+                                    @this.upload('form.image', file);
+                                }
+                                this.isValidating = false;
+                            };
+                            img.onerror = () => {
+                                this.imageError = 'File yang dipilih bukan gambar yang valid.';
+                                input.value = '';
+                                this.isValidating = false;
+                            };
+                            img.src = URL.createObjectURL(file);
+                        }
+                    }">
                     <h3 class="font-semibold mb-4 text-gray-800 dark:text-gray-200">Gambar Utama</h3>
                     <div class="mt-2">
                         @if ($form->image)
@@ -150,12 +204,20 @@
                         @endif
 
                         <div class="mt-4">
-                            <input type="file" wire:model="form.image" id="image-upload"
-                                accept="image/jpeg,image/png" class="hidden">
+                            <input type="file" id="image-upload-input"
+                                accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"
+                                @change="validateImage($event.target)">
                             <x-button size="sm" type="button"
-                                onclick="document.getElementById('image-upload').click()" variant="secondary"
-                                class="w-full">
-                                Upload Gambar
+                                onclick="document.getElementById('image-upload-input').click()" variant="secondary"
+                                class="w-full" x-bind:disabled="isValidating">
+                                <span x-show="!isValidating">Upload Gambar</span>
+                                <span x-show="isValidating" class="flex items-center gap-2">
+                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Memvalidasi...
+                                </span>
                             </x-button>
                             @if ($form->image || $form->featured_image)
                                 <x-button size="sm" type="button" wire:click="removeImage" variant="danger"
@@ -164,7 +226,25 @@
                                 </x-button>
                             @endif
                         </div>
+                        
+                        {{-- Frontend Validation Error --}}
+                        <div x-show="imageError" x-cloak class="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                            <p class="text-sm text-red-600 dark:text-red-400" x-text="imageError"></p>
+                        </div>
+                        
+                        {{-- Backend Validation Error --}}
                         <x-input-error :messages="$errors->get('form.image')" class="mt-2" />
+
+                        {{-- Image Guidelines --}}
+                        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p class="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">📐 Panduan Gambar:</p>
+                            <ul class="text-xs text-blue-700 dark:text-blue-400 space-y-0.5">
+                                <li>• Ukuran rekomendasi: <strong>1920 × 1080 px</strong> (16:9)</li>
+                                <li>• Rasio yang diterima: <strong>3:2</strong> hingga <strong>3:1</strong></li>
+                                <li>• Orientasi: <strong>Horizontal (landscape) saja</strong></li>
+                                <li>• Format: JPG, PNG, GIF, WebP (max 2MB)</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 

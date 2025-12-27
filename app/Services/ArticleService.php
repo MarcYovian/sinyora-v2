@@ -19,7 +19,8 @@ class ArticleService
      */
     public function __construct(
         protected ArticleRepositoryInterface $articleRepository
-    ) {}
+    ) {
+    }
 
     /**
      * Menyimpan (membuat atau memperbarui) artikel.
@@ -119,11 +120,16 @@ class ArticleService
             'slug' => $data->slug,
             'content' => $data->content,
             'excerpt' => $data->excerpt,
-            'user_id' => $data->user_id,
             'category_id' => $data->category_id,
             'reading_time' => $this->calculateReadingTime($data->content),
             'is_published' => $data->is_published,
+            'updated_by' => $data->user_id, // Track who made this change
         ];
+
+        // Only set user_id when creating new article, preserve original author when editing
+        if (!$article) {
+            $payload['user_id'] = $data->user_id;
+        }
 
         if ($data->is_published) {
             // Hanya set published_at jika belum pernah di-publish sebelumnya
@@ -174,7 +180,8 @@ class ArticleService
      */
     private function deleteContentImages(?string $content): void
     {
-        if (!$content) return;
+        if (!$content)
+            return;
 
         preg_match_all('/<img[^>]+src="([^">]+)"/', $content, $matches);
         $imageUrls = $matches[1] ?? [];

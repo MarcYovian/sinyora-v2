@@ -47,7 +47,7 @@ echo "✅ Cache telah dioptimalkan."
 # Ini memastikan semua perubahan kode di-load oleh PHP.
 # Sesuaikan versi PHP (misal: php8.2-fpm, php8.3-fpm).
 echo "Merestart PHP-FPM..."
-sudo systemctl restart php8.2-fpm
+sudo systemctl restart php8.3-fpm
 echo "✅ PHP-FPM telah direstart."
 
 # 7. Nonaktifkan mode maintenance

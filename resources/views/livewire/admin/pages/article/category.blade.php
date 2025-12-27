@@ -20,48 +20,98 @@
             </div>
         </div>
 
-        <div class="p-6 text-gray-900 dark:text-gray-100">
-            <x-table title="Data Article Categories" :heads="$table_heads">
+        {{-- =================================================================== --}}
+        {{-- DAFTAR KONTEN (RESPONSIVE: CARD -> TABLE) --}}
+        {{-- =================================================================== --}}
+        <div class="relative overflow-x-auto">
+            {{-- Tampilan Tabel untuk Tablet/Laptop (md and up) --}}
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 hidden md:table">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        @foreach ($table_heads as $head)
+                            <th scope="col" class="px-6 py-3">{{ $head }}</th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($categories as $key => $category)
+                        <tr wire:key="category-desktop-{{ $category->id }}"
+                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <td class="px-6 py-4">{{ $key + $categories->firstItem() }}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                {{ $category->name }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    @can('edit article category')
+                                        <x-button size="sm" variant="warning" type="button" class="!p-2"
+                                            wire:click="edit({{ $category->id }})">
+                                            <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                            <span class="sr-only">Edit</span>
+                                        </x-button>
+                                    @endcan
+                                    @can('delete article category')
+                                        <x-button size="sm" variant="danger" type="button" class="!p-2"
+                                            wire:click="confirmDelete({{ $category->id }})">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                            <span class="sr-only">Delete</span>
+                                        </x-button>
+                                    @endcan
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ count($table_heads) }}" class="text-center py-8">
+                                <div class="flex flex-col items-center justify-center">
+                                    <x-heroicon-o-tag class="w-12 h-12 text-gray-400" />
+                                    <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mt-2">{{ __('Belum Ada Kategori') }}</h3>
+                                    <p class="text-sm text-gray-500 mt-1">{{ __('Buat kategori baru untuk memulai.') }}</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            {{-- Tampilan Card untuk Mobile (default, hidden on md) --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 md:hidden">
                 @forelse ($categories as $key => $category)
-                    <tr wire:key="user-{{ $category->id }}"
-                        class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $key + $categories->firstItem() }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $category->name }}
-                        </td>
-                        {{-- <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            <span
-                                class="w-2 h-2 rounded-full {{ $category->is_active ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                            {{ $category->is_active ? 'Active' : 'Inactive' }}
-                        </td> --}}
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            <div class="flex flex-col items-center gap-2">
-                                @can('edit article category')
-                                    <x-button size="sm" variant="warning" type="button"
-                                        wire:click="edit({{ $category->id }})">
-                                        {{ __('Edit') }}
-                                    </x-button>
-                                @endcan
-                                @can('delete article category')
-                                    <x-button size="sm" variant="danger" type="button"
-                                        wire:click="confirmDelete({{ $category->id }})">
-                                        {{ __('Delete') }}
-                                    </x-button>
-                                @endcan
+                    <div wire:key="category-mobile-{{ $category->id }}"
+                        class="bg-white dark:bg-gray-900 rounded-lg shadow-md overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">#{{ $key + $categories->firstItem() }}</span>
                             </div>
-                        </td>
-                    </tr>
+                            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mt-2 text-lg">
+                                {{ $category->name }}
+                            </h3>
+                        </div>
+                        <div class="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 mt-2 pt-4 flex items-center justify-end space-x-2">
+                            @can('edit article category')
+                                <x-button type="button" variant="warning" size="sm"
+                                    wire:click="edit({{ $category->id }})">
+                                    {{ __('Edit') }}
+                                </x-button>
+                            @endcan
+                            @can('delete article category')
+                                <x-button type="button" variant="danger" size="sm"
+                                    wire:click="confirmDelete({{ $category->id }})">
+                                    {{ __('Delete') }}
+                                </x-button>
+                            @endcan
+                        </div>
+                    </div>
                 @empty
-                    <tr class="bg-white dark:bg-gray-800">
-                        <td colspan="{{ count($table_heads) }}"
-                            class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                            {{ __('No data available') }}
-                        </td>
-                    </tr>
+                    <div class="col-span-1 sm:col-span-2 text-center py-8">
+                        <div class="flex flex-col items-center justify-center">
+                            <x-heroicon-o-tag class="w-12 h-12 text-gray-400" />
+                            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mt-2">{{ __('Belum Ada Kategori') }}</h3>
+                            <p class="text-sm text-gray-500 mt-1">{{ __('Buat kategori baru untuk memulai.') }}</p>
+                        </div>
+                    </div>
                 @endforelse
-            </x-table>
+            </div>
         </div>
         <div class="px-6 py-4">
             {{ $categories->links() }}

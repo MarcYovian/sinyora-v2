@@ -23,6 +23,7 @@ class Article extends Model implements Sitemapable
         'reading_time',
         'featured_image',
         'user_id',
+        'updated_by',
         'category_id',
         'is_published',
         'published_at',
@@ -37,9 +38,20 @@ class Article extends Model implements Sitemapable
         'deleted_at' => 'datetime',
     ];
 
+    /**
+     * Author/creator of the article
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Last user who updated the article
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function category()
@@ -64,7 +76,7 @@ class Article extends Model implements Sitemapable
         $query->where('is_published', false)->where('published_at', null);
     }
 
-    public function toSitemapTag(): Url | string | array
+    public function toSitemapTag(): Url|string|array
     {
         return Url::create(route('articles.show', $this))
             ->setLastModificationDate($this->updated_at)

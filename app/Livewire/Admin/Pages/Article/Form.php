@@ -81,7 +81,49 @@ class Form extends Component
 
     public function preview()
     {
-        $this->dispatch('open-modal', 'preview-modal');
+        // Generate unique token for this preview
+        $token = \Illuminate\Support\Str::random(32);
+
+        // Handle image - either temporary upload or existing image
+        $imageUrl = null;
+        $imagePath = null;
+        if ($this->form->image) {
+            // New upload - get temporary URL
+            $imageUrl = $this->form->image->temporaryUrl();
+        } elseif ($this->form->featured_image) {
+            // Existing image - store the path
+            $imagePath = $this->form->featured_image;
+        }
+
+        // Prepare preview data
+        $previewData = [
+            'id' => $this->article?->id,
+            'title' => $this->form->title,
+            'slug' => $this->form->slug,
+            'content' => $this->form->content,
+            'excerpt' => $this->form->excerpt,
+            'category_id' => $this->form->category_id,
+            'featured_image' => $imagePath,
+            'featured_image_url' => $imageUrl, // Temporary URL for new uploads
+            'reading_time' => $this->calculateReadingTime($this->form->content),
+            'tags' => $this->form->tags,
+        ];
+
+        // Store in session for 30 minutes
+        session()->put("article_preview_{$token}", $previewData);
+
+        // Generate preview URL
+        $previewUrl = route('articles.preview', ['token' => $token]);
+
+        // Dispatch event to frontend to open new tab
+        $this->dispatch('open-preview', url: $previewUrl);
+    }
+
+    private function calculateReadingTime(string $content): int
+    {
+        $wordCount = str_word_count(strip_tags($content));
+        $readingTime = ceil($wordCount / 200); // Average 200 words per minute
+        return max(1, $readingTime);
     }
 
     public function confirmDelete()

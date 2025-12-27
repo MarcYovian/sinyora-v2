@@ -102,11 +102,9 @@ new class extends Component {
                                 </li>
                                 <li>
                                     <!-- Authentication -->
-                                    <button wire:click="logout" class="w-full text-start">
-                                        <x-dropdown-link>
-                                            {{ __('Log Out') }}
-                                        </x-dropdown-link>
-                                    </button>
+                                    <x-dropdown-link wire:click="logout" @click.stop>
+                                        {{ __('Log Out') }}
+                                    </x-dropdown-link>
                                 </li>
                             </ul>
                         </x-slot>
