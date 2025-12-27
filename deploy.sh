@@ -40,6 +40,7 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 php artisan queue:restart
+sudo -S supervisorctl restart sinyora-worker:*
 # Khusus jika Anda menggunakan Filament untuk mempercepat loading komponen
 # php artisan filament:cache-components
 echo "✅ Cache telah dioptimalkan."
