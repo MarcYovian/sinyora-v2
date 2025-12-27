@@ -35,7 +35,8 @@ class RolePermissionSeeder extends Seeder
             'Group',
             'Organization',
             'location',
-            'Document'
+            'Document',
+            'Content Settings'
         ];
 
         foreach ($groups as $group) {
@@ -591,6 +592,25 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'add document', // hapus ruangan (pengurus kapel)
                 'group' => Group::where('name', 'Document')->first()->id,
                 'route_name' => 'admin.documents.add',
+                'default' => 'Non-Default',
+            ],
+            // Content Settings Permissions
+            [
+                'name' => 'view content home', // lihat content home (pengurus kapel)
+                'group' => Group::where('name', 'Content Settings')->first()->id,
+                'route_name' => 'admin.content.home',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'view content mass schedules', // lihat content jadwal misa (pengurus kapel)
+                'group' => Group::where('name', 'Content Settings')->first()->id,
+                'route_name' => 'admin.content.mass-schedules',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'view content events', // lihat content events (pengurus kapel)
+                'group' => Group::where('name', 'Content Settings')->first()->id,
+                'route_name' => 'admin.content.events',
                 'default' => 'Non-Default',
             ],
         ];
