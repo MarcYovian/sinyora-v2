@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\ContactSubmitted;
+use App\Listeners\SendContactNotifications;
 use App\Models\CustomPermission;
 use App\Models\User;
 use App\Repositories\Contracts\ActivityRepositoryInterface;
@@ -37,6 +39,7 @@ use App\Repositories\Eloquent\EloquentMassScheduleRepository;
 use App\Repositories\Eloquent\EloquentOrganizationRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Services\SEOService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -154,3 +157,4 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 }
+

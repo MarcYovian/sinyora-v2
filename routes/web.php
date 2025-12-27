@@ -25,7 +25,7 @@ Route::get('/borrowing-assets', \App\Livewire\Pages\Borrowing\IndexComponent::cl
 Route::redirect('/admin', '/admin/dashboard', 301);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' => 'admin.'], function () {
-    Route::view('dashboard', 'dashboard')
+    Route::get('dashboard', \App\Livewire\Admin\Pages\Dashboard::class)
         ->name('dashboard.index')
         ->middleware(['permission:view dashboard']);
 
@@ -67,6 +67,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
     Route::get('locations', \App\Livewire\Admin\Pages\Location::class)
         ->name('locations.index')
         ->middleware(['permission:view locations']);
+
+    Route::get('contacts', \App\Livewire\Admin\Pages\Contact::class)
+        ->name('contacts.index')
+        ->middleware(['permission:view contacts']);
+
 
     Route::get('events', \App\Livewire\Admin\Pages\Event\Index::class)
         ->name('events.index')

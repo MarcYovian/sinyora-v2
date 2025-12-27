@@ -36,7 +36,8 @@ class RolePermissionSeeder extends Seeder
             'Organization',
             'location',
             'Document',
-            'Content Settings'
+            'Content Settings',
+            'Contact'
         ];
 
         foreach ($groups as $group) {
@@ -592,6 +593,31 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'add document', // hapus ruangan (pengurus kapel)
                 'group' => Group::where('name', 'Document')->first()->id,
                 'route_name' => 'admin.documents.add',
+                'default' => 'Non-Default',
+            ],
+            // Contact Permissions
+            [
+                'name' => 'view contacts', // lihat daftar pesan kontak
+                'group' => Group::where('name', 'Contact')->first()->id,
+                'route_name' => 'admin.contacts.index',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'view contact details', // lihat detail pesan kontak
+                'group' => Group::where('name', 'Contact')->first()->id,
+                'route_name' => 'admin.contacts.show',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'update contact status', // update status pesan kontak
+                'group' => Group::where('name', 'Contact')->first()->id,
+                'route_name' => 'admin.contacts.update',
+                'default' => 'Non-Default',
+            ],
+            [
+                'name' => 'delete contact', // hapus pesan kontak
+                'group' => Group::where('name', 'Contact')->first()->id,
+                'route_name' => 'admin.contacts.destroy',
                 'default' => 'Non-Default',
             ],
             // Content Settings Permissions

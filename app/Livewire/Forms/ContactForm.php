@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Forms;
 
+use App\Events\ContactSubmitted;
 use App\Models\Contact;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
+
 
 class ContactForm extends Form
 {
@@ -33,13 +35,16 @@ class ContactForm extends Form
     {
         $this->validate();
 
-        Contact::create([
+        $contact = Contact::create([
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
             'message' => $this->message,
             'status' => 'new',
         ]);
+
+        // Dispatch event to notify admin
+        ContactSubmitted::dispatch($contact);
 
         $this->reset(['name', 'email', 'phone', 'message']);
     }

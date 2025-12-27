@@ -150,5 +150,14 @@ class MenuSeeder extends Seeder
             'route_name' => 'admin.content.mass-schedules',
             'sort' => 19,
         ]);
+
+        // Contacts Menu
+        Menu::create([
+            'main_menu' => 'Contacts',
+            'menu' => 'Pesan Kontak',
+            'icon' => 'c-envelope',
+            'route_name' => 'admin.contacts.index',
+            'sort' => 20,
+        ]);
     }
 }

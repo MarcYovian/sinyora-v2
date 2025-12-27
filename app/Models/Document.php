@@ -73,19 +73,19 @@ class Document extends Model
     }
 
     #[Scope]
-    public function pending(Builder $query): Builder
+    public function pending($query): mixed
     {
         return $query->where('status', DocumentStatus::PENDING);
     }
 
     #[Scope]
-    public function processed(Builder $query): Builder
+    public function processed($query): mixed
     {
         return $query->where('status', DocumentStatus::PROCESSED);
     }
 
     #[Scope]
-    public function done(Builder $query): Builder
+    public function done($query): mixed
     {
         return $query->where('status', DocumentStatus::DONE);
     }

@@ -209,14 +209,12 @@
                                             <span class="sr-only">Detail</span>
                                         </x-button>
 
-                                        {{-- Edit Button - Amber/Warning --}}
-                                        @if ($event->status !== App\Enums\EventApprovalStatus::APPROVED && $event->status !== App\Enums\EventApprovalStatus::REJECTED)
-                                            <x-button type="button" variant="warning" size="sm" class="!p-2"
-                                                wire:click="edit({{ $event->id }})" title="Edit Kegiatan">
-                                                <x-heroicon-o-pencil-square class="w-4 h-4" />
-                                                <span class="sr-only">Edit</span>
-                                            </x-button>
-                                        @endif
+                                        {{-- Edit Button - Amber/Warning (available for all statuses, will reset to pending) --}}
+                                        <x-button type="button" variant="warning" size="sm" class="!p-2"
+                                            wire:click="edit({{ $event->id }})" title="Edit Kegiatan (akan dikembalikan ke Pending)">
+                                            <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                            <span class="sr-only">Edit</span>
+                                        </x-button>
 
                                         {{-- Approve/Reject Buttons (only for pending) --}}
                                         @if ($event->status === App\Enums\EventApprovalStatus::PENDING)

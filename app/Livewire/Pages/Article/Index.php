@@ -5,6 +5,7 @@ namespace App\Livewire\Pages\Article;
 use App\Models\Article;
 use App\Models\ArticleCategory;
 use App\Services\SEOService;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -52,19 +53,35 @@ class Index extends Component
 
         $seo->setOgImage(asset('images/seo/articles-page-ogimage.png'));
 
-        $categories = ArticleCategory::all();
-        $popularCategories = ArticleCategory::withCount(['articles' => function ($query) {
-            $query->published();
-        }])
-            ->having('articles_count', '>', 0)
-            ->orderByDesc('articles_count')
-            ->limit(5)
-            ->get();
+        // Cache all categories for 1 day (rarely changes)
+        $categories = Cache::remember('articles.categories.all', 86400, fn() => ArticleCategory::all());
 
-        $recentArticles = Article::published()
-            ->latest('published_at')
-            ->limit(3)
-            ->get();
+        // Cache popular categories for 1 hour
+        $popularCategories = Cache::remember(
+            'articles.popular_categories',
+            3600,
+            fn() =>
+            ArticleCategory::withCount([
+                'articles' => function ($query) {
+                    $query->published();
+                }
+            ])
+                ->having('articles_count', '>', 0)
+                ->orderByDesc('articles_count')
+                ->limit(5)
+                ->get()
+        );
+
+        // Cache recent articles for 30 minutes
+        $recentArticles = Cache::remember(
+            'articles.recent',
+            1800,
+            fn() =>
+            Article::published()
+                ->latest('published_at')
+                ->limit(3)
+                ->get()
+        );
 
         $articles = Article::with(['user', 'category', 'tags'])
             ->published()

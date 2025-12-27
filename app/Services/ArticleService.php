@@ -18,7 +18,8 @@ class ArticleService
      * Create a new class instance.
      */
     public function __construct(
-        protected ArticleRepositoryInterface $articleRepository
+        protected ArticleRepositoryInterface $articleRepository,
+        protected ImageService $imageService
     ) {
     }
 
@@ -32,13 +33,20 @@ class ArticleService
         return DB::transaction(function () use ($data, $article) {
             $payload = $this->preparePayload($data, $article);
 
-            // Handle image upload
+            // Handle image upload with optimization
             if ($data->image) {
                 // Hapus gambar lama jika ada saat update
                 if ($article?->featured_image) {
-                    $this->deleteImage($article->featured_image);
+                    $this->imageService->delete($article->featured_image);
                 }
-                $payload['featured_image'] = $data->image->store('articles/thumbnails', 'public');
+
+                // Optimize and store image (resize + convert to WebP)
+                $payload['featured_image'] = $this->imageService->optimize($data->image, [
+                    'path' => 'articles/thumbnails',
+                    'max_width' => 1200,
+                    'quality' => 85,
+                    'format' => 'webp',
+                ]);
             }
 
             // Create atau Update artikel
@@ -86,7 +94,7 @@ class ArticleService
 
             // Hapus featured image
             if ($article->featured_image) {
-                $this->deleteImage($article->featured_image);
+                $this->imageService->delete($article->featured_image);
             }
 
             // Hapus artikel dari database

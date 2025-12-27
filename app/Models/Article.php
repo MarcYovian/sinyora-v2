@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\ArticleStatus;
+use App\Observers\ArticleObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Sitemap\Contracts\Sitemapable;
 use Spatie\Sitemap\Tags\Url;
 
+#[ObservedBy([ArticleObserver::class])]
 class Article extends Model implements Sitemapable
 {
     use HasFactory, SoftDeletes;

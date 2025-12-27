@@ -67,7 +67,7 @@ class EloquentEventRecurrenceRepository implements EventRecurrenceRepositoryInte
         return EventRecurrence::find($id);
     }
 
-    public function findConflicts(array $potentialRecurrences, array $locations): Collection
+    public function findConflicts(array $potentialRecurrences, array $locations, ?int $excludeEventId = null): Collection
     {
         if (empty($potentialRecurrences)) {
             return new Collection();
@@ -75,8 +75,12 @@ class EloquentEventRecurrenceRepository implements EventRecurrenceRepositoryInte
 
         $conflicts = EventRecurrence::query()->whereHas('event.locations', function ($q) use ($locations) {
             $q->whereIn('locations.id', $locations);
-        })->whereHas('event', function ($q) {
+        })->whereHas('event', function ($q) use ($excludeEventId) {
             $q->where('status', EventApprovalStatus::APPROVED);
+            // Exclude the current event when updating
+            if ($excludeEventId) {
+                $q->where('id', '!=', $excludeEventId);
+            }
         })->where(function ($query) use ($potentialRecurrences) {
             foreach ($potentialRecurrences as $recurrence) {
                 $query->orWhere(function ($subQuery) use ($recurrence) {

@@ -8,9 +8,12 @@ class SEOService
     public string $description = 'Default website description...';
     public array $keywords = ['keyword1', 'keyword2'];
     public ?string $ogImage = null; // URL to Open Graph image
+    public string $ogType = 'website'; // Open Graph type (website, article, etc.)
     public string $canonical;
     public string $author = 'Kapel St. Yohanes Rasul';
     public ?array $schema = null;
+    public ?array $breadcrumbs = null; // Breadcrumb schema
+
     /**
      * Create a new class instance.
      */
@@ -43,6 +46,12 @@ class SEOService
         return $this;
     }
 
+    public function setOgType(string $type): self
+    {
+        $this->ogType = $type;
+        return $this;
+    }
+
     public function setCanonical(string $url): self
     {
         $this->canonical = $url;
@@ -52,6 +61,12 @@ class SEOService
     public function setSchema(array $schema): self
     {
         $this->schema = $schema;
+        return $this;
+    }
+
+    public function setBreadcrumbs(array $breadcrumbs): self
+    {
+        $this->breadcrumbs = $breadcrumbs;
         return $this;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire\Pages\Article;
 
 use App\Models\Article;
 use App\Services\SEOService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -32,14 +33,23 @@ class Show extends Component
                     $this->article->category->name ?? 'berita',
                 ])->toArray()
             )
-            ->setCanonical(route('articles.show', $this->article));
+            ->setCanonical(route('articles.show', $this->article))
+            ->setOgType('article'); // Set og:type to article
 
         // Set OG Image if featured image exists
         if ($this->article->featured_image) {
             $seo->setOgImage(Storage::url($this->article->featured_image));
         }
 
-        // Set Article Schema
+        // Set Breadcrumbs
+        $seo->setBreadcrumbs([
+            ['name' => 'Home', 'url' => route('home.index')],
+            ['name' => 'Artikel', 'url' => route('articles.index')],
+            ['name' => $this->article->category->name ?? 'Kategori', 'url' => route('articles.index', ['category' => $this->article->category->name ?? ''])],
+            ['name' => $this->article->title], // Last item without URL
+        ]);
+
+        // Set Article Schema with timeRequired
         $seo->setSchema([
             '@context' => 'https://schema.org',
             '@type' => 'Article',
@@ -48,6 +58,8 @@ class Show extends Component
             'image' => $this->article->featured_image ? Storage::url($this->article->featured_image) : null,
             'datePublished' => $this->article->published_at?->toIso8601String(),
             'dateModified' => $this->article->updated_at->toIso8601String(),
+            'timeRequired' => 'PT' . $this->article->reading_time . 'M', // ISO 8601 duration format
+            'wordCount' => str_word_count(strip_tags($this->article->content)),
             'author' => [
                 '@type' => 'Person',
                 'name' => $this->article->user->name ?? 'Admin',
@@ -66,13 +78,18 @@ class Show extends Component
             ],
         ]);
 
-        $this->relatedArticles = Article::with(['user', 'category', 'tags'])
-            ->published()
-            ->where('id', '!=', $this->article->id)
-            ->where('category_id', $this->article->category_id)
-            ->orderByDesc('published_at')
-            ->limit(3)
-            ->get();
+        // Cache related articles for 1 hour
+        $this->relatedArticles = Cache::remember(
+            'articles.related.' . $this->article->category_id . '.exclude.' . $this->article->id,
+            3600, // 1 hour
+            fn() => Article::with(['user', 'category', 'tags'])
+                ->published()
+                ->where('id', '!=', $this->article->id)
+                ->where('category_id', $this->article->category_id)
+                ->orderByDesc('published_at')
+                ->limit(3)
+                ->get()
+        );
     }
 
     public function render()

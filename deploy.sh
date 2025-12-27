@@ -36,9 +36,12 @@ echo "✅ Izin folder telah diatur."
 
 # 5. Optimasi cache untuk produksi
 echo "Membersihkan dan membuat ulang cache..."
+php artisan cache:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+php artisan event:cache
+php artisan queue:restart
 # Khusus jika Anda menggunakan Filament untuk mempercepat loading komponen
 # php artisan filament:cache-components
 echo "✅ Cache telah dioptimalkan."

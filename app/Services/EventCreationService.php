@@ -37,7 +37,8 @@ class EventCreationService
         protected BorrowingRepositoryInterface $borrowingRepository,
         protected LicensingDocumentRepositoryInterface $licensingDocumentRepository,
         protected BorrowingManagementService $borrowingManagementService
-    ) {}
+    ) {
+    }
 
     public function createEvent(array $data)
     {
@@ -215,7 +216,7 @@ class EventCreationService
             }
         }
 
-        $this->checkForConflicts($recurrences, $data['locations']);
+        $this->checkForConflicts($recurrences, $data['locations'], $event->id);
 
         return DB::transaction(function () use ($event, $data, $start_recurring, $end_recurring, $recurrences) {
             try {
@@ -227,6 +228,9 @@ class EventCreationService
                     'recurrence_type' => $data['recurrence_type'],
                     'organization_id' => $data['organization_id'],
                     'event_category_id' => $data['event_category_id'],
+                    // Reset status to PENDING when event is edited (for re-approval)
+                    'status' => EventApprovalStatus::PENDING,
+                    'rejection_reason' => null, // Clear rejection reason
                 ];
 
                 $eventUpdated = $this->eventRepository->update($event->id, $eventData);
@@ -427,9 +431,9 @@ class EventCreationService
         }
     }
 
-    private function checkForConflicts(array $recurrences, array $locationIds): void
+    private function checkForConflicts(array $recurrences, array $locationIds, ?int $excludeEventId = null): void
     {
-        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locationIds);
+        $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locationIds, $excludeEventId);
 
         if ($conflicts->count() > 0) {
             $firstConflict = $conflicts->first();
