@@ -18,6 +18,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /var/www/html/sinyora
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             chmod +x deploy.sh
             ./deploy.sh

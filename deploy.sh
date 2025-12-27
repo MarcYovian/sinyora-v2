@@ -10,9 +10,7 @@ echo "Mengaktifkan mode maintenance..."
 php artisan down
 echo "✅ Mode maintenance aktif."
 
-# 2. Tarik kode terbaru & update dependensi
-echo "Menarik kode terbaru dari Git..."
-git pull origin main
+# 2. Update dependensi
 echo "Menginstall dependensi Composer..."
 composer install --no-dev --optimize-autoloader
 echo "Menginstall dependensi NPM..."
