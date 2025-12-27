@@ -42,3 +42,15 @@
 .trix-content.ring-0 {
     outline: 0;
 }
+
+/* Fix long URLs/links overflow in article content */
+.prose a {
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+/* Alternative: break only at word boundaries when possible */
+.prose {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
