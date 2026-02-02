@@ -78,6 +78,6 @@ echo "✅ Permission terkunci."
 # --- BAGIAN 5: ONLINE ---
 
 echo "🟢 Menonaktifkan mode maintenance..."
-php artisan up
+sudo php artisan up
 
 echo "🎉 Deployment Selesai! Aplikasi UPDATED & AMAN."
