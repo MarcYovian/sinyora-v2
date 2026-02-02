@@ -355,7 +355,7 @@
                             {{ __('Schedule') }}
                         </h3>
 
-                        @if ($form->recurrence_type !== App\Enums\EventRecurrenceType::CUSTOM)
+                        @if ($form->recurrence_type !== App\Enums\EventRecurrenceType::CUSTOM->value)
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <x-input-label for="specific_datetime_start" value="Start Date & Time" />
@@ -372,7 +372,7 @@
                             </div>
                         @endif
 
-                        @if ($form->recurrence_type === App\Enums\EventRecurrenceType::CUSTOM)
+                        @if ($form->recurrence_type === App\Enums\EventRecurrenceType::CUSTOM->value)
                             <div class="space-y-4 animate-fade-in" wire:key="custom-schedules">
                                 <x-input-label value="{{ __('Custom Schedules') }}" />
 

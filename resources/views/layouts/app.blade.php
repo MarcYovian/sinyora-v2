@@ -32,6 +32,12 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/dashboard.js'])
     @livewireStyles
+    <style>
+        /* Ensure PHP Flasher notifications appear above the navigation */
+        .fl-wrapper {
+            z-index: 99999 !important;
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased">
@@ -115,6 +121,7 @@
         {{ $scripts }}
     @endif
 
+    @flasher_render
     @livewireScripts
     @livewireScriptConfig
 </body>

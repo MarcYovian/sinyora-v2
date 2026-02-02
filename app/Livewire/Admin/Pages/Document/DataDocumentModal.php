@@ -141,11 +141,11 @@ class DataDocumentModal extends Component
             $this->dispatch('open-modal', 'event-modal');
             $this->dispatch('close-modal', 'document-data-modal');
         } catch (ValidationException $e) {
-            toastr()->error('Ada kesalahan dalam data yang dimasukkan. Silakan periksa kembali.');
+            flash()->error('Ada kesalahan dalam data yang dimasukkan. Silakan periksa kembali.');
             Log::error('Validation error in DataDocumentModal', ['errors' => $e->errors(), 'data' => $this->form->getData()]);
             throw ValidationException::withMessages($e->errors());
         } catch (\Throwable $th) {
-            toastr()->error('Terjadi kesalahan tak terduga pada sistem.');
+            flash()->error('Terjadi kesalahan tak terduga pada sistem.');
             Log::error('Unexpected error in saveCorrections', ['message' => $th->getMessage(), 'trace' => $th->getTraceAsString()]);
         }
     }

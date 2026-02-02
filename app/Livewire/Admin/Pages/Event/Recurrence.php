@@ -74,7 +74,7 @@ class Recurrence extends Component
             'time_start' => $data['time_start'],
             'time_end' => $data['time_end'],
         ]);
-        toastr()->success('Data has been saved successfully!', ['timeOut' => 1500]);
+        flash()->success('Data has been saved successfully!', ['timeOut' => 1500]);
         $this->loadOccurrences();
     }
 
@@ -83,7 +83,7 @@ class Recurrence extends Component
         $this->authorize('access', 'admin.events.recurrences.destroy');
 
         EventRecurrence::find($id)->delete();
-        toastr()->success('Data has been deleted successfully!', ['timeOut' => 1500]);
+        flash()->success('Data has been deleted successfully!', ['timeOut' => 1500]);
         $this->loadOccurrences();
     }
 
@@ -118,7 +118,7 @@ class Recurrence extends Component
                 'endTime' => $endTime,
             ]);
             $message = 'The schedule conflicts with an existing event on ' . Carbon::parse($date)->format('M j, Y') . ' between ' . Carbon::parse($startTime)->format('g:i A') . ' and ' . Carbon::parse($endTime)->format('g:i A');
-            toastr()->error($message, []);
+            flash()->error($message, []);
             throw ValidationException::withMessages([
                 'conflict' => __($message),
             ]);

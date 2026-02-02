@@ -29,10 +29,10 @@ class MassSchedule extends Component
 
         if ($this->form->massSchedule) {
             $this->massScheduleService->update($this->form->massSchedule->id, $this->form->all());
-            toastr()->success('Jadwal Misa berhasil diubah');
+            flash()->success('Jadwal Misa berhasil diubah');
         } else {
             $this->massScheduleService->create($this->form->all());
-            toastr()->success('Jadwal Misa berhasil ditambahkan');
+            flash()->success('Jadwal Misa berhasil ditambahkan');
         }
 
         $this->dispatch('close-modal', 'mass-schedule-modal');
@@ -56,7 +56,7 @@ class MassSchedule extends Component
     {
         if ($this->scheduleIdToDelete) {
             $this->massScheduleService->delete($this->scheduleIdToDelete);
-            toastr()->success('Jadwal Misa berhasil dihapus');
+            flash()->success('Jadwal Misa berhasil dihapus');
             $this->scheduleIdToDelete = null; // Reset ID
             $this->dispatch('close-modal', 'delete-schedule-confirmation');
         }

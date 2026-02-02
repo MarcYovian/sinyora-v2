@@ -44,7 +44,7 @@ class Borrowing extends Component
             // Periksa kembali apakah masih ada aset yang tidak cocok
             $this->checkForUnmatchedAssets();
 
-            toastr()->success('Aset berhasil ditautkan.');
+            flash()->success('Aset berhasil ditautkan.');
         }
     }
 
@@ -69,7 +69,7 @@ class Borrowing extends Component
             // 5. Periksa kembali apakah masih ada aset yang tidak cocok
             $this->checkForUnmatchedAssets();
 
-            toastr()->success('Aset telah dihapus dari daftar.');
+            flash()->success('Aset telah dihapus dari daftar.');
         }
     }
 

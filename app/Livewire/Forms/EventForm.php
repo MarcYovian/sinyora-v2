@@ -28,7 +28,7 @@ class EventForm extends Form
     public ?int $organization_id = null;
     public string $datetime_start = '';
     public string $datetime_end = '';
-    public $recurrence_type = EventRecurrenceType::DAILY;
+    public $recurrence_type = 'daily';
     public string $start_recurring = '';
     public string $end_recurring = '';
     public array $locations = [];
@@ -43,25 +43,25 @@ class EventForm extends Form
             'event_category_id' => ['nullable', Rule::exists('event_categories', 'id')],
             'organization_id' => ['nullable', Rule::exists('organizations', 'id')],
             'datetime_start' => [
-                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM),
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM->value),
                 'nullable',
                 'dateformat:Y-m-d\TH:i',
                 'before_or_equal:datetime_end'
             ],
             'datetime_end' => [
-                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM),
+                Rule::requiredIf($this->recurrence_type !== EventRecurrenceType::CUSTOM->value),
                 'nullable',
                 'dateformat:Y-m-d\TH:i',
                 'after_or_equal:datetime_start'
             ],
             'recurrence_type' => ['required', Rule::in(EventRecurrenceType::values())],
             'start_recurring' => [
-                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])),
+                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY->value, EventRecurrenceType::BIWEEKLY->value, EventRecurrenceType::MONTHLY->value])),
                 'nullable',
                 'date_format:Y-m-d'
             ],
             'end_recurring' => [
-                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])),
+                Rule::requiredIf(in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY->value, EventRecurrenceType::BIWEEKLY->value, EventRecurrenceType::MONTHLY->value])),
                 'nullable',
                 'date_format:Y-m-d',
                 'after_or_equal:start_recurring'
@@ -142,9 +142,9 @@ class EventForm extends Form
             $this->description = $this->event->description ?? '';
             $this->event_category_id = $this->event->event_category_id;
             $this->organization_id = $this->event->organization_id;
-            $this->recurrence_type = $this->event->recurrence_type;
+            $this->recurrence_type = $this->event->recurrence_type->value;
 
-            if ($this->recurrence_type === EventRecurrenceType::CUSTOM) {
+            if ($this->recurrence_type === EventRecurrenceType::CUSTOM->value) {
                 $recurrences = $this->event->eventRecurrences()->orderBy('date', 'asc')->orderBy('time_start', 'asc')->get();
 
                 $this->custom_schedules = [];
@@ -196,7 +196,7 @@ class EventForm extends Form
                 }
             }
 
-            if (in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY, EventRecurrenceType::BIWEEKLY, EventRecurrenceType::MONTHLY])) {
+            if (in_array($this->recurrence_type, [EventRecurrenceType::WEEKLY->value, EventRecurrenceType::BIWEEKLY->value, EventRecurrenceType::MONTHLY->value])) {
                 $this->start_recurring = Carbon::parse($this->event->start_recurring)->format('Y-m-d');
                 $this->end_recurring = Carbon::parse($this->event->end_recurring)->format('Y-m-d');
             } else {

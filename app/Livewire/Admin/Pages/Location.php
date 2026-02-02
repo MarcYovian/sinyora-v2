@@ -68,12 +68,12 @@ class Location extends Component
             $this->authorize('access', 'admin.locations.edit');
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Location updated successfully');
+            flash()->success('Location updated successfully');
         } else {
             $this->authorize('access', 'admin.locations.create');
 
             $this->form->store();
-            toastr()->success('Location created successfully');
+            flash()->success('Location created successfully');
         }
         $this->dispatch('close-modal', 'location-modal');
     }

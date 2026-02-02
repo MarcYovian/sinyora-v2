@@ -47,12 +47,12 @@ class Groups extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Group updated successfully');
+            flash()->success('Group updated successfully');
         } else {
             $this->authorize('access', 'admin.groups.create');
 
             $this->form->store();
-            toastr()->success('Group created successfully');
+            flash()->success('Group created successfully');
         }
         $this->dispatch('close-modal', 'group-modal');
     }
@@ -74,7 +74,7 @@ class Groups extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success('Group deleted successfully');
+            flash()->success('Group deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-group-confirmation');
     }

@@ -90,7 +90,7 @@ class Location extends Component
         $this->showCreateForms[$index] = false;
 
         $this->checkForUnmatchedLocations();
-        toastr()->success('Lokasi baru berhasil dibuat.');
+        flash()->success('Lokasi baru berhasil dibuat.');
     }
 
 

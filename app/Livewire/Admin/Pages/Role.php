@@ -87,13 +87,13 @@ class Role extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Role updated successfully');
+            flash()->success('Role updated successfully');
         } else {
             $this->authorize('access', 'admin.roles.create');
 
             $this->form->store();
             $this->editId = null;
-            toastr()->success('Role created successfully');
+            flash()->success('Role created successfully');
         }
         $this->dispatch('close-modal', 'role-modal');
     }
@@ -115,7 +115,7 @@ class Role extends Component
         if ($this->deleteId) {
             $this->form->destroy();
             $this->deleteId = null;
-            toastr()->success('Role deleted successfully');
+            flash()->success('Role deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-role-confirmation');
     }
@@ -135,7 +135,7 @@ class Role extends Component
     public function syncPermission()
     {
         $this->form->syncPermissions();
-        toastr()->success('Permissions updated successfully');
+        flash()->success('Permissions updated successfully');
         $this->dispatch('close-modal', 'permission-modal');
     }
 

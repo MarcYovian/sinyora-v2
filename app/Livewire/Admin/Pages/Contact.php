@@ -37,7 +37,7 @@ class Contact extends Component
 
         if (in_array($status, ['new', 'read', 'replied'])) {
             $contact->update(['status' => $status]);
-            toastr()->success('Status berhasil diperbarui');
+            flash()->success('Status berhasil diperbarui');
         }
     }
 
@@ -52,7 +52,7 @@ class Contact extends Component
         if ($this->deleteId) {
             $contact = ContactModel::findOrFail($this->deleteId);
             $contact->delete();
-            toastr()->success('Pesan berhasil dihapus');
+            flash()->success('Pesan berhasil dihapus');
         }
 
         $this->dispatch('close-modal', 'delete-contact-confirmation');

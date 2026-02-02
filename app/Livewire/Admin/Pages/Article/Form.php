@@ -61,11 +61,11 @@ class Form extends Component
 
             $articleService->saveArticle($articleData, $this->article);
 
-            toastr()->success($this->article ? 'Artikel berhasil diperbarui' : 'Artikel berhasil disimpan');
+            flash()->success($this->article ? 'Artikel berhasil diperbarui' : 'Artikel berhasil disimpan');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } catch (\Throwable $e) {
             Log::error('Gagal menyimpan artikel: ' . $e->getMessage(), ['exception' => $e]);
-            toastr()->error('Terjadi kesalahan saat menyimpan artikel.');
+            flash()->error('Terjadi kesalahan saat menyimpan artikel.');
         }
     }
 
@@ -136,10 +136,10 @@ class Form extends Component
     {
         $this->authorize('access', 'admin.articles.destroy');
         if ($articleService->deleteArticle($this->article)) {
-            toastr()->success('Artikel berhasil dihapus');
+            flash()->success('Artikel berhasil dihapus');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } else {
-            toastr()->error('Gagal menghapus artikel.');
+            flash()->error('Gagal menghapus artikel.');
         }
     }
 
@@ -148,11 +148,11 @@ class Form extends Component
         $this->authorize('forceDelete', $this->article);
         try {
             $articleService->forceDeleteArticle($this->article);
-            toastr()->success('Artikel berhasil dihapus permanen');
+            flash()->success('Artikel berhasil dihapus permanen');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } catch (\Throwable $e) {
             Log::error('Gagal hapus permanen artikel: ' . $e->getMessage(), ['exception' => $e]);
-            toastr()->error('Terjadi kesalahan saat menghapus artikel.');
+            flash()->error('Terjadi kesalahan saat menghapus artikel.');
         }
     }
 
@@ -160,10 +160,10 @@ class Form extends Component
     {
         $this->authorize('update', $this->article);
         if ($articleService->unpublishArticle($this->article)) {
-            toastr()->success('Publikasi artikel berhasil dibatalkan');
+            flash()->success('Publikasi artikel berhasil dibatalkan');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } else {
-            toastr()->error('Gagal membatalkan publikasi artikel.');
+            flash()->error('Gagal membatalkan publikasi artikel.');
         }
     }
 

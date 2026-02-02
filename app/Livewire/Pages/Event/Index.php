@@ -63,7 +63,7 @@ class Index extends Component
 
     public function submitProposal()
     {
-        toastr()->success('Proposal berhasil diajukan! Terima kasih atas partisipasi Anda.');
+        flash()->success('Proposal berhasil diajukan! Terima kasih atas partisipasi Anda.');
     }
 
     public function render()

@@ -47,12 +47,12 @@ class Organization extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Organization updated successfully');
+            flash()->success('Organization updated successfully');
         } else {
             $this->authorize('access', 'admin.organizations.create');
 
             $this->form->store();
-            toastr()->success('Organization created successfully');
+            flash()->success('Organization created successfully');
         }
         $this->dispatch('close-modal', 'organization-modal');
     }
@@ -74,7 +74,7 @@ class Organization extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success('Organization deleted successfully');
+            flash()->success('Organization deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-organization-confirmation');
     }

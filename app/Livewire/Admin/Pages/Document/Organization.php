@@ -85,7 +85,7 @@ class Organization extends Component
         $this->newOrganizationName = '';
         $this->showCreateForm = false;
 
-        toastr()->success('Organisasi baru berhasil dibuat.');
+        flash()->success('Organisasi baru berhasil dibuat.');
     }
 
     public function save()

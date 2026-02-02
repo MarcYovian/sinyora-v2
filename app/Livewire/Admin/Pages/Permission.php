@@ -50,12 +50,12 @@ class Permission extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Permission updated successfully');
+            flash()->success('Permission updated successfully');
         } else {
             $this->authorize('access', 'admin.permissions.create');
 
             $this->form->store();
-            toastr()->success('Permission created successfully');
+            flash()->success('Permission created successfully');
         }
         $this->dispatch('close-modal', 'permission-modal');
     }
@@ -77,7 +77,7 @@ class Permission extends Component
         if ($this->deleteId) {
             $this->form->destroy();
             $this->deleteId = null;
-            toastr()->success('Permission deleted successfully');
+            flash()->success('Permission deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-permission-confirmation');
     }

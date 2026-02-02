@@ -49,7 +49,7 @@ class Index extends Component
     {
         $this->contactForm->store();
 
-        toastr()->success('Pesan berhasil dikirim!');
+        flash()->success('Pesan berhasil dikirim!');
     }
 
     public function render()

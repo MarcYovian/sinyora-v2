@@ -40,13 +40,13 @@ class ManualProposalForm extends Component
 
         try {
             $this->form->store();
-            toastr()->success('Proposal created successfully');
+            flash()->success('Proposal created successfully');
             $this->dispatch('close-modal', 'proposal-modal');
         } catch (ValidationException $e) {
-            toastr()->error($e->validator->errors()->first());
+            flash()->error($e->validator->errors()->first());
         } catch (\Exception $e) {
             // 4. Tangkap error umum lainnya
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
         }
     }

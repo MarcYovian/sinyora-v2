@@ -77,12 +77,12 @@ class Index extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Category updated successfully');
+            flash()->success('Category updated successfully');
         } else {
             $this->authorize('access', 'admin.assets.create');
 
             $this->form->store();
-            toastr()->success('Category created successfully');
+            flash()->success('Category created successfully');
         }
 
         $this->dispatch('close-modal', 'asset-modal');
@@ -105,7 +105,7 @@ class Index extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success('Category deleted successfully');
+            flash()->success('Category deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-asset-confirmation');
     }

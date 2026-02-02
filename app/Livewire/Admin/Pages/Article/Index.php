@@ -49,9 +49,9 @@ class Index extends Component
         $this->authorize('access', 'admin.articles.destroy');
 
         if ($this->articleService->deleteArticle($this->article)) {
-            toastr()->success('Artikel berhasil dihapus');
+            flash()->success('Artikel berhasil dihapus');
         } else {
-            toastr()->error('Gagal menghapus artikel.');
+            flash()->error('Gagal menghapus artikel.');
         }
 
         $this->dispatch('close-modal', 'delete-article-confirmation');
@@ -64,10 +64,10 @@ class Index extends Component
 
         try {
             $this->articleService->forceDeleteArticle($this->article);
-            toastr()->success('Artikel berhasil dihapus permanen');
+            flash()->success('Artikel berhasil dihapus permanen');
         } catch (\Throwable $e) {
             Log::error('Gagal hapus permanen artikel: ' . $e->getMessage(), ['exception' => $e]);
-            toastr()->error('Terjadi kesalahan saat menghapus artikel.');
+            flash()->error('Terjadi kesalahan saat menghapus artikel.');
         }
         $this->dispatch('close-modal', 'delete-article-confirmation');
         $this->article = null;

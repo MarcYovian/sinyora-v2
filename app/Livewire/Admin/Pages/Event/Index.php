@@ -61,6 +61,7 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.events.edit');
 
+        $this->form->reset();
         $this->editId = $id;
         $this->form->setEvent($id);
         $this->dispatch('open-modal', 'event-modal');
@@ -73,12 +74,12 @@ class Index extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success(__('Event updated successfully.'));
+            flash()->success(__('Event updated successfully.'));
         } else {
             $this->authorize('access', 'admin.events.create');
 
             $this->form->store();
-            toastr()->success(__('Event created successfully.'));
+            flash()->success(__('Event created successfully.'));
         }
         $this->dispatch('close-modal', 'event-modal');
     }
@@ -99,7 +100,7 @@ class Index extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success(__('Event deleted successfully.'));
+            flash()->success(__('Event deleted successfully.'));
         }
         $this->dispatch('close-modal', 'delete-event-confirmation');
     }
@@ -123,13 +124,13 @@ class Index extends Component
         try {
             $this->form->approve();
             $this->approveId = null;
-            toastr()->success('Event approved successfully.');
+            flash()->success('Event approved successfully.');
             $this->dispatch('close-modal', 'approve-event-confirmation');
         } catch (ValidationException $e) {
-            toastr()->error($e->validator->errors()->first());
+            flash()->error($e->validator->errors()->first());
         } catch (\Exception $e) {
             // 4. Tangkap error umum lainnya
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
         }
     }
@@ -154,13 +155,13 @@ class Index extends Component
         try {
             $this->form->reject();
             $this->rejectId = null;
-            toastr()->success('Event rejected successfully.');
+            flash()->success('Event rejected successfully.');
             $this->dispatch('close-modal', 'reject-event-confirmation');
         } catch (ValidationException $e) {
-            toastr()->error($e->validator->errors()->first());
+            flash()->error($e->validator->errors()->first());
         } catch (\Exception $e) {
             // 4. Tangkap error umum lainnya
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
         }
     }

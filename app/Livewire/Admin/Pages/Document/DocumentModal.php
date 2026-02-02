@@ -44,7 +44,7 @@ class DocumentModal extends Component
         $this->doc = ModelsDocument::with('submitter')->find($documentId);
 
         if (!$this->doc) {
-            toastr()->error('Dokumen tidak ditemukan.');
+            flash()->error('Dokumen tidak ditemukan.');
             return;
         }
 
@@ -62,7 +62,7 @@ class DocumentModal extends Component
 
                 $this->processingStatus = 'Analisis telah selesai sebelumnya.';
             } catch (Exception $e) {
-                toastr()->error('Gagal memuat hasil analisis sebelumnya.');
+                flash()->error('Gagal memuat hasil analisis sebelumnya.');
                 Log::error('Gagal memuat analysis_result dari DB untuk dokumen ID: ' . $this->doc->id, ['error' => $e->getMessage()]);
             }
         }
@@ -155,7 +155,7 @@ class DocumentModal extends Component
 
         $this->isEditing = false;
         // Beri feedback ke user
-        toastr()->success('Hasil analisis berhasil diperbarui.');
+        flash()->success('Hasil analisis berhasil diperbarui.');
     }
 
     public function addItem($kegiatanIndex)

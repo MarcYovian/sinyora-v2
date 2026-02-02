@@ -57,7 +57,7 @@ class User extends Component
 
                 $this->form->update();
                 $this->dispatch('close-modal', 'user-modal');
-                toastr()->success('User updated successfully.');
+                flash()->success('User updated successfully.');
 
                 // Log the successful update
                 Log::info('User updated successfully', [
@@ -70,7 +70,7 @@ class User extends Component
 
                 $this->form->store();
                 $this->dispatch('close-modal', 'user-modal');
-                toastr()->success('User created successfully.');
+                flash()->success('User created successfully.');
 
                 // Log the successful creation
                 Log::info('User created successfully', [
@@ -91,7 +91,7 @@ class User extends Component
                 'correlation_id' => $this->correlationId,
                 'error' => $e->getMessage(),
             ]);
-            toastr()->error("An error occurred while saving the user. Please try again later. #{$this->correlationId}");
+            flash()->error("An error occurred while saving the user. Please try again later. #{$this->correlationId}");
         }
     }
 
@@ -135,7 +135,7 @@ class User extends Component
 
         try {
             $this->form->destroy();
-            toastr()->success('User deleted successfully.');
+            flash()->success('User deleted successfully.');
 
             // Log the successful deletion
             Log::info('User deleted successfully', [
@@ -148,7 +148,7 @@ class User extends Component
                 'correlation_id' => $this->correlationId,
                 'error' => $e->getMessage(),
             ]);
-            toastr()->error("An error occurred while deleting the user. Please try again later. #{$this->correlationId}");
+            flash()->error("An error occurred while deleting the user. Please try again later. #{$this->correlationId}");
         } finally {
             $this->dispatch('close-modal', 'delete-user-confirmation');
             $this->form->reset();
@@ -177,7 +177,7 @@ class User extends Component
 
         try {
             $this->form->resetPassword();
-            toastr()->success('Password reset successfully.');
+            flash()->success('Password reset successfully.');
 
             // Log the successful password reset
             Log::info('User password reset successfully', [
@@ -190,7 +190,7 @@ class User extends Component
                 'correlation_id' => $this->correlationId,
                 'error' => $e->getMessage(),
             ]);
-            toastr()->error("An error occurred while resetting the password. Please try again later. #{$this->correlationId}");
+            flash()->error("An error occurred while resetting the password. Please try again later. #{$this->correlationId}");
         } finally {
             $this->dispatch('close-modal', 'reset-password-confirmation');
             $this->form->reset();
@@ -225,7 +225,7 @@ class User extends Component
         try {
 
             $this->form->syncPermissions();
-            toastr()->success('Permissions updated successfully.');
+            flash()->success('Permissions updated successfully.');
             $this->dispatch('close-modal', 'permission-modal');
 
             // Log the successful permission sync
@@ -239,7 +239,7 @@ class User extends Component
                 'correlation_id' => $this->correlationId,
                 'error' => $e->getMessage(),
             ]);
-            toastr()->error("An error occurred while syncing permissions. Please try again later. #{$this->correlationId}");
+            flash()->error("An error occurred while syncing permissions. Please try again later. #{$this->correlationId}");
         }
     }
 

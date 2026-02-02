@@ -79,7 +79,7 @@ class DocumentDataCorrectionService
         if (isset($collection[$itemIndex])) {
             array_splice($collection, $itemIndex, 1);
             data_set($data, $path, array_values($collection));
-            toastr()->success(ucfirst($collectionKey) . ' telah dihapus dari daftar.');
+            flash()->success(ucfirst($collectionKey) . ' telah dihapus dari daftar.');
         }
         return $data;
     }
@@ -111,7 +111,7 @@ class DocumentDataCorrectionService
         data_set($data, "{$path}.item_id", $masterItem->id);
         data_set($data, "{$path}.name", $masterItem->name);
 
-        toastr()->success(ucfirst($collectionKey) . ' berhasil ditautkan.');
+        flash()->success(ucfirst($collectionKey) . ' berhasil ditautkan.');
         return $data;
     }
 }

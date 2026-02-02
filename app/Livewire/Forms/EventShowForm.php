@@ -25,7 +25,7 @@ class EventShowForm extends Form
     public string $description = '';
     public string $start_datetime = '';
     public string $end_datetime = '';
-    public $recurrence_type = EventRecurrenceType::DAILY;
+    public $recurrence_type = 'daily';
     public ?int $organization_id = null;
     public ?int $event_category_id = null;
     public array $locations = [];
@@ -52,7 +52,7 @@ class EventShowForm extends Form
         if ($event) {
             $this->name = $event->name;
             $this->description = $event->description ?? '';
-            $this->recurrence_type = $event->recurrence_type;
+            $this->recurrence_type = $event->recurrence_type->value;
             $this->organization_id = $event->organization_id;
             $this->event_category_id = $event->event_category_id;
             $this->locations = $event->locations->pluck('id')->toArray();
@@ -137,7 +137,7 @@ class EventShowForm extends Form
         $startTime = Carbon::parse($this->start_datetime)->format('H:i:s');
         $endTime = Carbon::parse($this->end_datetime)->format('H:i:s');
 
-        if ($this->recurrence_type === EventRecurrenceType::CUSTOM || $this->recurrence_type === EventRecurrenceType::DAILY) {
+        if ($this->recurrence_type === EventRecurrenceType::CUSTOM->value || $this->recurrence_type === EventRecurrenceType::DAILY->value) {
             $this->generateSingleRecurrence($event, $startDate, $endDate, $startTime, $endTime);
             return;
         }
@@ -275,17 +275,17 @@ class EventShowForm extends Form
     protected function getInterval(): string
     {
         return match ($this->recurrence_type) {
-            EventRecurrenceType::DAILY => '1 day',
-            EventRecurrenceType::WEEKLY => '1 week',
-            EventRecurrenceType::BIWEEKLY => '2 weeks',
-            EventRecurrenceType::MONTHLY => '1 month',
+            EventRecurrenceType::DAILY->value => '1 day',
+            EventRecurrenceType::WEEKLY->value => '1 week',
+            EventRecurrenceType::BIWEEKLY->value => '2 weeks',
+            EventRecurrenceType::MONTHLY->value => '1 month',
             default => '1 day',
         };
     }
 
     protected function getRecurrenceEndDate(): string
     {
-        if ($this->recurrence_type === EventRecurrenceType::CUSTOM || $this->recurrence_type === EventRecurrenceType::DAILY) {
+        if ($this->recurrence_type === EventRecurrenceType::CUSTOM->value || $this->recurrence_type === EventRecurrenceType::DAILY->value) {
             return $this->end_datetime;
         }
 

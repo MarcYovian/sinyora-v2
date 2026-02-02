@@ -85,15 +85,15 @@ class Index extends Component
             $this->form->approve($this->approveId);
 
             // 2. Baris ini HANYA akan berjalan jika tidak ada exception (proses sukses)
-            toastr()->success('Peminjaman berhasil disetujui.');
+            flash()->success('Peminjaman berhasil disetujui.');
             $this->approveId = null;
             $this->dispatch('close-modal', 'approve-borrowing-confirmation');
             $this->dispatch('close-modal', 'borrowing-detail-modal');
         } catch (ValidationException $e) {
-            toastr()->error($e->validator->errors()->first());
+            flash()->error($e->validator->errors()->first());
         } catch (\Exception $e) {
             // 4. Tangkap error umum lainnya
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
         }
     }
@@ -107,13 +107,13 @@ class Index extends Component
 
         try {
             $this->form->reject($this->rejectId);
-            toastr()->success('Peminjaman berhasil ditolak.');
+            flash()->success('Peminjaman berhasil ditolak.');
             $this->dispatch('close-modal', 'reject-borrowing-confirmation');
             $this->dispatch('close-modal', 'borrowing-detail-modal');
         } catch (ValidationException $e) {
-            toastr()->error($e->validator->errors()->first());
+            flash()->error($e->validator->errors()->first());
         } catch (\Exception $e) {
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
         } finally {
             $this->rejectId = null;
@@ -130,10 +130,10 @@ class Index extends Component
 
         try {
             $this->form->destroy($this->deleteId);
-            toastr()->success('Peminjaman berhasil dihapus.');
+            flash()->success('Peminjaman berhasil dihapus.');
             $this->dispatch('close-modal', 'delete-borrowing-confirmation');
         } catch (\Exception $e) {
-            toastr()->error('Terjadi kesalahan yang tidak terduga.');
+            flash()->error('Terjadi kesalahan yang tidak terduga.');
             Log::error('Caught Deletion Exception in Component: ' . $e->getMessage());
         } finally {
             $this->deleteId = null;

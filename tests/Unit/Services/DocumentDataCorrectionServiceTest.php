@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
-function toastr() {
+function flash() {
     return new class {
         public function success($message) {}
+        public function error($message) {}
     };
 }
 

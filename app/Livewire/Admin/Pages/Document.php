@@ -70,12 +70,12 @@ class Document extends Component
 
             app(DocumentManagementService::class)->storeNewDocument($file, $user);
 
-            toastr()->success('Dokumen berhasil diunggah.');
+            flash()->success('Dokumen berhasil diunggah.');
             $this->dispatch('close-modal', 'add-document-modal');
             $this->reset();
         } catch (\Exception $e) {
             Log::error('Gagal mengunggah dokumen: ' . $e->getMessage());
-            toastr()->error('Gagal mengunggah dokumen, silakan coba lagi.');
+            flash()->error('Gagal mengunggah dokumen, silakan coba lagi.');
         }
     }
 
@@ -83,12 +83,12 @@ class Document extends Component
     {
         $this->document = ModelsDocument::find($documentId);
         if (!$this->document) {
-            toastr()->error(__('Document not found.'));
+            flash()->error(__('Document not found.'));
             return;
         }
 
         if ($this->document->status === 'done') {
-            toastr()->error(__('You cannot delete a document that has been processed.'));
+            flash()->error(__('You cannot delete a document that has been processed.'));
             return;
         }
 
@@ -98,17 +98,17 @@ class Document extends Component
     public function delete()
     {
         if (!$this->document) {
-            toastr()->error(__('Document not found.'));
+            flash()->error(__('Document not found.'));
             return;
         }
 
         try {
             app(DocumentManagementService::class)->deleteDocument($this->document);
-            toastr()->success(__('Document deleted successfully.'));
+            flash()->success(__('Document deleted successfully.'));
             $this->dispatch('close-modal', 'delete-document-confirmation');
         } catch (\Exception $e) {
             Log::error('Gagal menghapus dokumen: ' . $e->getMessage());
-            toastr()->error('Gagal menghapus dokumen, silakan coba lagi.');
+            flash()->error('Gagal menghapus dokumen, silakan coba lagi.');
         }
     }
 

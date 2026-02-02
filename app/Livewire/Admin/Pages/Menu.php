@@ -85,12 +85,12 @@ class Menu extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Menu updated successfully');
+            flash()->success('Menu updated successfully');
         } else {
             $this->authorize('access', 'admin.menus.create');
 
             $this->form->store();
-            toastr()->success('Menu created successfully');
+            flash()->success('Menu created successfully');
         }
         $this->dispatch('close-modal', 'menu-modal');
         $this->dispatch('menuUpdated');
@@ -125,7 +125,7 @@ class Menu extends Component
 
         $this->form->delete();
         $this->deleteId = null;
-        toastr()->success('Menu deleted successfully');
+        flash()->success('Menu deleted successfully');
         $this->dispatch('close-modal', 'delete-menu-confirmation');
         $this->dispatch('menuUpdated');
     }

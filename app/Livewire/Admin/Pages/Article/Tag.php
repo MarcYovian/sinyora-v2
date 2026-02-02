@@ -47,12 +47,12 @@ class Tag extends Component
 
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Tag updated successfully');
+            flash()->success('Tag updated successfully');
         } else {
             $this->authorize('access', 'admin.articles.tags.create');
 
             $this->form->store();
-            toastr()->success('Tag created successfully');
+            flash()->success('Tag created successfully');
         }
 
         $this->dispatch('close-modal', 'tag-modal');
@@ -76,7 +76,7 @@ class Tag extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success('Tag deleted successfully');
+            flash()->success('Tag deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-tag-confirmation');
     }

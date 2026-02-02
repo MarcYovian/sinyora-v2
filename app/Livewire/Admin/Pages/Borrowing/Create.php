@@ -39,7 +39,7 @@ class Create extends Component
                 'quantity' => 1
             ];
         } else {
-            toastr()->error('Silahkan isi tanggal mulai dan selesai terlebih dahulu.');
+            flash()->error('Silahkan isi tanggal mulai dan selesai terlebih dahulu.');
         }
     }
 
@@ -96,7 +96,7 @@ class Create extends Component
 
         $this->form->store();
 
-        toastr()->success('Borrowing berhasil disimpan');
+        flash()->success('Borrowing berhasil disimpan');
 
         return redirect()->route('admin.asset-borrowings.index');
     }

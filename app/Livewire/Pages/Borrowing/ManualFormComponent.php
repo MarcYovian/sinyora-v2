@@ -125,7 +125,7 @@ class ManualFormComponent extends Component
                 'quantity' => 1
             ];
         } else {
-            toastr()->error('Silahkan isi tanggal mulai dan selesai terlebih dahulu.');
+            flash()->error('Silahkan isi tanggal mulai dan selesai terlebih dahulu.');
         }
     }
 
@@ -195,13 +195,13 @@ class ManualFormComponent extends Component
 
             });
 
-            toastr()->success('Permintaan peminjaman berhasil diajukan.');
+            flash()->success('Permintaan peminjaman berhasil diajukan.');
 
             $this->dispatch('close-modal', 'proposal-modal');
         } catch (Exception  $e) {
             Log::error('Gagal mengajukan peminjaman: ' . $e->getMessage());
 
-            toastr()->error('Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi.');
+            flash()->error('Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi.');
         }
     }
 

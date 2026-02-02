@@ -41,12 +41,12 @@ class DocumentProposalForm extends Component
 
             app(DocumentManagementService::class)->storeNewDocument($this->attachment, $guest);
 
-            toastr()->success('Dokumen proposal berhasil diajukan.');
+            flash()->success('Dokumen proposal berhasil diajukan.');
             $this->dispatch('close-modal', 'proposal-modal');
 
             $this->reset();
         } catch (\Exception $e) {
-            toastr()->error($e->getMessage());
+            flash()->error($e->getMessage());
         }
     }
 

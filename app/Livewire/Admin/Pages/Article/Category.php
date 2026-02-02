@@ -44,11 +44,11 @@ class Category extends Component
             $this->authorize('access', 'admin.articles.categories.edit');
             $this->form->update();
             $this->editId = null;
-            toastr()->success('Category updated successfully');
+            flash()->success('Category updated successfully');
         } else {
             $this->authorize('access', 'admin.articles.categories.create');
             $this->form->store();
-            toastr()->success('Category created successfully');
+            flash()->success('Category created successfully');
         }
         $this->dispatch('close-modal', 'category-modal');
     }
@@ -68,7 +68,7 @@ class Category extends Component
         if ($this->deleteId) {
             $this->form->delete();
             $this->deleteId = null;
-            toastr()->success('Category deleted successfully');
+            flash()->success('Category deleted successfully');
         }
         $this->dispatch('close-modal', 'delete-category-confirmation');
     }
