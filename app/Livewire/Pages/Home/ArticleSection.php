@@ -13,13 +13,22 @@ class ArticleSection extends Component
 
     public function mount()
     {
-        $this->popularArticles = Article::with('category')
-            ->published()
+        // Query base untuk menghindari duplikasi event di section artikel
+        $baseQuery = Article::published()->whereDoesntHave('tags', function ($query) {
+            $query->where('name', 'event');
+        });
+
+        $this->popularArticles = (clone $baseQuery)
+            ->with('category')
             ->orderByDesc('views')
             ->take(2)
             ->get();
 
-        $this->latestArticles = Article::published()->latest()->take(3)->get();
+        $this->latestArticles = (clone $baseQuery)
+            ->with('category')
+            ->latest()
+            ->take(3)
+            ->get();
     }
 
     public function placeholder()

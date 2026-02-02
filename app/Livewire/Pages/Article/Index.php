@@ -56,18 +56,12 @@ class Index extends Component
         // Cache all categories for 1 day (rarely changes)
         $categories = Cache::remember('articles.categories.all', 86400, fn() => ArticleCategory::all());
 
-        // Cache popular categories for 1 hour
+        // Cache popular categories for 1 hour (now using denormalized column - super fast!)
         $popularCategories = Cache::remember(
             'articles.popular_categories',
             3600,
-            fn() =>
-            ArticleCategory::withCount([
-                'articles' => function ($query) {
-                    $query->published();
-                }
-            ])
-                ->having('articles_count', '>', 0)
-                ->orderByDesc('articles_count')
+            fn() => ArticleCategory::where('published_articles_count', '>', 0)
+                ->orderByDesc('published_articles_count')
                 ->limit(5)
                 ->get()
         );

@@ -8,7 +8,7 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/x-icon" />
+    <link rel="icon" href="{{ asset('images/logo.webp') }}" type="image/x-icon" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -26,14 +26,11 @@
             document.documentElement.classList.remove("dark");
         }
     </script>
-    <!-- In head -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pikaday@1.8.2/pikaday.min.js"></script>
+    <!-- Pikaday CSS sudah di-bundle di Vite -->
 
     @stack('head')
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/dashboard.js'])
     @livewireStyles
 </head>
 
@@ -111,7 +108,7 @@
         });
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <!-- Flowbite JS sudah di-bundle di Vite -->
 
 
     @if (isset($scripts))
@@ -119,6 +116,7 @@
     @endif
 
     @livewireScripts
+    @livewireScriptConfig
 </body>
 
 </html>

@@ -116,7 +116,7 @@
                                 </p>
 
                                 <div class="flex justify-between items-center">
-                                    <a href="{{ route('articles.show', $article) }}"
+                                    <a href="{{ route('articles.show', $article) }}" wire:navigate
                                         class="read-more inline-flex items-center text-yellow-700 font-medium text-sm hover:text-yellow-800">
                                         Baca selengkapnya
                                         <svg class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
@@ -210,7 +210,7 @@
                     <div class="p-6">
                         <div class="space-y-4">
                             @foreach ($recentArticles as $article)
-                                <a href="{{ route('articles.show', $article) }}" class="flex group">
+                                <a href="{{ route('articles.show', $article) }}" wire:navigate class="flex group">
                                     <div class="flex-shrink-0">
                                         <img class="h-16 w-16 rounded-lg object-cover"
                                             src="{{ $article->featured_image ? Storage::url($article->featured_image) : asset('images/article-placeholder.jpg') }}"

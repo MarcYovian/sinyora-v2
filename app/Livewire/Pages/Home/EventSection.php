@@ -11,14 +11,13 @@ class EventSection extends Component
 
     public function mount()
     {
-        $this->eventArticles = Article::whereHas('tags', function ($query) {
-            $query->where('name', 'event');
-        })
-            ->with(['tags' => function ($query) {
-                $query->where('name', 'event'); // Eager load hanya tag event
-            }])
+        $this->eventArticles = Article::published()
+            ->whereHas('tags', function ($query) {
+                $query->where('name', 'event');
+            })
+            ->with(['category', 'tags'])
             ->latest()
-            ->take(2)
+            ->take(3)
             ->get();
     }
 

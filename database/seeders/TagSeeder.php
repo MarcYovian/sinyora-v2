@@ -13,6 +13,22 @@ class TagSeeder extends Seeder
      */
     public function run(): void
     {
-        Tag::factory(10)->create();
+        $tags = [
+            'event',
+            'Inspirasi',
+            'Religi',
+            'Tips',
+            'Tutorial',
+            'Opini',
+        ];
+
+        foreach ($tags as $tag) {
+            Tag::factory()->create([
+                'name' => $tag,
+                'slug' => \Illuminate\Support\Str::slug($tag),
+            ]);
+        }
+
+        Tag::factory(5)->create();
     }
 }

@@ -5,7 +5,7 @@
             <!-- Logo and Description -->
             <div class="space-y-4">
                 <a href="#" class="inline-block">
-                    <img src="{{ asset('images/logo-with-text.png') }}" alt="Sinyora" class="h-28 w-auto">
+                    <img src="{{ asset('images/logo-with-text.webp') }}" alt="Sinyora" class="h-28 w-auto">
                 </a>
                 <p class="text-[#FFD24C]/80 text-sm leading-relaxed">
                     Kapel St. Yohanes Rasul, Surabaya. Tempat ibadah dan komunitas Katolik yang hangat dan bersahabat.
@@ -46,7 +46,7 @@
                     <li><a href="{{ route('home.index') }}" wire:navigate
                             class="text-white/80 hover:text-[#FFD24C] hover:underline transition-colors">Beranda</a>
                     </li>
-                    <li><a href="http://parokisayuka.org/" wire:navigate
+                    <li><a href="http://parokisayuka.org/" target="_blank"
                             class="text-white/80 hover:text-[#FFD24C] hover:underline transition-colors">Paroki Santo
                             Yusup</a>
                     </li>
@@ -55,6 +55,9 @@
                     </li>
                     <li><a href="{{ route('events.index') }}" wire:navigate
                             class="text-white/80 hover:text-[#FFD24C] hover:underline transition-colors">Event Kami</a>
+                    </li>
+                    <li><a href="{{ route('borrowing.assets.index') }}" wire:navigate
+                            class="text-white/80 hover:text-[#FFD24C] hover:underline transition-colors">Peminjaman Aset</a>
                     </li>
                     {{-- <li><a href="#pelayanan"
                             class="text-white/80 hover:text-[#FFD24C] hover:underline transition-colors">Pelayanan</a>

@@ -21,9 +21,23 @@
 <div class="font-sans antialiased text-gray-900">
     <!-- Hero Section -->
     <section id="beranda"
-        class="relative bg-cover bg-center bg-no-repeat min-h-screen flex items-center justify-center px-6 py-20 md:py-32"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url({{ asset($content['hero']['background-image'] ?? 'images/1.jpg') }});">
-        <div class="container mx-auto text-center text-white max-w-4xl px-4">
+        class="relative min-h-screen flex items-center justify-center px-6 py-20 md:py-32 overflow-hidden">
+        
+        <!-- Responsive Background Image for LCP Optimization -->
+        <div class="absolute inset-0 z-0">
+            <img 
+                src="{{ asset($content['hero']['background-image'] ?? 'images/1.webp') }}"
+                srcset="{{ asset('images/1-mobile.webp') }} 480w, 
+                        {{ asset('images/1-tablet.webp') }} 768w, 
+                        {{ asset('images/1.webp') }} 1200w"
+                sizes="100vw"
+                alt="Kapel St. Yohanes Rasul Hero Background"
+                class="w-full h-full object-cover object-center"
+                style="filter: brightness(0.4);"
+                fetchpriority="high"
+            >
+        </div>
+        <div class="container mx-auto text-center text-white max-w-4xl px-4 relative z-10">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
                 {{ $content['hero']['title'] ?? 'Selamat Datang di Kapel St. Yohanes Rasul' }}
             </h1>
@@ -155,7 +169,7 @@
             </div>
             <div
                 class="relative rounded-xl overflow-hidden shadow-2xl transform transition hover:scale-[1.02] duration-500">
-                <img src="{{ asset($content['welcome']['image'] ?? 'images/about.jpg') }}"
+                <img src="{{ asset($content['welcome']['image'] ?? 'images/about.webp') }}"
                     alt="Kapel St. Yohanes Rasul" class="w-full h-auto object-cover aspect-video">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
@@ -257,7 +271,7 @@
                 </div>
 
                 <div class="relative rounded-xl overflow-hidden shadow-2xl h-full">
-                    <img src="{{ asset($content['pelayanan']['image'] ?? 'images/about.jpg') }}"
+                    <img src="{{ asset($content['pelayanan']['image'] ?? 'images/about.webp') }}"
                         alt="Pelayanan Liturgi" class="w-full h-full object-cover">
                     <div
                         class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 sm:p-8">

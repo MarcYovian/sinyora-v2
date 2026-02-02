@@ -1,23 +1,26 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
     @forelse ($eventArticles as $item)
-        <div class="bg-white rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl">
+        <div class="bg-white rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl flex flex-col">
             <div class="relative">
-                <img class="w-full h-56 object-cover" src="{{ asset('images/about.jpg') }}" alt="Perayaan Paskah 2023">
+                <img class="w-full h-56 object-cover" 
+                     src="{{ str_starts_with($item->featured_image, 'http') ? $item->featured_image : asset('storage/' . $item->featured_image) }}" 
+                     alt="{{ $item->title }}">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <span
-                        class="inline-block px-3 py-1 bg-[#FFD24C] text-[#825700] text-xs font-semibold rounded-full mb-2">
-                        Paskah
-                    </span>
-                    <h3 class="text-xl font-bold">Perayaan Paskah 2023</h3>
+                    @if($item->category)
+                        <span class="inline-block px-3 py-1 bg-[#FFD24C] text-[#825700] text-xs font-semibold rounded-full mb-2">
+                            {{ $item->category->name }}
+                        </span>
+                    @endif
+                    <h3 class="text-xl font-bold line-clamp-2">{{ $item->title }}</h3>
                 </div>
             </div>
-            <div class="p-6">
-                <p class="text-gray-600 mb-4">
-                    Perayaan Paskah di Kapela Sinyora Yang Sangat Khidmat dan Tenang
+            <div class="p-6 flex-1 flex flex-col">
+                <p class="text-gray-600 mb-4 line-clamp-3 text-sm flex-1">
+                    {{ $item->excerpt }}
                 </p>
-                <a href="#"
-                    class="inline-flex items-center text-[#825700] font-medium hover:text-[#6b4900] transition-colors">
+                <a wire:navigate href="{{ route('articles.show', $item->slug) }}"
+                    class="inline-flex items-center text-[#825700] font-medium hover:text-[#6b4900] transition-colors mt-auto">
                     Lihat detail
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20"
                         fill="currentColor">

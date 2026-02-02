@@ -50,7 +50,7 @@
             <div class="flex-shrink-0 flex items-center">
                 <a href="{{ route('home.index') }}"
                     class="flex items-center space-x-3 focus:outline-none focus:ring-2 focus:ring-[#FEC006] focus:ring-offset-2 rounded-md">
-                    <img src="{{ asset('images/logo.png') }}" class="h-10 w-auto" alt="Sinyora Logo" />
+                    <img src="{{ asset('images/logo.webp') }}" class="h-10 w-auto" alt="Sinyora Logo" />
                     <span
                         :class="{
                             'text-white': !scrolled && !mobileMenuOpen,

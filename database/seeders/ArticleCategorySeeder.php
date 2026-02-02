@@ -13,6 +13,22 @@ class ArticleCategorySeeder extends Seeder
      */
     public function run(): void
     {
-        ArticleCategory::factory(10)->create();
+        $categories = [
+            'Berita',
+            'Pengumuman',
+            'Kegiatan',
+            'Artikel Rohani',
+            'Edukasi',
+        ];
+
+        foreach ($categories as $category) {
+            ArticleCategory::factory()->create([
+                'name' => $category,
+                'slug' => \Illuminate\Support\Str::slug($category),
+            ]);
+        }
+
+        // Add some random ones
+        ArticleCategory::factory(5)->create();
     }
 }

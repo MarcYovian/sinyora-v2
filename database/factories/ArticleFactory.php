@@ -19,29 +19,29 @@ class ArticleFactory extends Factory
         $title = $this->faker->sentence();
         $slug = \Illuminate\Support\Str::slug($title);
 
-        $user_ids = \App\Models\User::pluck('id')->toArray();
-        $category_ids = \App\Models\ArticleCategory::pluck('id')->toArray();
         return [
             'title' => $title,
             'slug' => $slug,
             'excerpt' => $this->faker->paragraph(),
-            'content' => $this->faker->paragraph(5),
-            'reading_time' => $this->faker->numberBetween(1, 10),
-            'featured_image' => 'https://placehold.co/600x400/orange/white?text=' . $title,
-            'user_id' => $this->faker->randomElement($user_ids),
-            'category_id' => $this->faker->randomElement($category_ids),
-            'is_published' => 1,
-            'published_at' => now(),
-            'views' => $this->faker->numberBetween(1, 100),
+            'content' => $this->faker->paragraphs(3, true),
+            'reading_time' => $this->faker->numberBetween(1, 15),
+            'featured_image' => 'https://placehold.co/1200x630/2563eb/ffffff?text=' . urlencode($title),
+            'user_id' => \App\Models\User::query()->inRandomOrder()->first()?->id ?? \App\Models\User::factory(),
+            'category_id' => \App\Models\ArticleCategory::query()->inRandomOrder()->first()?->id ?? \App\Models\ArticleCategory::factory(),
+            'is_published' => $this->faker->boolean(80),
+            'published_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
+            'views' => $this->faker->numberBetween(0, 1000),
         ];
     }
 
     public function configure()
     {
         return $this->afterCreating(function ($article) {
-            // Attach random tags
-            $tags = \App\Models\Tag::pluck('id')->toArray();
-            $article->tags()->attach($tags);
+            // Attach random tags (1 to 3 tags)
+            $tags = \App\Models\Tag::query()->inRandomOrder()->limit(rand(1, 3))->pluck('id');
+            if ($tags->isNotEmpty()) {
+                $article->tags()->attach($tags);
+            }
         });
     }
 }

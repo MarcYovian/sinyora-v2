@@ -6,10 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <x-seo-meta-tags />
-    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/x-icon" />
+    <link rel="icon" href="{{ asset('images/logo.webp') }}" type="image/x-icon" />
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+    @if(request()->routeIs('home.index'))
+    <!-- Preload hero background untuk LCP optimization (hanya di halaman home) -->
+    <link rel="preload" as="image" href="{{ asset('images/1.webp') }}" type="image/webp">
+    <link rel="preload" as="image" href="{{ asset('images/about.webp') }}" type="image/webp">
+    @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -120,6 +126,7 @@
 
 <body class="font-sans antialiased">
 
+    @persist('global-loader')
     <!-- Loader -->
     <div id="global-loader"
         class="fixed top-0 left-0 w-full h-full flex flex-col gap-6 z-[9990] items-center justify-center">
@@ -136,6 +143,7 @@
             <div class="splash-underline"></div>
         </div>
     </div>
+    @endpersist
 
     <!-- Content -->
     <div class="min-h-screen bg-gray-100">
@@ -156,83 +164,100 @@
         <livewire:layout.footer-guest />
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <!-- Flowbite JS sudah di-bundle di Vite -->
     @stack('scripts')
     @livewireScripts
+    @livewireScriptConfig
 
-    <script>
-        let livewireReady = false;
-        let animationReady = false;
+    <script data-navigate-once>
+        // Gunakan window scope untuk menghindari redeclaration error saat wire:navigate
+        window.SinyoraLoader = window.SinyoraLoader || {
+            livewireReady: false,
+            animationReady: false,
+            initialized: false,
 
-        function hideLoader() {
-            const loader = document.getElementById("global-loader");
-            if (loader && !loader.classList.contains("is-leaving")) {
-                loader.classList.add("is-leaving");
-                setTimeout(() => {
-                    loader.style.display = "none";
-                }, 600);
-            }
-        }
+            hideLoader() {
+                const loader = document.getElementById("global-loader");
+                if (loader && !loader.classList.contains("is-leaving")) {
+                    loader.classList.add("is-leaving");
+                    setTimeout(() => {
+                        loader.style.display = "none";
+                    }, 600);
+                }
+            },
 
-        function checkAndHideLoader() {
-            if (livewireReady && animationReady) {
-                hideLoader();
-                livewireReady = false;
-                animationReady = false;
-            }
-        }
+            checkAndHideLoader() {
+                if (this.livewireReady && this.animationReady) {
+                    this.hideLoader();
+                    this.livewireReady = false;
+                    this.animationReady = false;
+                }
+            },
 
-        function resetLoaderAnimation(loader) {
-            // Reset huruf
-            loader.querySelectorAll(".splash-char").forEach((char) => {
-                char.style.animation = "none";
-                char.offsetHeight;
-                char.style.animation = "";
-            });
+            resetLoaderAnimation(loader) {
+                // Reset huruf
+                loader.querySelectorAll(".splash-char").forEach((char) => {
+                    char.style.animation = "none";
+                    char.offsetHeight;
+                    char.style.animation = "";
+                });
 
-            // Reset garis bawah
-            const underline = loader.querySelector(".splash-underline");
-            if (underline) {
-                underline.style.animation = "none";
-                underline.offsetHeight;
-                underline.style.animation = "";
-                animationReady = false;
+                // Reset garis bawah
+                const underline = loader.querySelector(".splash-underline");
+                if (underline) {
+                    underline.style.animation = "none";
+                    underline.offsetHeight;
+                    underline.style.animation = "";
+                    this.animationReady = false;
 
-                // tunggu animasi selesai
-                underline.addEventListener("animationend", () => {
-                    animationReady = true;
-                    checkAndHideLoader();
-                }, {
-                    once: true
+                    // tunggu animasi selesai
+                    underline.addEventListener("animationend", () => {
+                        this.animationReady = true;
+                        this.checkAndHideLoader();
+                    }, {
+                        once: true
+                    });
+                }
+            },
+
+            showLoader() {
+                const loader = document.getElementById("global-loader");
+                if (loader) {
+                    loader.classList.remove("is-leaving");
+                    loader.style.display = "flex";
+                    loader.style.opacity = "1";
+                    loader.style.backgroundColor = "white";
+                    this.resetLoaderAnimation(loader);
+                }
+            },
+
+            init() {
+                if (this.initialized) return;
+                this.initialized = true;
+
+                // Saat mulai navigasi (SPA)
+                document.addEventListener("livewire:navigating", () => {
+                    this.showLoader();
+                });
+
+                // Saat selesai navigasi
+                document.addEventListener("livewire:navigated", () => {
+                    this.livewireReady = true;
+                    this.checkAndHideLoader();
                 });
             }
-        }
+        };
 
-        // Saat mulai navigasi (SPA)
-        document.addEventListener("livewire:navigating", () => {
-            const loader = document.getElementById("global-loader");
-            if (loader) {
-                loader.classList.remove("is-leaving");
-                loader.style.display = "flex";
-                loader.style.opacity = "1";
-                loader.style.backgroundColor = "white";
-                resetLoaderAnimation(loader);
-            }
-        });
-
-        // Saat selesai navigasi
-        document.addEventListener("livewire:navigated", () => {
-            livewireReady = true;
-            checkAndHideLoader();
-        });
+        // Initialize loader system
+        window.SinyoraLoader.init();
 
         // Saat load pertama
         document.addEventListener("DOMContentLoaded", () => {
             const loader = document.getElementById("global-loader");
             if (loader) {
-                resetLoaderAnimation(loader);
-                livewireReady = true;
-                checkAndHideLoader();
+                window.SinyoraLoader.resetLoaderAnimation(loader);
+                window.SinyoraLoader.livewireReady = true;
+                window.SinyoraLoader.checkAndHideLoader();
             }
         });
     </script>

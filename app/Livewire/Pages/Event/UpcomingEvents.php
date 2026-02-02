@@ -21,6 +21,12 @@ class UpcomingEvents extends Component
             ->take(6)
             ->get(['id', 'event_id', 'time_start', 'time_end', 'date'])->sortBy('date');
     }
+
+    public function placeholder()
+    {
+        return view('livewire.loader.upcoming-events-loader');
+    }
+
     public function render()
     {
         return view('livewire.pages.event.upcoming-events');

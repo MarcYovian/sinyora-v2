@@ -74,7 +74,7 @@
                 <h3 class="text-sm font-medium text-gray-500 mb-3">Tags:</h3>
                 <div class="flex flex-wrap gap-2">
                     @foreach ($article->tags as $tag)
-                        <a href="{{ route('articles.index', ['tag' => $tag->name]) }}"
+                        <a href="{{ route('articles.index', ['tag' => $tag->name]) }}" wire:navigate
                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-yellow-100 hover:text-yellow-800 transition-colors">
                             #{{ $tag->name }}
                         </a>
@@ -129,7 +129,7 @@
                                     <p class="text-sm font-medium text-yellow-600">
                                         {{ $related->category->name }}
                                     </p>
-                                    <a href="{{ route('articles.show', $related) }}" class="block mt-2 group">
+                                    <a href="{{ route('articles.show', $related) }}" wire:navigate class="block mt-2 group">
                                         <h3 class="text-lg font-semibold text-gray-900 line-clamp-2 group-hover:text-yellow-700 transition-colors">
                                             {{ $related->title }}
                                         </h3>

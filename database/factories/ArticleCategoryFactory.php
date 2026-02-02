@@ -16,9 +16,10 @@ class ArticleCategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $name = $this->faker->unique()->sentence(2);
         return [
-            'name' => $this->faker->name(),
-            'slug' => $this->faker->slug(),
+            'name' => $name,
+            'slug' => \Illuminate\Support\Str::slug($name)
         ];
     }
 }

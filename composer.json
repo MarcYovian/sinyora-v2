@@ -17,11 +17,11 @@
         "predis/predis": "^3.2",
         "spatie/laravel-data": "^4.17",
         "spatie/laravel-permission": "^6.16",
-        "spatie/laravel-sitemap": "^7.3",
-        "yoeunes/toastr": "^3.1"
+        "spatie/laravel-sitemap": "^7.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "fruitcake/laravel-debugbar": "^3.16",
         "laravel/breeze": "^2.3",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.13",

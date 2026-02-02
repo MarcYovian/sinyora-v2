@@ -62,11 +62,11 @@
                 </div>
             </div>
 
-            <livewire:pages.event.calender />
+            <livewire:pages.event.calender lazy />
         </section>
 
         <!-- Upcoming Events -->
-        <livewire:pages.event.upcoming-events />
+        <livewire:pages.event.upcoming-events lazy />
     </div>
 
     <x-modal name="proposal-modal" focusable>

@@ -6,8 +6,9 @@
                 @foreach ($popularArticles as $article)
                     <div class=" bg-white rounded-xl overflow-hidden shadow-lg group">
                         <div class="relative">
-                            <img class="w-full h-64 object-cover" src="{{ asset("storage/{$article->featured_image}") }}"
-                                alt="Card 1">
+                            <img class="w-full h-64 object-cover" 
+                                 src="{{ str_starts_with($article->featured_image, 'http') ? $article->featured_image : asset("storage/{$article->featured_image}") }}"
+                                 alt="{{ $article->title }}">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
                             </div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -25,7 +26,7 @@
                             <p class="text-gray-600 mb-4 line-clamp-3">
                                 {{ $article->excerpt }}
                             </p>
-                            <a href="#"
+                            <a href="{{ route('articles.show', $article) }}" wire:navigate
                                 class="inline-flex items-center text-[#825700] font-medium hover:text-[#6b4900] transition-colors">
                                 Baca selengkapnya
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20"
@@ -63,7 +64,7 @@
             <div class="space-y-4">
                 @if ($latestArticles->count() > 0)
                     @foreach ($latestArticles as $item)
-                        <a href="#" class="group block">
+                        <a href="{{ route('articles.show', $item) }}" wire:navigate class="group block">
                             <div class="flex items-start space-x-4">
                                 <div class="flex-shrink-0 bg-[#FFD24C]/10 p-2 rounded-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#825700]"

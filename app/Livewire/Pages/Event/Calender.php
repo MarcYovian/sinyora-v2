@@ -83,6 +83,11 @@ class Calender extends Component
         $this->day = $date->day;
     }
 
+    public function placeholder()
+    {
+        return view('livewire.loader.calender-loader');
+    }
+
     public function render()
     {
         return view('livewire.pages.event.calender');
