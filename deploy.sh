@@ -28,7 +28,7 @@ composer install --no-dev --optimize-autoloader
 
 echo "🎨 Membangun aset frontend..."
 npm install
-rm -rf public/build
+sudo rm -rf public/build
 npm run build
 echo "✅ Aset frontend selesai."
 
