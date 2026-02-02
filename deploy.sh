@@ -1,65 +1,67 @@
 #!/bin/bash
 
-# Script akan berhenti jika ada satu perintah yang gagal
+# Script berhenti jika ada error
 set -e
 
 echo "🚀 Memulai proses deployment..."
 
+# 0. Tarik kode terbaru (PENTING!)
+echo "📥 Menarik kode terbaru dari git..."
+git pull origin main
+# ATAU jika pakai branch lain: git pull origin master
+
 # 1. Aktifkan mode maintenance
-echo "Mengaktifkan mode maintenance..."
+echo "🚧 Mengaktifkan mode maintenance..."
 php artisan down
 echo "✅ Mode maintenance aktif."
 
-# 2. Update dependensi
-echo "Menginstall dependensi Composer..."
+# 2. Update dependensi Backend
+echo "📦 Menginstall dependensi Composer..."
 composer install --no-dev --optimize-autoloader
-echo "Menginstall dependensi NPM..."
+
+# 3. Build Frontend (Dengan Penanganan Permission)
+echo "🎨 Membangun aset frontend..."
 npm install
-echo "Membangun aset frontend..."
+# Hapus build lama agar bersih
+rm -rf public/build
 npm run build
-echo "✅ Kode & dependensi telah diperbarui."
+echo "✅ Aset frontend selesai."
 
-# 3. Jalankan migrasi database
-echo "Menjalankan migrasi database..."
+# 4. Migrasi Database
+echo "🗄️ Menjalankan migrasi database..."
 php artisan migrate --force
-echo "✅ Migrasi database selesai."
 
-# 4. Atur izin folder (KRUSIAL)
-# Ini mencegah error 500 karena web server tidak bisa menulis ke folder log/cache.
-# Sesuaikan 'www-data' jika nama user/grup web server Anda berbeda.
-echo "Menyesuaikan izin folder storage & bootstrap/cache..."
-sudo chgrp -R www-data storage bootstrap/cache
-sudo chmod -R ug+rwx storage bootstrap/cache
-echo "✅ Izin folder telah diatur."
+# 5. Permission & Security Hardening (PENTING SETELAH BUILD)
+echo "🔒 Mengunci permission folder..."
+# Pastikan storage bisa ditulis www-data
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
 
-# 5. Optimasi cache untuk produksi
-echo "Membersihkan dan membuat ulang cache..."
-php artisan cache:clear
+# KUNCI PUBLIC (Fortress Mode) - Kembalikan ke Root setelah build selesai
+# Agar hacker tidak bisa nulis script di public
+sudo chown -R root:root public
+sudo chmod 755 public
+
+# Tapi folder build hasil npm tadi harus bisa dibaca Nginx
+# (Biasanya root:root sudah bisa dibaca, jadi aman)
+
+# 6. Optimasi Cache
+echo "🧹 Optimasi Cache..."
+php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
-php artisan queue:restart
-sudo -S supervisorctl restart sinyora-worker:*
-# Khusus jika Anda menggunakan Filament untuk mempercepat loading komponen
-# php artisan filament:cache-components
-echo "✅ Cache telah dioptimalkan."
 
-# 6. Generate sitemap
-echo "Generating sitemap..."
-php artisan sitemap:generate
-echo "✅ Sitemap telah di-generate."
-
-# 7. Restart servis PHP (Opsional tapi direkomendasikan)
-# Ini memastikan semua perubahan kode di-load oleh PHP.
-# Sesuaikan versi PHP (misal: php8.2-fpm, php8.3-fpm).
-echo "Merestart PHP-FPM..."
+# 7. Restart Worker & PHP
+echo "🔄 Restarting Services..."
+# Restart supervisor (Hard restart agar config baru terbaca)
+sudo supervisorctl restart sinyora-worker:*
+# Restart PHP FPM (Agar opcache bersih)
 sudo systemctl restart php8.3-fpm
-echo "✅ PHP-FPM telah direstart."
 
-# 8. Nonaktifkan mode maintenance
-echo "Menonaktifkan mode maintenance..."
+# 8. Online kembali
+echo "🟢 Menonaktifkan mode maintenance..."
 php artisan up
-echo "✅ Mode maintenance nonaktif."
 
-echo "🎉 Deployment selesai! Aplikasi sudah kembali online."
+echo "🎉 Deployment Selesai! Aplikasi UPDATED & AMAN."
