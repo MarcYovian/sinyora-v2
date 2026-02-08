@@ -1,12 +1,15 @@
 <?php
 
 use App\Models\User;
+use App\Models\CustomPermission;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use Spatie\Permission\Models\Role;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -32,11 +35,46 @@ new #[Layout('layouts.guest')] class extends Component
 
         event(new Registered($user = User::create($validated)));
 
-        $user->assignRole('guest');
+        // Ensure guest role exists with default permissions
+        $guestRole = $this->ensureGuestRoleExists();
+
+        $user->assignRole($guestRole);
 
         Auth::login($user);
 
         $this->redirect(route('admin.dashboard.index', absolute: false), navigate: true);
+    }
+
+    /**
+     * Ensure the guest role exists with default permissions.
+     * Creates the role if it doesn't exist.
+     */
+    private function ensureGuestRoleExists(): Role
+    {
+        $guestRole = Role::where('name', 'guest')->first();
+
+        if (!$guestRole) {
+            $guestRole = Role::create(['name' => 'guest', 'guard_name' => 'web']);
+            
+            // Assign default permissions to the new guest role
+            $defaultPermissions = CustomPermission::where('default', 'Default')
+                ->pluck('name')
+                ->toArray();
+            
+            if (!empty($defaultPermissions)) {
+                $guestRole->givePermissionTo($defaultPermissions);
+                Log::info('Guest role created with default permissions', [
+                    'role_id' => $guestRole->id,
+                    'permission_count' => count($defaultPermissions),
+                ]);
+            } else {
+                Log::info('Guest role created without permissions (no default permissions found)', [
+                    'role_id' => $guestRole->id,
+                ]);
+            }
+        }
+
+        return $guestRole;
     }
 }; ?>
 

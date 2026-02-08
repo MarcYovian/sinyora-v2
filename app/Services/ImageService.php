@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use Exception;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
@@ -17,10 +19,12 @@ class ImageService
         'path' => 'images',           // Storage path
         'max_width' => 1200,          // Max width in pixels
         'max_height' => null,         // Max height (null = auto based on aspect ratio)
-        'quality' => 85,              // Compression quality (1-100)
+        'quality' => 80,              // Compression quality (1-100)
         'format' => 'webp',           // Output format (webp, jpg, png)
         'keep_original' => false,     // Keep original file alongside optimized
         'disk' => 'public',           // Storage disk
+        'watermark' => null,          // Path file watermark (opsional)
+        'filename' => null,           // Custom filename (opsional)
     ];
 
     /**
@@ -32,31 +36,52 @@ class ImageService
      */
     public function optimize(UploadedFile $file, array $options = []): string
     {
-        $options = array_merge($this->defaultOptions, $options);
+        try {
+            $options = array_merge($this->defaultOptions, $options);
 
-        // Read image using Intervention Image
-        $image = Image::read($file->getRealPath());
+            // 1. Read Image
+            $image = Image::read($file->getRealPath());
 
-        // Resize if necessary
-        $image = $this->resize($image, $options['max_width'], $options['max_height']);
+            // 2. Auto Rotate (Penting untuk foto dari HP Samsung/iPhone)
+            // Intervention v3 biasanya auto-orient, tapi memastikan tidak ada salahnya
+            // $image->orientate(); 
 
-        // Generate unique filename
-        $filename = $this->generateFilename($file, $options['format']);
-        $fullPath = $options['path'] . '/' . $filename;
+            // 3. Resize Logic
+            $image = $this->resize($image, $options['max_width'], $options['max_height']);
 
-        // Encode to desired format with quality
-        $encoded = $this->encode($image, $options['format'], $options['quality']);
+            // 4. Watermark Logic (Jika ada opsi watermark)
+            if (!empty($options['watermark']) && file_exists($options['watermark'])) {
+                // Tempel watermark di pojok kanan bawah, opacity 50%
+                $image->place($options['watermark'], 'bottom-right', 10, 10, 50);
+            }
 
-        // Store the optimized image
-        Storage::disk($options['disk'])->put($fullPath, $encoded);
+            // 5. Generate Filename
+            $filename = $this->generateFilename($file, $options['format'], $options['filename']);
+            $fullPath = $options['path'] . '/' . $filename;
 
-        // Optionally keep original
-        if ($options['keep_original']) {
-            $originalPath = $options['path'] . '/originals/' . $file->hashName();
-            Storage::disk($options['disk'])->put($originalPath, file_get_contents($file->getRealPath()));
+            // 6. Encode
+            $encoded = $this->encode($image, $options['format'], $options['quality']);
+
+            // 7. Store
+            Storage::disk($options['disk'])->put($fullPath, $encoded);
+
+            // 8. Keep Original?
+            if ($options['keep_original']) {
+                $ext = $file->getClientOriginalExtension();
+                $originalName = pathinfo($filename, PATHINFO_FILENAME) . '_orig.' . $ext;
+                Storage::disk($options['disk'])->put(
+                    $options['path'] . '/originals/' . $originalName, 
+                    file_get_contents($file->getRealPath())
+                );
+            }
+
+            return $fullPath;
+
+        } catch (Exception $e) {
+            // Log error agar developer tahu, tapi jangan bikin crash user
+            Log::error("ImageService Error: " . $e->getMessage());
+            return null; // Return null jika gagal
         }
-
-        return $fullPath;
     }
 
     /**
@@ -69,16 +94,8 @@ class ImageService
      */
     public function resize(ImageInterface $image, ?int $maxWidth = null, ?int $maxHeight = null): ImageInterface
     {
-        $currentWidth = $image->width();
-        $currentHeight = $image->height();
-
-        // Calculate new dimensions while maintaining aspect ratio
-        if ($maxWidth && $currentWidth > $maxWidth) {
-            $image = $image->scale(width: $maxWidth);
-        }
-
-        if ($maxHeight && $image->height() > $maxHeight) {
-            $image = $image->scale(height: $maxHeight);
+        if ($maxWidth || $maxHeight) {
+            $image->scaleDown(width: $maxWidth, height: $maxHeight);
         }
 
         return $image;
@@ -94,7 +111,7 @@ class ImageService
      */
     private function encode(ImageInterface $image, string $format, int $quality): string
     {
-        return match ($format) {
+        return match (strtolower($format)) {
             'webp' => $image->toWebp($quality)->toString(),
             'jpg', 'jpeg' => $image->toJpeg($quality)->toString(),
             'png' => $image->toPng()->toString(),
@@ -110,11 +127,16 @@ class ImageService
      * @param string $format
      * @return string
      */
-    private function generateFilename(UploadedFile $file, string $format): string
+    private function generateFilename(UploadedFile $file, string $format, ?string $customName = null): string
     {
-        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $name = Str::slug($name);
-        $uniqueId = Str::random(8);
+        if ($customName) {
+            $name = Str::slug($customName);
+        } else {
+            $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $name = Str::slug($name);
+        }
+        
+        $uniqueId = Str::random(6);
 
         return "{$name}-{$uniqueId}.{$format}";
     }
@@ -131,20 +153,31 @@ class ImageService
     {
         $options = array_merge($this->defaultOptions, $options);
         $paths = [];
+        
+        // Mode: 'cover' (default, crop gambar) atau 'scale' (gambar utuh mengecil)
+        $mode = $options['resize_mode'] ?? 'cover'; 
 
-        foreach ($sizes as $size) {
+        foreach ($sizes as $key => $size) {
             [$width, $height] = $size;
 
             $image = Image::read($file->getRealPath());
-            $image = $image->cover($width, $height);
 
-            $filename = $this->generateFilename($file, $options['format']);
+            if ($mode === 'cover') {
+                $image->cover($width, $height);
+            } else {
+                $image->scaleDown($width, $height);
+            }
+
+            $filename = $this->generateFilename($file, $options['format'], $options['filename']);
+            
+            // Struktur folder: path/300x200/namafile.webp
             $fullPath = $options['path'] . "/{$width}x{$height}/" . $filename;
 
             $encoded = $this->encode($image, $options['format'], $options['quality']);
             Storage::disk($options['disk'])->put($fullPath, $encoded);
 
-            $paths["{$width}x{$height}"] = $fullPath;
+            // Gunakan key custom jika ada (misal 'mobile' => [480, null])
+            $paths[$key] = $fullPath; 
         }
 
         return $paths;

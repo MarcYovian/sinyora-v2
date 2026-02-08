@@ -3,8 +3,8 @@
 namespace App\Livewire\Forms;
 
 use App\Models\Location;
+use App\Services\ImageService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Form;
 use Livewire\WithFileUploads;
 
@@ -29,7 +29,7 @@ class LocationForm extends Form
                 'nullable',
                 'image',
                 'max:2048', // 2MB max
-                'mimes:jpg,jpeg,png,gif',
+                'mimes:jpg,jpeg,png,gif,webp',
             ],
         ];
     }
@@ -40,29 +40,48 @@ class LocationForm extends Form
 
         if ($location) {
             $this->name = $location->name;
-            $this->description = $location->description;
+            $this->description = $location->description ?? '';
             $this->is_active = $location->is_active;
             $this->existingImage = $location->image;
         }
     }
 
-    public function store(): void
+    public function store(): Location
     {
         $validated = $this->validate();
 
-        $imagePath = $this->storeImage();
+        try {
+            $imagePath = $this->storeImage();
 
-        Location::create([
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'image' => $imagePath,
-            'is_active' => $validated['is_active'],
-        ]);
+            $location = Location::create([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'image' => $imagePath,
+                'is_active' => $validated['is_active'],
+            ]);
 
-        $this->resetForm();
+            Log::info('Location created via form', [
+                'location_id' => $location->id,
+                'location_name' => $location->name,
+                'has_image' => !empty($imagePath),
+                'user_id' => auth()->id(),
+            ]);
+
+            $this->resetForm();
+
+            return $location;
+        } catch (\Exception $e) {
+            Log::error('Failed to create location', [
+                'user_id' => auth()->id(),
+                'name' => $this->name,
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
+        }
     }
 
-    public function update(): void
+    public function update(): Location
     {
         $validated = $this->validate();
 
@@ -76,21 +95,62 @@ class LocationForm extends Form
                 'is_active' => $validated['is_active'],
             ]);
 
+            Log::info('Location updated via form', [
+                'location_id' => $this->location->id,
+                'location_name' => $this->location->name,
+                'image_changed' => $imagePath !== $this->existingImage,
+                'user_id' => auth()->id(),
+            ]);
+
+            $location = $this->location;
             $this->resetForm();
-        } catch (\Throwable $th) {
-            Log::error('Error updating location: ' . $th->getMessage());
+
+            return $location;
+        } catch (\Exception $e) {
+            Log::error('Failed to update location', [
+                'location_id' => $this->location?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
         }
     }
 
-    public function delete(): void
+    public function delete(): bool
     {
-        // Delete the associated image file
-        if ($this->location->image) {
-            Storage::delete('public/locations/' . $this->location->image);
+        if (!$this->location) {
+            Log::warning('Delete attempt with no location set', ['user_id' => auth()->id()]);
+            return false;
         }
 
-        $this->location->delete();
-        $this->resetForm();
+        try {
+            $locationId = $this->location->id;
+            $locationName = $this->location->name;
+            $imagePath = $this->location->image;
+
+            // Delete the location (observer will handle image deletion)
+            $this->location->delete();
+
+            Log::info('Location deleted via form', [
+                'location_id' => $locationId,
+                'location_name' => $locationName,
+                'had_image' => !empty($imagePath),
+                'user_id' => auth()->id(),
+            ]);
+
+            $this->resetForm();
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete location', [
+                'location_id' => $this->location?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
+        }
     }
 
     protected function storeImage(): ?string
@@ -99,18 +159,43 @@ class LocationForm extends Form
             return null;
         }
 
-        // Delete old image if exists
-        if ($this->existingImage) {
-            Storage::delete('public/locations/' . $this->existingImage);
-        }
+        try {
+            $imageService = app(ImageService::class);
 
-        // Store new image
-        return $this->image->store('locations', 'public');
+            // Delete old image if exists
+            if ($this->existingImage) {
+                $imageService->delete($this->existingImage);
+            }
+
+            // Store new optimized image
+            $path = $imageService->optimize($this->image, [
+                'path' => 'locations',
+                'max_width' => 800,
+                'quality' => 80,
+                'format' => 'webp',
+            ]);
+
+            Log::debug('Location image stored via ImageService', [
+                'path' => $path,
+                'original_name' => $this->image->getClientOriginalName(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return $path;
+        } catch (\Exception $e) {
+            Log::error('Failed to store location image', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            // Fallback to simple storage if ImageService fails
+            return $this->image->store('locations', 'public');
+        }
     }
 
     public function resetForm(): void
     {
-        $this->resetExcept('existingImage');
+        $this->reset(['name', 'description', 'is_active', 'image']);
         $this->location = null;
         $this->existingImage = null;
         $this->resetErrorBag();
@@ -118,10 +203,33 @@ class LocationForm extends Form
 
     public function removeImage(): void
     {
-        if ($this->existingImage) {
-            Storage::delete('public/locations/' . $this->existingImage);
-            $this->existingImage = null;
+        try {
+            if ($this->existingImage) {
+                $imageService = app(ImageService::class);
+                $imageService->delete($this->existingImage);
+
+                // Also update the model if it exists
+                if ($this->location) {
+                    $this->location->update(['image' => null]);
+                }
+
+                Log::info('Location existing image removed', [
+                    'path' => $this->existingImage,
+                    'user_id' => auth()->id(),
+                ]);
+
+                $this->existingImage = null;
+            }
+            $this->image = null;
+        } catch (\Exception $e) {
+            Log::error('Failed to remove location image', [
+                'path' => $this->existingImage,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
         }
-        $this->image = null;
     }
 }
+

@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\BorrowingStatus;
+use App\Observers\AssetObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy(AssetObserver::class)]
 class Asset extends Model
 {
     use HasFactory;

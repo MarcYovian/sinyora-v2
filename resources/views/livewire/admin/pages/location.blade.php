@@ -1,107 +1,204 @@
 <div>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Data Locations') }}
+    <header class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+            {{ __('Manajemen Lokasi') }}
         </h2>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {{ __('Kelola data lokasi fisik dan ruang pertemuan.') }}
+        </p>
     </header>
 
-    <div class="mt-6 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 my-4 px-4 md:px-0 md:flex md:justify-between">
-            @can('create location')
-                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                    <x-heroicon-s-plus class="w-5 h-5" />
+    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
+        <div class="p-4 sm:p-6 space-y-4">
+            {{-- Top Actions Bar --}}
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                @can('create location')
+                    <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                        <x-heroicon-s-plus class="w-5 h-5" />
+                        <span>{{ __('Tambah Lokasi') }}</span>
+                    </x-button>
+                @endcan
 
-                    <span>{{ __('Create') }}</span>
-                </x-button>
-            @endcan
+                <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
+                    <div class="w-full sm:w-auto sm:flex-grow">
+                        <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
+                            placeholder="{{ __('Cari nama lokasi...') }}" />
+                    </div>
+                    @if ($search)
+                        <x-button type="button" wire:click="resetFilters" variant="secondary" class="w-full sm:w-auto">
+                            {{ __('Reset') }}
+                        </x-button>
+                    @endif
+                </div>
+            </div>
 
-            <div class="w-full md:w-1/2">
-                <x-search placeholder="Search location by name.." />
+            {{-- Indikator Loading --}}
+            <div wire:loading.flex wire:target="search" class="items-center justify-center w-full py-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
+                    <span>Memuat data...</span>
+                </div>
+            </div>
+
+            <div wire:loading.remove wire:target="search">
+                {{-- Tampilan Mobile (Card) --}}
+                <div class="grid grid-cols-1 gap-4 md:hidden">
+                    @forelse ($locations as $location)
+                        <div wire:key="location-card-{{ $location->id }}"
+                            class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
+                            @if ($location->image)
+                                <div class="h-48 w-full overflow-hidden">
+                                    <img src="{{ Storage::url($location->image) }}" alt="{{ $location->name }}"
+                                        loading="lazy" class="w-full h-full object-cover">
+                                </div>
+                            @endif
+                            <div class="p-4 border-b dark:border-gray-700">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div>
+                                            <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">
+                                                {{ $location->name }}
+                                            </h3>
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $location->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                                                {{ $location->is_active ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <x-dropdown align="right" width="48">
+                                        <x-slot name="trigger">
+                                            <button
+                                                class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                                <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            @can('edit location')
+                                                <x-dropdown-link wire:click="edit({{ $location->id }})">
+                                                    Edit
+                                                </x-dropdown-link>
+                                            @endcan
+                                            <div class="border-t border-gray-100 dark:border-gray-600"></div>
+                                            @can('delete location')
+                                                <x-dropdown-link wire:click="confirmDelete({{ $location->id }})"
+                                                    class="text-red-600 dark:text-red-500">Delete
+                                                </x-dropdown-link>
+                                            @endcan
+                                        </x-slot>
+                                    </x-dropdown>
+                                </div>
+                            </div>
+                            <div class="p-4 text-sm text-gray-600 dark:text-gray-400">
+                                {{ \Illuminate\Support\Str::limit($location->description, 100) }}
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            {{ __('Tidak ada data lokasi.') }}
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Tampilan Desktop (Tabel) --}}
+                <div class="hidden md:block">
+                    <x-table title="Data Lokasi" :heads="$table_heads">
+                        @forelse ($locations as $key => $location)
+                            <tr wire:key="location-table-{{ $location->id }}"
+                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                                    {{ $key + $locations->firstItem() }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if ($location->image)
+                                        <div class="h-10 w-10 rounded overflow-hidden">
+                                            <img src="{{ Storage::url($location->image) }}" alt="{{ $location->name }}"
+                                                loading="lazy" class="h-full w-full object-cover">
+                                        </div>
+                                    @else
+                                        <div class="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                                            <x-heroicon-s-photo class="w-6 h-6" />
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="font-semibold text-gray-900 dark:text-gray-200">{{ $location->name }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-normal text-gray-600 dark:text-gray-300 max-w-xs">
+                                    {{ \Illuminate\Support\Str::limit($location->description, 50) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $location->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                                        {{ $location->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center justify-end space-x-1">
+                                        @can('edit location')
+                                            <x-button type="button" variant="warning" size="sm" class="!p-2"
+                                                wire:click="edit({{ $location->id }})" title="Edit Location">
+                                                <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                                <span class="sr-only">Edit</span>
+                                            </x-button>
+                                        @endcan
+
+                                        @can('delete location')
+                                            <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                                wire:click="confirmDelete({{ $location->id }})" title="Hapus Location">
+                                                <x-heroicon-o-trash class="w-4 h-4" />
+                                                <span class="sr-only">Delete</span>
+                                            </x-button>
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($table_heads) }}"
+                                    class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    {{ __('Tidak ada data yang tersedia.') }}
+                                </td>
+                            </tr>
+                        @endforelse
+                    </x-table>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 text-gray-900 dark:text-gray-100">
-            <x-table title="Data Locations" :heads="$table_heads">
-                @forelse ($locations as $key => $location)
-                    <tr wire:key="user-{{ $location->id }}"
-                        class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $key + $locations->firstItem() }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            @if ($location->image)
-                                <img src="{{ Storage::url($location->image) }}" alt="{{ $location->name }}"
-                                    loading="lazy" class="h-10 w-10 rounded object-cover">
-                            @else
-                                <span class="text-gray-400">No image</span>
-                            @endif
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $location->name }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            {{ $location->description }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            <span
-                                class="w-2 h-2 rounded-full {{ $location->is_active ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                            {{ $location->is_active ? 'Active' : 'Inactive' }}
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                            <div class="flex flex-col items-center gap-2">
-                                @can('edit location')
-                                    <x-button size="sm" variant="warning" type="button"
-                                        wire:click="edit({{ $location->id }})">
-                                        {{ __('Edit') }}
-                                    </x-button>
-                                @endcan
-                                @can('delete location')
-                                    <x-button size="sm" variant="danger" type="button"
-                                        wire:click="confirmDelete({{ $location->id }})">
-                                        {{ __('Delete') }}
-                                    </x-button>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr class="bg-white dark:bg-gray-800">
-                        <td colspan="6"
-                            class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                            {{ __('No data available') }}
-                        </td>
-                    </tr>
-                @endforelse
-            </x-table>
-        </div>
-        <div class="px-6 py-4">
+        <div class="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
             {{ $locations->links() }}
         </div>
     </div>
 
+    {{-- Create/Edit Modal --}}
     <x-modal name="location-modal" :show="$errors->isNotEmpty()" maxWidth="lg" focusable>
-        <form wire:submit="save" class="p-6" enctype="multipart/form-data">
-            <!-- Header with close button -->
-            <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                    {{ $editId ? __('Edit Location') : __('Create Location') }}
-                </h2>
+        <form wire:submit="save" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900" enctype="multipart/form-data">
+            <div class="flex items-start justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {{ $editId ? __('Edit Lokasi') : __('Tambah Lokasi Baru') }}
+                    </h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {{ __('Silakan lengkapi form di bawah ini.') }}
+                    </p>
+                </div>
                 <button type="button" @click="$dispatch('close')"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                    class="p-2 -m-2 text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200 transition-all">
                     <x-heroicon-s-x-mark class="h-6 w-6" />
                 </button>
             </div>
 
-            <div class="space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-6">
                 <!-- Image Upload Section -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <x-input-label for="image" value="{{ __('Location Image') }}" class="text-base" />
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <x-input-label for="image" value="{{ __('Location Image') }}" />
                         @if ($form->image || $form->existingImage)
                             <button type="button" wire:click="removeImage"
-                                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center gap-1">
-                                <x-heroicon-s-trash class="h-4 w-4" />
-                                {{ __('Remove Image') }}
+                                class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex items-center gap-1 transition-colors">
+                                <x-heroicon-s-trash class="h-3 w-3" />
+                                {{ __('Remove') }}
                             </button>
                         @endif
                     </div>
@@ -111,120 +208,114 @@
                         <div x-data="{ isUploading: false, progress: 0 }" x-on:livewire-upload-start="isUploading = true"
                             x-on:livewire-upload-finish="isUploading = false"
                             x-on:livewire-upload-error="isUploading = false"
-                            x-on:livewire-upload-progress="progress = $event.detail.progress" class="flex-1 w-full">
+                            x-on:livewire-upload-progress="progress = $event.detail.progress" class="w-full sm:w-1/3">
 
                             <div class="relative group">
                                 <div
-                                    class="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden transition-all duration-300 hover:border-indigo-500 dark:hover:border-indigo-400">
-                                    @if ($form->image || $form->existingImage)
-                                        <img src="{{ $form->image ? $form->image->temporaryUrl() : Storage::url($form->existingImage) }}"
-                                            alt="Location preview"
-                                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    class="w-full h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden transition-all duration-300 hover:border-indigo-500 dark:hover:border-indigo-400 bg-gray-50 dark:bg-gray-900/50">
+                                    @if ($form->image)
+                                        <img src="{{ $form->image->temporaryUrl() }}" alt="Preview" class="h-full w-full object-cover">
+                                    @elseif ($form->existingImage)
+                                        <img src="{{ Storage::url($form->existingImage) }}" alt="Current" class="h-full w-full object-cover">
                                     @else
-                                        <div class="text-center p-4">
-                                            <x-heroicon-s-photo
-                                                class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-                                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                                {{ __('Upload a location photo') }}
-                                            </p>
-                                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                PNG, JPG, GIF up to 2MB
-                                            </p>
+                                        <div class="text-center p-2">
+                                            <x-heroicon-s-photo class="mx-auto h-8 w-8 text-gray-400" />
+                                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">Click to upload</span>
                                         </div>
                                     @endif
                                 </div>
 
                                 <!-- Upload Progress -->
                                 <div x-show="isUploading"
-                                    class="absolute inset-x-0 bottom-0 bg-gray-200 dark:bg-gray-700 h-1.5">
+                                    class="absolute inset-x-0 bottom-0 bg-gray-200 dark:bg-gray-700 h-1">
                                     <div class="bg-indigo-600 h-full transition-all duration-300 ease-out"
                                         x-bind:style="`width: ${progress}%`"></div>
                                 </div>
 
-                                <!-- Upload Button -->
                                 <label for="image-upload" class="absolute inset-0 cursor-pointer"></label>
                                 <input id="image-upload" type="file" wire:model="form.image"
-                                    accept="image/jpeg,image/png" class="hidden">
+                                    accept="image/jpeg,image/png,image/webp" class="hidden">
                             </div>
-
                             <x-input-error :messages="$errors->get('form.image')" class="mt-2" />
                         </div>
 
-                        <!-- Form Fields -->
-                        <div class="flex-1 w-full space-y-5">
+                        <!-- Main Form Fields -->
+                        <div class="flex-1 w-full space-y-4">
                             <!-- Name Field -->
                             <div>
-                                <x-input-label for="name" value="{{ __('Location Name') }}" />
+                                <x-input-label for="name" value="{{ __('Name') }}" />
                                 <x-text-input wire:model="form.name" id="name" type="text"
-                                    class="block w-full mt-2 px-4 py-2.5"
-                                    placeholder="{{ __('e.g. Main Hall, Conference Room') }}" />
-                                <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
-                            </div>
-
-                            <!-- Description Field -->
-                            <div>
-                                <x-input-label for="description" value="{{ __('Description') }}" />
-                                <textarea wire:model="form.description" id="description" rows="3"
-                                    class="block w-full mt-2 px-4 py-2.5 border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-                                <x-input-error :messages="$errors->get('form.description')" class="mt-2" />
+                                    class="mt-1 block w-full" placeholder="{{ __('e.g. Main Hall') }}" />
+                                <x-input-error :messages="$errors->get('form.name')" class="mt-1" />
                             </div>
 
                             <!-- Status Field -->
                             <div>
                                 <x-input-label for="is_active" value="{{ __('Status') }}" />
-                                <div class="mt-1">
-                                    <select wire:model.live="form.is_active" id="is_active"
-                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
-                                        <option value='1'>{{ __('Active') }}</option>
-                                        <option value='0'>{{ __('Inactive') }}</option>
-                                    </select>
-                                </div>
-                                <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
+                                <select wire:model="form.is_active" id="is_active"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600 py-2 pl-3 pr-10">
+                                    <option value='1'>{{ __('Active') }}</option>
+                                    <option value='0'>{{ __('Inactive') }}</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('form.is_active')" class="mt-1" />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Description Field (Full Width) -->
+                    <div class="mt-4">
+                        <x-input-label for="description" value="{{ __('Description') }}" />
+                        <textarea wire:model="form.description" id="description" rows="3"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600"
+                            placeholder="{{ __('Optional description...') }}"></textarea>
+                        <x-input-error :messages="$errors->get('form.description')" class="mt-1" />
                     </div>
                 </div>
             </div>
 
-            <!-- Footer Buttons -->
-            <div
-                class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                <x-secondary-button type="button" @click="$dispatch('close')"
-                    class="w-full sm:w-auto justify-center px-6 py-3">
+            <div class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <x-secondary-button type="button" @click="$dispatch('close')" class="justify-center">
                     {{ __('Cancel') }}
                 </x-secondary-button>
-                <x-primary-button type="submit" class="w-full sm:w-auto justify-center">
+                <x-primary-button type="submit" class="justify-center">
                     <span wire:loading.remove wire:target="save">
                         {{ $editId ? __('Update Location') : __('Create Location') }}
                     </span>
                     <span wire:loading wire:target="save" class="flex items-center gap-2">
-                        {{ __('Saving...') }}
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        <span>{{ __('Saving...') }}</span>
                     </span>
-                    <x-heroicon-s-arrow-path wire:loading wire:target="save" class="ml-2 h-4 w-4 animate-spin" />
                 </x-primary-button>
             </div>
         </form>
     </x-modal>
 
+    {{-- Delete Confirmation Modal --}}
     <x-modal name="delete-location-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="delete" class="p-6">
-
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                 {{ __('Are you sure you want to delete this location?') }}
             </h2>
+
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 {{ __('This action cannot be undone.') }}
             </p>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Please confirm that you want to delete this location by clicking the button below.') }}
-            </p>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
+            <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Name') }}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $form->name }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
+                <x-danger-button>
                     {{ __('Delete') }}
                 </x-danger-button>
             </div>

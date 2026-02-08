@@ -144,6 +144,9 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        // Register Role Observer for Spatie Role model
+        \Spatie\Permission\Models\Role::observe(\App\Observers\RoleObserver::class);
+
         Gate::define('access', function (User $user, string $routeName) {
             // Cek apakah user memiliki permission langsung
             if ($user->hasPermissionTo(CustomPermission::where('route_name', $routeName)->pluck('name')->first())) {

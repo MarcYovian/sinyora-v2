@@ -4,14 +4,16 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Forms\UserForm;
 use App\Models\Group;
-use App\Models\User as UserModal;
-use Exception;
+use App\Models\User as UserModel;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
@@ -22,29 +24,75 @@ class User extends Component
 
     #[Layout('layouts.app')]
 
-
     public UserForm $form;
 
     public $roles;
 
+    #[Url(as: 'q')]
     public $search = '';
+
     public $searchPermission = '';
     public $groups;
+
     public $editId = null;
     public $deleteId = null;
     public $correlationId;
 
-    // Check if search has no results
-    public function hasNoResults()
+    public $table_heads = ['No', 'Name', 'Username', 'Email', 'Email Verified At', 'Actions'];
+
+    /**
+     * Reset pagination when search changes.
+     */
+    public function updatedSearch(): void
     {
-        if (empty($this->searchPermission)) return false;
+        $this->resetPage();
+    }
+
+    /**
+     * Reset all filters and pagination.
+     */
+    public function resetFilters(): void
+    {
+        $this->reset('search');
+        $this->resetPage();
+    }
+
+    /**
+     * Check if permission search has no results.
+     */
+    public function hasNoResults(): bool
+    {
+        if (empty($this->searchPermission)) {
+            return false;
+        }
 
         return Group::with(['permissions' => function ($query) {
             $query->where('name', 'like', '%' . $this->searchPermission . '%');
         }])->get()->flatMap->permissions->isEmpty();
     }
 
-    public function save()
+    /**
+     * Open create modal.
+     */
+    public function create(): void
+    {
+        try {
+            $this->authorize('access', 'admin.users.create');
+
+            $this->form->reset();
+            $this->editId = null;
+            $this->deleteId = null;
+            $this->dispatch('open-modal', 'user-modal');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized user create attempt', ['user_id' => Auth::id()]);
+            flash()->error('You are not authorized to create users.');
+        }
+    }
+
+    /**
+     * Save user (create or update).
+     */
+    public function save(): void
     {
         Log::info('User save action initiated', [
             'user_id' => Auth::id(),
@@ -56,37 +104,39 @@ class User extends Component
                 $this->authorize('access', 'admin.users.edit');
 
                 $this->form->update();
-                $this->dispatch('close-modal', 'user-modal');
                 flash()->success('User updated successfully.');
 
-                // Log the successful update
                 Log::info('User updated successfully', [
                     'user_id' => Auth::id(),
                     'correlation_id' => $this->correlationId,
-                    'input' => $this->form->except(['password', 'password_confirmation']),
+                    'updated_user_id' => $this->editId,
                 ]);
             } else {
                 $this->authorize('access', 'admin.users.create');
 
                 $this->form->store();
-                $this->dispatch('close-modal', 'user-modal');
                 flash()->success('User created successfully.');
 
-                // Log the successful creation
                 Log::info('User created successfully', [
                     'user_id' => Auth::id(),
                     'correlation_id' => $this->correlationId,
-                    'input' => $this->form->except(['password', 'password_confirmation']),
                 ]);
             }
+
             $this->dispatch('close-modal', 'user-modal');
             $this->form->reset();
             $this->editId = null;
             $this->deleteId = null;
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized user save attempt', [
+                'user_id' => Auth::id(),
+                'action' => $this->editId ? 'edit' : 'create',
+            ]);
+            flash()->error('You are not authorized to perform this action.');
         } catch (ValidationException $e) {
             $this->setErrorBag($e->errors());
-        } catch (Exception $e) {
-            Log::error('Save failed', [
+        } catch (\Exception $e) {
+            Log::error('User save failed', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
                 'error' => $e->getMessage(),
@@ -95,54 +145,80 @@ class User extends Component
         }
     }
 
-    public function create()
+    /**
+     * Open edit modal for a user.
+     */
+    public function edit(int $id): void
     {
-        $this->authorize('access', 'admin.users.create');
+        try {
+            $this->authorize('access', 'admin.users.edit');
 
-        $this->form->reset();
-        $this->editId = null;
-        $this->deleteId = null;
-        $this->dispatch('open-modal', 'user-modal');
+            $user = UserModel::findOrFail($id);
+            $this->editId = $id;
+            $this->form->setUser($user);
+            $this->dispatch('open-modal', 'user-modal');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized user edit attempt', ['user_id' => Auth::id(), 'target_user_id' => $id]);
+            flash()->error('You are not authorized to edit users.');
+        } catch (ModelNotFoundException $e) {
+            Log::warning('User not found for edit', ['target_user_id' => $id]);
+            flash()->error('User not found.');
+        } catch (\Exception $e) {
+            Log::error('Failed to load user for edit', [
+                'target_user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error('Failed to load user. Please try again.');
+        }
     }
 
-    public function edit($id)
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(int $id): void
     {
-        $this->authorize('access', 'admin.users.edit');
+        try {
+            $this->authorize('access', 'admin.users.destroy');
 
-        $this->editId = $id;
-        $user = UserModal::find($id);
-        $this->form->setUser($user);
-        $this->dispatch('open-modal', 'user-modal');
+            $user = UserModel::findOrFail($id);
+            $this->deleteId = $id;
+            $this->form->setUser($user);
+            $this->dispatch('open-modal', 'delete-user-confirmation');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized user delete attempt', ['user_id' => Auth::id(), 'target_user_id' => $id]);
+            flash()->error('You are not authorized to delete users.');
+        } catch (ModelNotFoundException $e) {
+            Log::warning('User not found for delete', ['target_user_id' => $id]);
+            flash()->error('User not found.');
+        }
     }
 
-    public function confirmDelete($id)
+    /**
+     * Delete a user.
+     */
+    public function delete(): void
     {
-        $this->authorize('access', 'admin.users.destroy');
-
-        $this->deleteId = $id;
-        $user = UserModal::find($id);
-        $this->form->setUser($user);
-        $this->dispatch('open-modal', 'delete-user-confirmation');
-    }
-    public function delete()
-    {
-        $this->authorize('access', 'admin.users.destroy');
-
         Log::info('User deletion action initiated', [
             'user_id' => Auth::id(),
             'correlation_id' => $this->correlationId,
+            'target_user_id' => $this->deleteId,
         ]);
 
         try {
+            $this->authorize('access', 'admin.users.destroy');
+
             $this->form->destroy();
             flash()->success('User deleted successfully.');
 
-            // Log the successful deletion
             Log::info('User deleted successfully', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
+                'deleted_user_id' => $this->deleteId,
             ]);
-        } catch (Exception $e) {
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized user deletion', ['user_id' => Auth::id()]);
+            flash()->error('You are not authorized to delete users.');
+        } catch (\Exception $e) {
             Log::error('User deletion failed', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
@@ -157,34 +233,53 @@ class User extends Component
         }
     }
 
-    public function confirmResetPassword($id)
+    /**
+     * Open reset password confirmation modal.
+     */
+    public function confirmResetPassword(int $id): void
     {
-        $this->authorize('access', 'password.reset');
-        $this->editId = $id;
-        $user = UserModal::find($id);
-        $this->form->setUser($user);
-        $this->dispatch('open-modal', 'reset-password-confirmation');
+        try {
+            $this->authorize('access', 'password.reset');
+
+            $user = UserModel::findOrFail($id);
+            $this->editId = $id;
+            $this->form->setUser($user);
+            $this->dispatch('open-modal', 'reset-password-confirmation');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized password reset attempt', ['user_id' => Auth::id(), 'target_user_id' => $id]);
+            flash()->error('You are not authorized to reset passwords.');
+        } catch (ModelNotFoundException $e) {
+            Log::warning('User not found for password reset', ['target_user_id' => $id]);
+            flash()->error('User not found.');
+        }
     }
 
-    public function resetPassword()
+    /**
+     * Reset a user's password.
+     */
+    public function resetPassword(): void
     {
-        $this->authorize('access', 'password.reset');
-
         Log::info('Password reset action initiated', [
             'user_id' => Auth::id(),
             'correlation_id' => $this->correlationId,
+            'target_user_id' => $this->editId,
         ]);
 
         try {
+            $this->authorize('access', 'password.reset');
+
             $this->form->resetPassword();
             flash()->success('Password reset successfully.');
 
-            // Log the successful password reset
             Log::info('User password reset successfully', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
+                'target_user_id' => $this->editId,
             ]);
-        } catch (Exception $e) {
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized password reset', ['user_id' => Auth::id()]);
+            flash()->error('You are not authorized to reset passwords.');
+        } catch (\Exception $e) {
             Log::error('Password reset failed', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
@@ -199,41 +294,70 @@ class User extends Component
         }
     }
 
-    public function permission($id)
+    /**
+     * Open permission management modal.
+     */
+    public function permission(int $id): void
     {
-        $this->authorize('access', 'admin.users.role-permission');
+        try {
+            $this->authorize('access', 'admin.users.role-permission');
 
-        $this->form->setUser(UserModal::find($id));
-        $this->form->assignPermission();
+            $user = UserModel::findOrFail($id);
+            $this->form->setUser($user);
+            $this->form->assignPermission();
 
-        $this->groups = Group::with(['permissions' => function ($query) {
-            $query->orderBy('name');
-        }])->orderBy('name')->get(['id', 'name']);
+            $this->groups = Group::with(['permissions' => function ($query) {
+                $query->orderBy('name');
+            }])->orderBy('name')->get(['id', 'name']);
 
-        $this->dispatch('open-modal', 'permission-modal');
+            $this->dispatch('open-modal', 'permission-modal');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized permission management attempt', ['user_id' => Auth::id(), 'target_user_id' => $id]);
+            flash()->error('You are not authorized to manage permissions.');
+        } catch (ModelNotFoundException $e) {
+            Log::warning('User not found for permission management', ['target_user_id' => $id]);
+            flash()->error('User not found.');
+        } catch (\Exception $e) {
+            Log::error('Failed to load user permissions', [
+                'target_user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error('Failed to load permissions. Please try again.');
+        }
     }
 
-    public function syncPermission()
+    /**
+     * Sync user permissions.
+     */
+    public function syncPermission(): void
     {
-        $this->authorize('access', 'admin.users.role-permission');
-
         Log::info('Permission sync action initiated', [
             'user_id' => Auth::id(),
             'correlation_id' => $this->correlationId,
+            'target_user_id' => $this->form->user?->id,
         ]);
 
         try {
+            $this->authorize('access', 'admin.users.role-permission');
 
             $this->form->syncPermissions();
-            flash()->success('Permissions updated successfully.');
-            $this->dispatch('close-modal', 'permission-modal');
 
-            // Log the successful permission sync
+            // Dispatch event to refresh sidebar in real-time
+            $this->dispatch('menuUpdated');
+
+            flash()->success('Permissions updated successfully.');
+
             Log::info('User permissions updated successfully', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
+                'target_user_id' => $this->form->user?->id,
             ]);
-        } catch (Exception $e) {
+
+            $this->dispatch('close-modal', 'permission-modal');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized permission sync', ['user_id' => Auth::id()]);
+            flash()->error('You are not authorized to modify permissions.');
+        } catch (\Exception $e) {
             Log::error('Permission sync failed', [
                 'user_id' => Auth::id(),
                 'correlation_id' => $this->correlationId,
@@ -243,7 +367,10 @@ class User extends Component
         }
     }
 
-    public function mount()
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
     {
         $this->authorize('access', 'admin.users.index');
 
@@ -251,18 +378,22 @@ class User extends Component
         $this->roles = Role::all();
     }
 
+    /**
+     * Render the component.
+     */
     public function render()
     {
         $this->authorize('access', 'admin.users.index');
 
-        $table_heads = ['#', 'Name', 'Username', 'Email', 'Email Verified At', 'Actions'];
-
-        $users = UserModal::when($this->search, function ($query) {
+        $users = UserModel::when($this->search, function ($query) {
             $query->where('name', 'like', '%' . $this->search . '%')
                 ->orWhere('username', 'like', '%' . $this->search . '%')
                 ->orWhere('email', 'like', '%' . $this->search . '%');
         })->latest()->paginate(10);
 
-        return view('livewire.admin.pages.user', compact('table_heads', 'users'));
+        return view('livewire.admin.pages.user', [
+            'table_heads' => $this->table_heads,
+            'users' => $users,
+        ]);
     }
 }
