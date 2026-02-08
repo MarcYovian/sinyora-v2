@@ -25,6 +25,7 @@ class EventFactory extends Factory
     {
         $startDate = $this->faker->dateTimeBetween('now', '+1 month');
         $endDate = $this->faker->dateTimeBetween($startDate, '+2 months');
+        $user = User::first() ?? User::factory()->create();
 
         return [
             'name' => $this->faker->sentence(3),
@@ -32,7 +33,8 @@ class EventFactory extends Factory
             'start_recurring' => $startDate->format('Y-m-d'),
             'end_recurring' => $endDate->format('Y-m-d'),
             'status' => $this->faker->randomElement(EventApprovalStatus::cases()),
-            'created_by' => User::factory(),
+            'creator_id' => $user->id,
+            'creator_type' => $user->getMorphClass(),
             'recurrence_type' => $this->faker->randomElement(EventRecurrenceType::cases()),
             'organization_id' => Organization::factory(),
             'event_category_id' => EventCategory::factory(),

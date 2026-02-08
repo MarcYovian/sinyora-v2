@@ -240,4 +240,14 @@ class BorrowingForm extends Form
             throw ValidationException::withMessages(['error' => 'Terjadi kesalahan sistem saat menolak peminjaman.']);
         }
     }
+
+    /**
+     * Reset the form to initial state.
+     */
+    public function resetForm(): void
+    {
+        $this->reset(['assets', 'start_datetime', 'end_datetime', 'notes', 'borrower', 'borrower_phone', 'borrowable_type', 'borrowable_id', 'activity_name', 'activity_location']);
+        $this->borrowing = null;
+        $this->resetErrorBag();
+    }
 }

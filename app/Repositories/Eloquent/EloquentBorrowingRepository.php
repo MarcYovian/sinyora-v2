@@ -5,7 +5,9 @@ namespace App\Repositories\Eloquent;
 use App\Enums\BorrowingStatus;
 use App\Models\Borrowing;
 use App\Repositories\Contracts\BorrowingRepositoryInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class EloquentBorrowingRepository implements BorrowingRepositoryInterface
 {
@@ -22,6 +24,12 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
      */
     public function create(array $data): Borrowing
     {
+        Log::debug('Creating borrowing in repository', [
+            'start_datetime' => $data['start_datetime'] ?? null,
+            'end_datetime' => $data['end_datetime'] ?? null,
+            'assets_count' => count($data['assets'] ?? []),
+        ]);
+
         $borrowing = Borrowing::create([
             'start_datetime' => $data['start_datetime'],
             'end_datetime' => $data['end_datetime'],
@@ -38,12 +46,16 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
         $assetsToSync = [];
         if (!empty($data['assets'])) {
             foreach ($data['assets'] as $assetData) {
-                // Pastikan formatnya benar sebelum sync
                 $assetsToSync[$assetData['asset_id']] = ['quantity' => $assetData['quantity']];
             }
         }
 
         $borrowing->assets()->sync($assetsToSync);
+
+        Log::debug('Borrowing created in repository', [
+            'borrowing_id' => $borrowing->id,
+            'assets_synced' => count($assetsToSync),
+        ]);
 
         return $borrowing;
     }
@@ -55,20 +67,42 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
     {
         $borrowing = $this->findById($id);
         if (!$borrowing) {
+            Log::warning('Attempted to delete non-existent borrowing', ['borrowing_id' => $id]);
             return false;
         }
 
         $borrowing->assets()->detach();
 
-        return $borrowing->delete();
+        $result = $borrowing->delete();
+
+        Log::debug('Borrowing deleted in repository', [
+            'borrowing_id' => $id,
+            'success' => $result,
+        ]);
+
+        return $result;
     }
 
     /**
      * @inheritDoc
      */
-    public function findById(int $id): Borrowing|null
+    public function findById(int $id): ?Borrowing
     {
         return Borrowing::find($id);
+    }
+
+    /**
+     * Find by ID or throw exception.
+     */
+    public function findByIdOrFail(int $id): Borrowing
+    {
+        $borrowing = Borrowing::find($id);
+
+        if (!$borrowing) {
+            throw new ModelNotFoundException("Borrowing with ID {$id} not found.");
+        }
+
+        return $borrowing;
     }
 
     /**
@@ -78,20 +112,27 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
     {
         $borrowing = $this->findById($id);
         if (!$borrowing) {
-            throw new \Exception("Borrowing with ID {$id} not found.");
+            throw new ModelNotFoundException("Borrowing with ID {$id} not found.");
         }
 
-        // Update the borrowing with the provided data
+        Log::debug('Updating borrowing in repository', [
+            'borrowing_id' => $id,
+            'fields_updated' => array_keys($data),
+        ]);
+
         $borrowing->fill($data);
 
         if (isset($data['assets'])) {
             $assetsToSync = [];
             foreach ($data['assets'] as $assetData) {
-                // Pastikan formatnya benar sebelum sync
                 $assetsToSync[$assetData['asset_id']] = ['quantity' => $assetData['quantity']];
             }
-            // Lakukan sync pada relasi pivot table asset_borrowing
             $borrowing->assets()->sync($assetsToSync);
+
+            Log::debug('Assets synced for borrowing', [
+                'borrowing_id' => $id,
+                'assets_count' => count($assetsToSync),
+            ]);
         }
 
         $borrowing->save();
@@ -106,10 +147,18 @@ class EloquentBorrowingRepository implements BorrowingRepositoryInterface
     {
         $borrowing = $this->findById($id);
         if (!$borrowing) {
-            throw new \Exception("Borrowing with ID {$id} not found.");
+            throw new ModelNotFoundException("Borrowing with ID {$id} not found.");
         }
+
+        $oldStatus = $borrowing->status;
         $borrowing->status = $status;
         $borrowing->save();
+
+        Log::debug('Borrowing status updated in repository', [
+            'borrowing_id' => $id,
+            'old_status' => $oldStatus->value ?? $oldStatus,
+            'new_status' => $status->value,
+        ]);
 
         return $borrowing;
     }

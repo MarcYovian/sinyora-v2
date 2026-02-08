@@ -5,8 +5,10 @@ namespace App\Livewire\Admin\Pages\Borrowing;
 use App\Enums\BorrowingStatus;
 use App\Livewire\Forms\BorrowingForm;
 use App\Models\Borrowing;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -23,123 +25,258 @@ class Index extends Component
 
     public $borrowing;
 
-    public $approveId;
-    public $rejectId;
-    public $deleteId;
+    public ?int $approveId = null;
+    public ?int $rejectId = null;
+    public ?int $deleteId = null;
 
-    #[Url(keep: true)]
+    #[Url(as: 'q')]
     public string $search = '';
 
-    #[Url(as: 'status', keep: true)]
+    #[Url(as: 's')]
     public string $filterStatus = '';
 
-    public function updated($propertyName): void
+    public string $correlationId = '';
+
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
+    {
+        $this->correlationId = Str::uuid()->toString();
+    }
+
+    /**
+     * Handle property updates.
+     */
+    public function updated(string $propertyName): void
     {
         if (in_array($propertyName, ['search', 'filterStatus'])) {
             $this->resetPage();
         }
     }
 
+    /**
+     * Reset all filters.
+     */
     public function resetFilters(): void
     {
         $this->reset('search', 'filterStatus');
         $this->resetPage();
     }
 
-    public function show(Borrowing $borrowing)
+    /**
+     * Show borrowing detail modal.
+     */
+    public function show(Borrowing $borrowing): void
     {
         $this->authorize('access', 'admin.asset-borrowings.show');
         $this->reset('borrowing');
         $this->borrowing = $borrowing->load(['assets', 'creator', 'event']);
         $this->dispatch('open-modal', 'borrowing-detail-modal');
+
+        Log::debug('Borrowing detail viewed', [
+            'borrowing_id' => $borrowing->id,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
     }
 
-    public function confirmApprove($id)
+    /**
+     * Open approve confirmation modal.
+     */
+    public function confirmApprove(Borrowing $borrowing): void
     {
         $this->authorize('access', 'admin.asset-borrowings.approve');
-        $this->approveId = $id;
+        $this->approveId = $borrowing->id;
+        $this->borrowing = $borrowing;
         $this->dispatch('open-modal', 'approve-borrowing-confirmation');
     }
 
-    public function confirmReject($id)
+    /**
+     * Open reject confirmation modal.
+     */
+    public function confirmReject(Borrowing $borrowing): void
     {
         $this->authorize('access', 'admin.asset-borrowings.reject');
-        $this->rejectId = $id;
+        $this->rejectId = $borrowing->id;
+        $this->borrowing = $borrowing;
         $this->dispatch('open-modal', 'reject-borrowing-confirmation');
     }
 
-    public function confirmDelete(Borrowing $borrowing)
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(Borrowing $borrowing): void
     {
         $this->authorize('access', 'admin.asset-borrowings.destroy');
         $this->deleteId = $borrowing->id;
+        $this->borrowing = $borrowing;
         $this->dispatch('open-modal', 'delete-borrowing-confirmation');
     }
 
-    public function approve()
+    /**
+     * Approve a borrowing request.
+     */
+    public function approve(): void
     {
-        $this->authorize('access', 'admin.asset-borrowings.approve');
-        if (!$this->approveId) {
-            return;
-        }
+        Log::info('Borrowing approval initiated', [
+            'borrowing_id' => $this->approveId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
+
         try {
+            $this->authorize('access', 'admin.asset-borrowings.approve');
+
+            if (!$this->approveId) {
+                return;
+            }
+
             $this->form->approve($this->approveId);
 
-            // 2. Baris ini HANYA akan berjalan jika tidak ada exception (proses sukses)
             flash()->success('Peminjaman berhasil disetujui.');
-            $this->approveId = null;
             $this->dispatch('close-modal', 'approve-borrowing-confirmation');
             $this->dispatch('close-modal', 'borrowing-detail-modal');
+
+            Log::info('Borrowing approved successfully', [
+                'borrowing_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menyetujui peminjaman.');
+            Log::warning('Unauthorized approval attempt', [
+                'borrowing_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (ValidationException $e) {
             flash()->error($e->validator->errors()->first());
+            Log::warning('Approval validation failed', [
+                'borrowing_id' => $this->approveId,
+                'error' => $e->validator->errors()->first(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            // 4. Tangkap error umum lainnya
-            flash()->error('Terjadi kesalahan yang tidak terduga.');
-            Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Borrowing approval failed', [
+                'borrowing_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } finally {
+            $this->approveId = null;
         }
     }
 
-    public function reject()
+    /**
+     * Reject a borrowing request.
+     */
+    public function reject(): void
     {
-        $this->authorize('access', 'admin.asset-borrowings.reject');
-        if (!$this->rejectId) {
-            return;
-        }
+        Log::info('Borrowing rejection initiated', [
+            'borrowing_id' => $this->rejectId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
         try {
+            $this->authorize('access', 'admin.asset-borrowings.reject');
+
+            if (!$this->rejectId) {
+                return;
+            }
+
             $this->form->reject($this->rejectId);
+
             flash()->success('Peminjaman berhasil ditolak.');
             $this->dispatch('close-modal', 'reject-borrowing-confirmation');
             $this->dispatch('close-modal', 'borrowing-detail-modal');
+
+            Log::info('Borrowing rejected successfully', [
+                'borrowing_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menolak peminjaman.');
+            Log::warning('Unauthorized rejection attempt', [
+                'borrowing_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (ValidationException $e) {
             flash()->error($e->validator->errors()->first());
+            Log::warning('Rejection validation failed', [
+                'borrowing_id' => $this->rejectId,
+                'error' => $e->validator->errors()->first(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            flash()->error('Terjadi kesalahan yang tidak terduga.');
-            Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Borrowing rejection failed', [
+                'borrowing_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } finally {
             $this->rejectId = null;
         }
     }
 
-    public function destroy()
+    /**
+     * Delete a borrowing record.
+     */
+    public function destroy(): void
     {
-        $this->authorize('access', 'admin.asset-borrowings.destroy');
-
-        if (!$this->deleteId) {
-            return;
-        }
+        Log::info('Borrowing deletion initiated', [
+            'borrowing_id' => $this->deleteId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
         try {
+            $this->authorize('access', 'admin.asset-borrowings.destroy');
+
+            if (!$this->deleteId) {
+                return;
+            }
+
             $this->form->destroy($this->deleteId);
+
             flash()->success('Peminjaman berhasil dihapus.');
             $this->dispatch('close-modal', 'delete-borrowing-confirmation');
+
+            Log::info('Borrowing deleted successfully', [
+                'borrowing_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menghapus peminjaman.');
+            Log::warning('Unauthorized deletion attempt', [
+                'borrowing_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            flash()->error('Terjadi kesalahan yang tidak terduga.');
-            Log::error('Caught Deletion Exception in Component: ' . $e->getMessage());
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Borrowing deletion failed', [
+                'borrowing_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } finally {
             $this->deleteId = null;
         }
     }
 
+    /**
+     * Render the component.
+     */
     public function render()
     {
         $this->authorize('access', 'admin.asset-borrowings.index');
@@ -147,7 +284,23 @@ class Index extends Component
         $table_heads = ['#', 'Peminjam', 'Periode', 'Aktivitas Terkait', 'Status', ''];
 
         $borrowings = Borrowing::query()
-            ->with(['creator', 'event'])
+            ->select([
+                'id',
+                'borrower',
+                'borrower_phone',
+                'start_datetime',
+                'end_datetime',
+                'status',
+                'creator_id',
+                'creator_type',
+                'borrowable_id',
+                'borrowable_type',
+                'created_at',
+            ])
+            ->with([
+                'creator:id,name,email',
+                'event:id,name',
+            ])
             ->when($this->search, function ($query) {
                 $query->where('borrower', 'like', '%' . $this->search . '%')
                     ->orWhereHas('event', function ($q) {

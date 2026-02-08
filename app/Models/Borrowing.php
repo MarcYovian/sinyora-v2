@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Enums\BorrowingStatus;
+use App\Observers\BorrowingObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy(BorrowingObserver::class)]
 class Borrowing extends Model
 {
     use HasFactory;
@@ -66,5 +69,10 @@ class Borrowing extends Model
     public function scopeRejected($query)
     {
         return $query->where('status', BorrowingStatus::REJECTED);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', BorrowingStatus::PENDING);
     }
 }

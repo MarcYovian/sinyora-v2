@@ -16,8 +16,10 @@ class EventCategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $name = $this->faker->word();
         return [
-            'name' => $this->faker->word(),
+            'name' => $name,
+            'slug' => \Illuminate\Support\Str::slug($name),
             'color' => $this->faker->hexColor(),
             'is_active' => 1,
         ];

@@ -8,17 +8,19 @@
         </p>
     </header>
 
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
         <div class="p-4 sm:p-6 space-y-4">
             {{-- Header Kontrol: Tombol, Filter, dan Pencarian --}}
+            {{-- Top Actions Bar --}}
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 @can('create asset borrowing')
                     <x-button type="button" variant="primary" href="{{ route('admin.asset-borrowings.create') }}"
-                        class="w-full sm:w-auto">
-                        <x-heroicon-s-plus class="w-5 h-5 mr-2" />
+                        class="items-center max-w-xs gap-2">
+                        <x-heroicon-s-plus class="w-5 h-5" />
                         <span>{{ __('Buat Peminjaman') }}</span>
                     </x-button>
                 @endcan
+
                 <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
                     <div class="w-full sm:w-auto sm:flex-grow">
                         <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
@@ -53,66 +55,90 @@
                 <div class="grid grid-cols-1 gap-4 md:hidden">
                     @forelse ($borrowings as $borrowing)
                         <div wire:key="borrowing-card-{{ $borrowing->id }}"
-                            class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
-                            <div class="p-4">
-                                <div class="flex items-start justify-between">
-                                    <div>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
-                                            {{ $borrowing->borrower }}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            Diajukan {{ $borrowing->created_at->diffForHumans() }}
-                                        </p>
-                                        <x-status-badge :status="$borrowing->status" />
+                            class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
+                            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">
+                                        {{ $borrowing->borrower }}
+                                    </h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                        {{ $borrowing->created_at->diffForHumans() }}
+                                    </p>
+                                    <div class="mt-1">
+                                         <x-status-badge :status="$borrowing->status" />
                                     </div>
-                                    {{-- Dropdown Aksi untuk Mobile --}}
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button
-                                                class="p-1.5 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
-                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
-                                            </button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            @can('edit asset borrowing')
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="trigger">
+                                        <button
+                                            class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                            <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
+                                        </button>
+                                    </x-slot>
+                                    <x-slot name="content">
+                                        @can('view asset borrowing details')
+                                             <x-dropdown-link wire:click="show({{ $borrowing->id }})">
+                                                Detail
+                                            </x-dropdown-link>
+                                        @endcan
+                                        @can('edit asset borrowing')
+                                            <x-dropdown-link
+                                                href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">Edit</x-dropdown-link>
+                                        @endcan
+                                        @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                            @can('approve borrowing asset')
                                                 <x-dropdown-link
-                                                    href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">Edit</x-dropdown-link>
+                                                    wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
                                             @endcan
-                                            @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                                @can('approve borrowing asset')
-                                                    <x-dropdown-link
-                                                        wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
-                                                @endcan
-                                                @can('reject borowing asset')
-                                                    <x-dropdown-link
-                                                        wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
-                                                @endcan
-                                            @endif
-                                            <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
-                                            @can('delete asset borrowing')
-                                                <x-dropdown-link wire:click="confirmDelete({{ $borrowing->id }})"
-                                                    class="text-red-600 dark:text-red-500">Delete
-                                                </x-dropdown-link>
+                                            @can('reject borowing asset')
+                                                <x-dropdown-link
+                                                    wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
                                             @endcan
-                                        </x-slot>
-                                    </x-dropdown>
-                                </div>
-                                <div class="mt-3 pt-3 border-t dark:border-gray-700 space-y-2 text-sm">
-                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                        <x-heroicon-o-calendar class="w-4 h-4 mr-2 flex-shrink-0" />
-                                        <span>{{ $borrowing->start_datetime->format('d M Y, H:i') }} -
-                                            {{ $borrowing->end_datetime->format('H:i') }}</span>
-                                    </div>
-                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                        <x-heroicon-o-link class="w-4 h-4 mr-2 flex-shrink-0" />
-                                        <span>{{ $borrowing->event?->name ?? 'Aktivitas Internal' }}</span>
-                                    </div>
-                                </div>
+                                        @endif
+                                        <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                                        @can('delete asset borrowing')
+                                            <x-dropdown-link wire:click="confirmDelete({{ $borrowing->id }})"
+                                                class="text-red-600 dark:text-red-500">Delete
+                                            </x-dropdown-link>
+                                        @endcan
+                                    </x-slot>
+                                </x-dropdown>
                             </div>
-                            <div class="bg-gray-50 dark:bg-gray-900/50 px-4 py-2 flex items-center justify-end gap-2">
-                                <x-button wire:click="show({{ $borrowing->id }})" variant="secondary" size="sm">
-                                    Detail
-                                </x-button>
+                            <div class="p-4 space-y-3 text-sm">
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-calendar class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>{{ $borrowing->start_datetime->format('d M Y, H:i') }} -
+                                        {{ $borrowing->end_datetime->format('H:i') }}</span>
+                                </div>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-link class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>{{ $borrowing->event?->name ?? 'Aktivitas Internal' }}</span>
+                                </div>
+
+                                {{-- Mobile Card Actions --}}
+                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+                                     @can('view asset borrowing details')
+                                        <button wire:click="show({{ $borrowing->id }})" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                            <x-heroicon-o-eye class="w-4 h-4" />
+                                            <span>{{ __('Detail') }}</span>
+                                        </button>
+                                    @endcan
+
+                                    @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                        @can('approve borrowing asset')
+                                            <button wire:click="confirmApprove({{ $borrowing->id }})" class="text-green-600 dark:text-green-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                                <x-heroicon-o-check class="w-4 h-4" />
+                                                <span>{{ __('Approve') }}</span>
+                                            </button>
+                                        @endcan
+                                        @can('reject borowing asset')
+                                            <button wire:click="confirmReject({{ $borrowing->id }})" class="text-red-500 dark:text-red-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                                <x-heroicon-o-x-mark class="w-4 h-4" />
+                                                <span>{{ __('Reject') }}</span>
+                                            </button>
+                                        @endcan
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @empty
@@ -126,7 +152,7 @@
 
                 {{-- Tampilan Table untuk Desktop --}}
                 <div class="hidden md:block">
-                    <x-table :heads="$table_heads">
+                    <x-table title="Data Peminjaman Aset" :heads="$table_heads">
                         @forelse ($borrowings as $borrowing)
                             <tr wire:key="borrowing-row-{{ $borrowing->id }}"
                                 class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -152,39 +178,48 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     {{-- Dropdown Aksi untuk Desktop --}}
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button
-                                                class="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800">
-                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
-                                            </button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            @can('view asset borrowing details')
-                                                <x-dropdown-link
-                                                    wire:click="show({{ $borrowing->id }})">Detail</x-dropdown-link>
+                                    <div class="flex items-center justify-end space-x-1">
+                                        @can('view asset borrowing details')
+                                            <x-button type="button" variant="primary" size="sm" class="!p-2"
+                                                wire:click="show({{ $borrowing->id }})" title="Detail">
+                                                <x-heroicon-o-eye class="w-4 h-4" />
+                                                <span class="sr-only">Detail</span>
+                                            </x-button>
+                                        @endcan
+
+                                        @can('edit asset borrowing')
+                                            <x-button type="button" variant="warning" size="sm" class="!p-2"
+                                                href="{{ route('admin.asset-borrowings.edit', $borrowing) }}" title="Edit">
+                                                <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                                <span class="sr-only">Edit</span>
+                                            </x-button>
+                                        @endcan
+
+                                        @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
+                                            @can('approve borrowing asset')
+                                                <x-button type="button" variant="success" size="sm" class="!p-2"
+                                                    wire:click="confirmApprove({{ $borrowing->id }})" title="Approve">
+                                                    <x-heroicon-o-check class="w-4 h-4" />
+                                                    <span class="sr-only">Approve</span>
+                                                </x-button>
                                             @endcan
-                                            @can('edit asset borrowing')
-                                                <x-dropdown-link
-                                                    href="{{ route('admin.asset-borrowings.edit', $borrowing) }}">Edit</x-dropdown-link>
+                                            @can('reject borowing asset')
+                                                <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                                    wire:click="confirmReject({{ $borrowing->id }})" title="Reject">
+                                                    <x-heroicon-o-x-mark class="w-4 h-4" />
+                                                    <span class="sr-only">Reject</span>
+                                                </x-button>
                                             @endcan
-                                            @if ($borrowing->status === App\Enums\BorrowingStatus::PENDING)
-                                                @can('approve borrowing asset')
-                                                    <x-dropdown-link
-                                                        wire:click="confirmApprove({{ $borrowing->id }})">Approve</x-dropdown-link>
-                                                @endcan
-                                                @can('reject borowing asset')
-                                                    <x-dropdown-link
-                                                        wire:click="confirmReject({{ $borrowing->id }})">Reject</x-dropdown-link>
-                                                @endcan
-                                            @endif
-                                            <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
-                                            @can('delete asset borrowing')
-                                                <x-dropdown-link wire:click="confirmDelete({{ $borrowing->id }})"
-                                                    class="text-red-600 dark:text-red-500">Delete</x-dropdown-link>
-                                            @endcan
-                                        </x-slot>
-                                    </x-dropdown>
+                                        @endif
+
+                                        @can('delete asset borrowing')
+                                            <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                                wire:click="confirmDelete({{ $borrowing->id }})" title="Hapus">
+                                                <x-heroicon-o-trash class="w-4 h-4" />
+                                                <span class="sr-only">Delete</span>
+                                            </x-button>
+                                        @endcan
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -204,7 +239,7 @@
         </div>
 
         {{-- Pagination --}}
-        <div class="px-4 sm:px-6 py-4">
+        <div class="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
             {{ $borrowings->links() }}
         </div>
     </div>
@@ -213,12 +248,17 @@
         @if ($this->borrowing)
             <div class="p-6">
                 <!-- Header -->
-                <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                        Borrowing Request #{{ $this->borrowing->id ?? 'N/A' }}
-                    </h2>
+                <div class="flex items-start justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                            {{ __('Borrowing Request') }} #{{ $this->borrowing->id ?? 'N/A' }}
+                        </h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {{ __('Detail lengkap permintaan peminjaman aset.') }}
+                        </p>
+                    </div>
                     <button type="button" @click="$dispatch('close')"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        class="p-2 -m-2 text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200 transition-all">
                         <x-heroicon-s-x-mark class="h-6 w-6" />
                     </button>
                 </div>
@@ -430,85 +470,145 @@
     </x-modal>
 
     <x-modal name="approve-borrowing-confirmation" :show="$errors->isNotEmpty()" focusable>
-        <form wire:submit="approve">
-            <div class="p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-2 rounded-full bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300">
-                        <x-heroicon-s-check class="h-6 w-6" />
+        <form wire:submit="approve" class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ __('Konfirmasi Persetujuan') }}
+            </h2>
+
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Apakah Anda yakin ingin menyetujui peminjaman ini? Aset akan direservasi untuk peminjam.') }}
+            </p>
+
+             @if ($this->borrowing)
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $this->borrowing->borrower }}
                     </div>
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Confirm Approval
-                    </h2>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Request #{{ $this->borrowing->id }} &bull; {{ $this->borrowing->created_at->diffForHumans() }}
+                    </div>
                 </div>
+            @endif
 
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Are you sure you want to approve this borrowing request? This will reserve the assets for the
-                    borrower.
-                </p>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
-                        Cancel
-                    </x-button>
-                    <x-button variant="success" size="sm">
-                        Confirm Approval
-                    </x-button>
+            <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-check-circle class="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span class="text-sm font-medium text-green-900 dark:text-green-200">
+                        {{ __('Status akan berubah menjadi Approved') }}
+                    </span>
                 </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    {{ __('Batal') }}
+                </x-secondary-button>
+
+                <x-button variant="success">
+                    <span wire:loading.remove wire:target="approve">{{ __('Setujui Peminjaman') }}</span>
+                    <span wire:loading wire:target="approve" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Memproses...') }}
+                    </span>
+                </x-button>
             </div>
         </form>
     </x-modal>
 
     <x-modal name="reject-borrowing-confirmation" :show="$errors->isNotEmpty()" focusable>
-        <form wire:submit="reject">
-            <div class="p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-2 rounded-full bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300">
-                        <x-heroicon-s-x-mark class="h-6 w-6" />
+        <form wire:submit="reject" class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ __('Konfirmasi Penolakan') }}
+            </h2>
+
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Apakah Anda yakin ingin menolak permohonan peminjaman ini?') }}
+            </p>
+
+            @if ($this->borrowing)
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $this->borrowing->borrower }}
                     </div>
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Confirm Rejection
-                    </h2>
+                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Request #{{ $this->borrowing->id }}
+                    </div>
                 </div>
+            @endif
 
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Are you sure you want to reject this borrowing request? This will cancel the request.
-                </p>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
-                        Cancel
-                    </x-button>
-                    <x-button variant="danger" size="sm">
-                        Confirm Rejection
-                    </x-button>
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Status akan berubah menjadi Rejected') }}
+                    </span>
                 </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    {{ __('Batal') }}
+                </x-secondary-button>
+
+                <x-button variant="danger">
+                    <span wire:loading.remove wire:target="reject">{{ __('Tolak Peminjaman') }}</span>
+                    <span wire:loading wire:target="reject" class="flex items-center gap-2">
+                         <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Memproses...') }}
+                    </span>
+                </x-button>
             </div>
         </form>
     </x-modal>
 
     <x-modal name="delete-borrowing-confirmation" :show="$errors->isNotEmpty()" focusable>
-        <form wire:submit="destroy">
-            <div class="p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-2 rounded-full bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300">
-                        <x-heroicon-s-x-mark class="h-6 w-6" />
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Confirm Deletion
-                    </h2>
-                </div>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Are you sure you want to cancel this borrowing request? This will cancel the request.
-                </p>
+        <form wire:submit="destroy" class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ __('Hapus Data Peminjaman?') }}
+            </h2>
 
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-button type="button" variant="secondary" size="sm" x-on:click="$dispatch('close')">
-                        Cancel
-                    </x-button>
-                    <x-button variant="danger" size="sm">
-                        Confirm Deletion
-                    </x-button>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Tindakan ini tidak dapat dibatalkan. Data peminjaman akan dihapus permanen dari sistem.') }}
+            </p>
+
+            @if ($this->borrowing)
+                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                        <div class="sm:col-span-1">
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ __('Peminjam') }}</dt>
+                            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $this->borrowing->borrower }}</dd>
+                        </div>
+                        <div class="sm:col-span-1">
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ __('Tanggal') }}</dt>
+                            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-gray-100">
+                                {{ $this->borrowing->start_datetime->format('d M') }} - {{ $this->borrowing->end_datetime->format('d M') }}
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
+            @endif
+
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-trash class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Data yang dihapus tidak dapat dipulihkan.') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    {{ __('Batal') }}
+                </x-secondary-button>
+
+                <x-danger-button>
+                    <span wire:loading.remove wire:target="destroy">{{ __('Hapus Peminjaman') }}</span>
+                    <span wire:loading wire:target="destroy" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Menghapus...') }}
+                    </span>
+                </x-danger-button>
             </div>
         </form>
     </x-modal>
