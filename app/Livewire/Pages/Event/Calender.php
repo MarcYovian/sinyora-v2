@@ -5,12 +5,18 @@ namespace App\Livewire\Pages\Event;
 use App\Enums\EventApprovalStatus;
 use App\Models\EventRecurrence;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Calender extends Component
 {
+    /**
+     * Cache TTL in seconds (3 minutes for calendar data).
+     */
+    private const CACHE_TTL = 180;
+
     #[Url(history: true)]
     public $year;
 
@@ -31,26 +37,49 @@ class Calender extends Component
         $this->day = $this->day ?? now()->day;
     }
 
-    // Menggunakan Computed Property untuk efisiensi
+    /**
+     * Get the current date as Carbon instance.
+     */
     #[Computed]
     public function currentDate()
     {
         return Carbon::create($this->year, $this->month, $this->day);
     }
 
+    /**
+     * Get events with caching and optimized eager loading.
+     */
     #[Computed]
     public function events()
     {
         $startDate = $this->currentDate->clone()->startOf($this->viewMode === 'month' ? 'month' : 'week')->startOfWeek();
         $endDate = $this->currentDate->clone()->endOf($this->viewMode === 'month' ? 'month' : 'week')->endOfWeek();
 
-        // Ambil semua acara yang sudah disetujui untuk rentang waktu yang relevan
-        return EventRecurrence::with(['event:id,name,status'])
-            ->whereHas('event', function ($q) {
-                $q->where('status', EventApprovalStatus::APPROVED);
-            })
-            ->whereBetween('date', [$startDate, $endDate])
-            ->get();
+        $cacheKey = "calendar_events_{$startDate->format('Y-m-d')}_{$endDate->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($startDate, $endDate) {
+            return EventRecurrence::query()
+                ->select(['id', 'event_id', 'date', 'time_start', 'time_end'])
+                ->with([
+                    'event' => fn($q) => $q->select(['id', 'name', 'status']),
+                ])
+                ->whereHas('event', fn($q) => $q->where('status', EventApprovalStatus::APPROVED))
+                ->whereBetween('date', [$startDate, $endDate])
+                ->orderBy('date')
+                ->orderBy('time_start')
+                ->get();
+        });
+    }
+
+    /**
+     * Clear calendar cache for a specific date range.
+     */
+    public static function clearCache(?Carbon $startDate = null, ?Carbon $endDate = null): void
+    {
+        if ($startDate && $endDate) {
+            $cacheKey = "calendar_events_{$startDate->format('Y-m-d')}_{$endDate->format('Y-m-d')}";
+            Cache::forget($cacheKey);
+        }
     }
 
     // --- Navigasi ---

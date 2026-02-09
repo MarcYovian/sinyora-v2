@@ -147,6 +147,10 @@ class AppServiceProvider extends ServiceProvider
         // Register Role Observer for Spatie Role model
         \Spatie\Permission\Models\Role::observe(\App\Observers\RoleObserver::class);
 
+        // Register Event and EventRecurrence Observers for cache invalidation
+        \App\Models\Event::observe(\App\Observers\EventObserver::class);
+        \App\Models\EventRecurrence::observe(\App\Observers\EventRecurrenceObserver::class);
+
         Gate::define('access', function (User $user, string $routeName) {
             // Cek apakah user memiliki permission langsung
             if ($user->hasPermissionTo(CustomPermission::where('route_name', $routeName)->pluck('name')->first())) {
