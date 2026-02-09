@@ -14,7 +14,6 @@
     @if(request()->routeIs('home.index'))
     <!-- Preload hero background untuk LCP optimization (hanya di halaman home) -->
     <link rel="preload" as="image" href="{{ asset('images/1.webp') }}" type="image/webp">
-    <link rel="preload" as="image" href="{{ asset('images/about.webp') }}" type="image/webp">
     @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

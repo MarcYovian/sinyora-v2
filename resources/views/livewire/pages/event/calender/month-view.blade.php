@@ -1,8 +1,8 @@
 <div class="bg-white rounded-lg font-sans">
     @php
         $date = \Carbon\Carbon::create($year, $month, 1);
-        $startOfGrid = $date->copy()->startOfMonth()->startOfWeek(\Carbon\Carbon::SUNDAY);
-        $endOfGrid = $date->copy()->endOfMonth()->endOfWeek(\Carbon\Carbon::SATURDAY);
+        $startOfGrid = $date->copy()->startOfMonth()->startOfWeek(\Carbon\CarbonInterface::SUNDAY);
+        $endOfGrid = $date->copy()->endOfMonth()->endOfWeek(\Carbon\CarbonInterface::SATURDAY);
         $dateRange = \Carbon\CarbonPeriod::create($startOfGrid, $endOfGrid);
     @endphp
 
