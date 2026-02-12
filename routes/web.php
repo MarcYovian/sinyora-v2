@@ -146,8 +146,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
 });
 
 Route::post('/trix-attachments', [TrixAttachmentController::class, 'store'])
-    ->name('trix-file-upload');
+    ->name('trix-file-upload')
+    ->middleware('auth');
 Route::delete('/trix-attachments', [TrixAttachmentController::class, 'destroy'])
-    ->name('trix-file-delete');
+    ->name('trix-file-delete')
+    ->middleware('auth');
 
 require __DIR__ . '/auth.php';

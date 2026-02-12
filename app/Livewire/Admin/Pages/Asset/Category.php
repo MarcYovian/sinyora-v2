@@ -222,6 +222,22 @@ class Category extends Component
         } catch (AuthorizationException $e) {
             Log::warning('Unauthorized asset category deletion', ['user_id' => Auth::id()]);
             flash()->error('You are not authorized to delete categories.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                Log::warning('Asset category deletion failed due to foreign key constraint', [
+                    'user_id' => Auth::id(),
+                    'correlation_id' => $this->correlationId,
+                    'category_id' => $this->deleteId,
+                ]);
+                flash()->error('Tidak dapat menghapus kategori ini karena masih digunakan oleh satu atau lebih aset.');
+            } else {
+                Log::error('Asset category deletion failed (QueryException)', [
+                    'user_id' => Auth::id(),
+                    'correlation_id' => $this->correlationId,
+                    'error' => $e->getMessage(),
+                ]);
+                flash()->error("Terjadi kesalahan database saat menghapus kategori. #{$this->correlationId}");
+            }
         } catch (\Exception $e) {
             Log::error('Asset category deletion failed', [
                 'user_id' => Auth::id(),
@@ -244,10 +260,14 @@ class Category extends Component
     {
         $this->authorize('access', 'admin.asset-categories.index');
 
-        $categories = AssetCategory::when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('slug', 'like', '%' . $this->search . '%');
-        })->latest()->paginate(10);
+        $categories = AssetCategory::query()
+            ->select(['id', 'name', 'slug', 'is_active', 'created_at'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('slug', 'like', '%' . $this->search . '%');
+                });
+            })->latest()->paginate(10);
 
         return view('livewire.admin.pages.asset.category', [
             'categories' => $categories,

@@ -23,6 +23,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class EventCreationService
@@ -40,8 +41,17 @@ class EventCreationService
     ) {
     }
 
-    public function createEvent(array $data)
+    /**
+     * Create a new event with recurrences and location associations.
+     */
+    public function createEvent(array $data): Event
     {
+        Log::info('Creating new event', [
+            'event_name' => $data['name'] ?? null,
+            'recurrence_type' => $data['recurrence_type'] ?? null,
+            'user_id' => Auth::id(),
+        ]);
+
         if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
             $recurrences = $this->handleCustomRecurrences($data);
             $dates = array_column($recurrences, 'date');
@@ -80,14 +90,36 @@ class EventCreationService
                 $event->locations()->sync($data['locations']);
 
                 $this->eventRecurrenceRepository->create($event, $recurrences);
+
+                Log::info('Event created successfully', [
+                    'event_id' => $event->id,
+                    'event_name' => $event->name,
+                    'recurrences_count' => count($recurrences),
+                    'user_id' => Auth::id(),
+                ]);
+
+                return $event;
             } catch (\Throwable $th) {
+                Log::error('Failed to create event', [
+                    'event_name' => $data['name'] ?? null,
+                    'user_id' => Auth::id(),
+                    'error' => $th->getMessage(),
+                ]);
                 throw $th;
             }
         });
     }
 
-    public function createEventForGuest(array $data)
+    /**
+     * Create an event submitted by a guest user.
+     */
+    public function createEventForGuest(array $data): Event
     {
+        Log::info('Creating event for guest', [
+            'guest_email' => $data['guestEmail'] ?? null,
+            'event_name' => $data['name'] ?? null,
+        ]);
+
         $classifier = new EventCategoryClassifier();
         $data['event_category_id'] = $classifier->classify($data['name'], $data['description']);
         $data['recurrence_type'] = EventRecurrenceType::DAILY->value;
@@ -141,14 +173,34 @@ class EventCreationService
                 }
 
                 EventProposalCreated::dispatch($guest, $event);
+
+                Log::info('Guest event created successfully', [
+                    'event_id' => $event->id,
+                    'guest_email' => $data['guestEmail'] ?? null,
+                ]);
+
+                return $event;
             } catch (\Throwable $th) {
+                Log::error('Failed to create guest event', [
+                    'guest_email' => $data['guestEmail'] ?? null,
+                    'error' => $th->getMessage(),
+                ]);
                 throw $th;
             }
         });
     }
 
-    public function createEventFromDocument(Document $document, array $data, array $information)
+    /**
+     * Create events from a parsed document with licensing and optional borrowing.
+     */
+    public function createEventFromDocument(Document $document, array $data, array $information): void
     {
+        Log::info('Creating events from document', [
+            'document_id' => $document->id,
+            'dates_count' => count(data_get($data, 'parsed_dates.dates', [])),
+            'user_id' => Auth::id(),
+        ]);
+
         $user = $this->userRepository->findById(Auth::id());
         $organizationId = data_get($information, 'final_organization_id');
 
@@ -191,15 +243,38 @@ class EventCreationService
                 );
             }
         }
+
+        Log::info('Events created from document successfully', [
+            'document_id' => $document->id,
+            'user_id' => Auth::id(),
+        ]);
     }
 
+    /**
+     * Get an event by ID with its relations.
+     */
     public function getEventById(?int $id): ?Event
     {
-        return $this->eventRepository->findById($id)->load(['eventCategory', 'organization', 'locations', 'eventRecurrences']);
+        if ($id === null) {
+            return null;
+        }
+
+        $event = $this->eventRepository->findById($id);
+
+        return $event?->load(['eventCategory', 'organization', 'locations', 'eventRecurrences']);
     }
 
-    public function updateEvent(Event $event, array $data)
+    /**
+     * Update an existing event with new data, recurrences, and locations.
+     */
+    public function updateEvent(Event $event, array $data): Event
     {
+        Log::info('Updating event', [
+            'event_id' => $event->id,
+            'event_name' => $data['name'] ?? null,
+            'user_id' => Auth::id(),
+        ]);
+
         if ($data['recurrence_type'] === EventRecurrenceType::CUSTOM->value) {
             $recurrences = $this->handleCustomRecurrences($data);
             $dates = array_column($recurrences, 'date');
@@ -228,9 +303,8 @@ class EventCreationService
                     'recurrence_type' => $data['recurrence_type'],
                     'organization_id' => $data['organization_id'],
                     'event_category_id' => $data['event_category_id'],
-                    // Reset status to PENDING when event is edited (for re-approval)
                     'status' => EventApprovalStatus::PENDING,
-                    'rejection_reason' => null, // Clear rejection reason
+                    'rejection_reason' => null,
                 ];
 
                 $eventUpdated = $this->eventRepository->update($event->id, $eventData);
@@ -242,40 +316,78 @@ class EventCreationService
                 $event->locations()->sync($data['locations']);
 
                 $this->eventRecurrenceRepository->sync($event, $recurrences);
+
+                Log::info('Event updated successfully', [
+                    'event_id' => $event->id,
+                    'recurrences_count' => count($recurrences),
+                    'user_id' => Auth::id(),
+                ]);
+
+                return $event->fresh();
             } catch (\Throwable $th) {
+                Log::error('Failed to update event', [
+                    'event_id' => $event->id,
+                    'user_id' => Auth::id(),
+                    'error' => $th->getMessage(),
+                ]);
                 throw $th;
             }
         });
     }
 
+    /**
+     * Delete an event (only pending events can be deleted).
+     */
     public function deleteEvent(Event $event): bool
     {
-        try {
-            if ($event->status === EventApprovalStatus::APPROVED) {
-                throw new \Exception('Cannot delete an approved event.');
-            }
-            if ($event->status === EventApprovalStatus::REJECTED) {
-                throw new \Exception('Cannot delete a rejected event.');
-            }
-            if ($event->status === EventApprovalStatus::PENDING) {
+        Log::info('Deleting event', [
+            'event_id' => $event->id,
+            'status' => $event->status->value ?? $event->status,
+            'user_id' => Auth::id(),
+        ]);
+
+        if ($event->status !== EventApprovalStatus::PENDING) {
+            throw new \Exception('Only pending events can be deleted. Current status: ' . ($event->status->value ?? $event->status));
+        }
+
+        return DB::transaction(function () use ($event) {
+            try {
                 $event->eventRecurrences()->delete();
                 $event->locations()->detach();
                 $event->delete();
+
+                Log::info('Event deleted successfully', [
+                    'event_id' => $event->id,
+                    'user_id' => Auth::id(),
+                ]);
+
                 return true;
+            } catch (\Throwable $th) {
+                Log::error('Failed to delete event', [
+                    'event_id' => $event->id,
+                    'user_id' => Auth::id(),
+                    'error' => $th->getMessage(),
+                ]);
+                throw $th;
             }
-            throw new \Exception('Invalid event status for deletion.');
-        } catch (\Throwable $th) {
-            throw new \Exception('Failed to delete event: ' . $th->getMessage());
-        }
+        });
     }
 
+    /**
+     * Approve a pending event after checking for schedule conflicts.
+     */
     public function approveEvent(Event $event): bool
     {
-        try {
-            if ($event->status !== EventApprovalStatus::PENDING) {
-                throw new \Exception('Only pending events can be approved.');
-            }
+        Log::info('Approving event', [
+            'event_id' => $event->id,
+            'user_id' => Auth::id(),
+        ]);
 
+        if ($event->status !== EventApprovalStatus::PENDING) {
+            throw new \Exception('Only pending events can be approved.');
+        }
+
+        try {
             $event->load(['eventRecurrences', 'locations']);
             $recurrences = $event->eventRecurrences->map(function ($recurrence) {
                 return [
@@ -295,19 +407,45 @@ class EventCreationService
 
             EventApproved::dispatch($event->creator, $event);
 
+            Log::info('Event approved successfully', [
+                'event_id' => $event->id,
+                'approved_by' => Auth::id(),
+            ]);
+
             return $updated;
+        } catch (ScheduleConflictException $e) {
+            Log::warning('Event approval blocked by schedule conflict', [
+                'event_id' => $event->id,
+                'user_id' => Auth::id(),
+                'conflict' => $e->getMessage(),
+            ]);
+            throw $e;
         } catch (\Throwable $th) {
-            throw new \Exception('Failed to approve event: ' . $th->getMessage());
+            Log::error('Failed to approve event', [
+                'event_id' => $event->id,
+                'user_id' => Auth::id(),
+                'error' => $th->getMessage(),
+            ]);
+            throw new \Exception('Failed to approve event: ' . $th->getMessage(), previous: $th);
         }
     }
 
+    /**
+     * Reject a pending event with a reason.
+     */
     public function rejectEvent(Event $event, string $rejectionReason): bool
     {
-        try {
-            if ($event->status !== EventApprovalStatus::PENDING) {
-                throw new \Exception('Only pending events can be rejected.');
-            }
+        Log::info('Rejecting event', [
+            'event_id' => $event->id,
+            'user_id' => Auth::id(),
+            'reason' => $rejectionReason,
+        ]);
 
+        if ($event->status !== EventApprovalStatus::PENDING) {
+            throw new \Exception('Only pending events can be rejected.');
+        }
+
+        try {
             $updated = $this->eventRepository->changeStatus($event, EventApprovalStatus::REJECTED, $rejectionReason);
             if (!$updated) {
                 throw new \Exception('Failed to update event status.');
@@ -315,12 +453,26 @@ class EventCreationService
 
             EventRejected::dispatch($event->creator, $event, $rejectionReason);
 
+            Log::info('Event rejected successfully', [
+                'event_id' => $event->id,
+                'rejected_by' => Auth::id(),
+                'reason' => $rejectionReason,
+            ]);
+
             return $updated;
         } catch (\Throwable $th) {
-            throw new \Exception('Failed to reject event: ' . $th->getMessage());
+            Log::error('Failed to reject event', [
+                'event_id' => $event->id,
+                'user_id' => Auth::id(),
+                'error' => $th->getMessage(),
+            ]);
+            throw new \Exception('Failed to reject event: ' . $th->getMessage(), previous: $th);
         }
     }
 
+    /**
+     * Generate recurrence data for standard (non-custom) recurrence types.
+     */
     private function handleRecurrences(array $data): array
     {
         $startEvent = Carbon::parse($data['datetime_start']);
@@ -331,21 +483,19 @@ class EventCreationService
         }
 
         $allRecurrences = [];
-        $endRecurringDate = Carbon::parse($data['end_recurring'])->endOfDay(); // Ensure we include events on the last day.
+        $endRecurringDate = Carbon::parse($data['end_recurring'])->endOfDay();
 
         $period = CarbonPeriod::create(
             $startEvent,
-            $this->getInverval($data['recurrence_type']),
+            $this->getInterval($data['recurrence_type']),
             $endRecurringDate
         );
 
         $eventDuration = $startEvent->diff($endEvent);
 
         foreach ($period as $occurrenceStartDate) {
-            // Calculate the end date for this specific occurrence by adding the original duration.
             $occurrenceEndDate = $occurrenceStartDate->copy()->add($eventDuration);
 
-            // Generate and merge the date/time segments for this single occurrence.
             $segments = $this->generateSegmentsForOccurrence($occurrenceStartDate, $occurrenceEndDate);
             $allRecurrences = array_merge($allRecurrences, $segments);
         }
@@ -353,7 +503,10 @@ class EventCreationService
         return $allRecurrences;
     }
 
-    private function handleCustomRecurrences($data)
+    /**
+     * Generate recurrence data for custom schedule entries.
+     */
+    private function handleCustomRecurrences(array $data): array
     {
         $allRecurrences = [];
 
@@ -367,22 +520,19 @@ class EventCreationService
         return $allRecurrences;
     }
 
+    /**
+     * Generate day-by-day time segments for a single occurrence spanning start to end.
+     */
     private function generateSegmentsForOccurrence(Carbon $start, Carbon $end): array
     {
         $segments = [];
         $currentDate = $start->copy();
 
-        // Loop day by day from the start of the occurrence until the end.
         while ($currentDate->isBefore($end)) {
             $dayStart = $currentDate->copy()->startOfDay();
             $dayEnd = $currentDate->copy()->endOfDay();
 
-            // Determine the start time for this segment.
-            // If it's the very first day, use the event's start time. Otherwise, it's the beginning of the day.
             $segmentStart = $currentDate->isSameDay($start) ? $start : $dayStart;
-
-            // Determine the end time for this segment.
-            // If it's the last day, use the event's end time. Otherwise, it's the end of the day.
             $segmentEnd = $currentDate->isSameDay($end) ? $end : $dayEnd;
 
             $segments[] = [
@@ -391,23 +541,28 @@ class EventCreationService
                 'time_end' => $segmentEnd->format('H:i:s'),
             ];
 
-            // Move to the start of the next day.
             $currentDate->addDay()->startOfDay();
         }
 
         return $segments;
     }
 
-    private function getInverval(string $recurrenceType): string
+    /**
+     * Get the interval string for CarbonPeriod based on recurrence type.
+     */
+    private function getInterval(string $recurrenceType): string
     {
         return match ($recurrenceType) {
             EventRecurrenceType::WEEKLY->value => '1 week',
             EventRecurrenceType::BIWEEKLY->value => '2 weeks',
             EventRecurrenceType::MONTHLY->value => '1 month',
-            default => '1 day', // Default fallback
+            default => '1 day',
         };
     }
 
+    /**
+     * Sync both standard and custom locations to an event.
+     */
     private function syncLocationsToEvent(Event $event, array $locationData): void
     {
         $locationIds = collect($locationData)
@@ -431,6 +586,11 @@ class EventCreationService
         }
     }
 
+    /**
+     * Check for scheduling conflicts with existing approved events at the same locations.
+     *
+     * @throws ScheduleConflictException
+     */
     private function checkForConflicts(array $recurrences, array $locationIds, ?int $excludeEventId = null): void
     {
         $conflicts = $this->eventRecurrenceRepository->findConflicts($recurrences, $locationIds, $excludeEventId);

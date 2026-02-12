@@ -9,6 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -375,7 +376,9 @@ class User extends Component
         $this->authorize('access', 'admin.users.index');
 
         $this->correlationId = Str::uuid()->toString();
-        $this->roles = Role::all();
+        $this->roles = Cache::remember('roles_dropdown', 3600, function () {
+            return Role::all(['id', 'name']);
+        });
     }
 
     /**
@@ -385,11 +388,15 @@ class User extends Component
     {
         $this->authorize('access', 'admin.users.index');
 
-        $users = UserModel::when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('username', 'like', '%' . $this->search . '%')
-                ->orWhere('email', 'like', '%' . $this->search . '%');
-        })->latest()->paginate(10);
+        $users = UserModel::query()
+            ->select(['id', 'name', 'username', 'email', 'email_verified_at', 'created_at'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('username', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                });
+            })->latest()->paginate(10);
 
         return view('livewire.admin.pages.user', [
             'table_heads' => $this->table_heads,

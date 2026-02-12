@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Stevebauman\Purify\Facades\Purify;
 use Throwable;
 
 class ArticleService
@@ -126,8 +127,8 @@ class ArticleService
         $payload = [
             'title' => $data->title,
             'slug' => $data->slug,
-            'content' => $data->content,
-            'excerpt' => $data->excerpt,
+            'content' => Purify::config('trix')->clean($data->content),
+            'excerpt' => strip_tags($data->excerpt),
             'category_id' => $data->category_id,
             'reading_time' => $this->calculateReadingTime($data->content),
             'is_published' => $data->is_published,

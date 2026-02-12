@@ -8,7 +8,10 @@ use App\Models\Article;
 use App\Models\ArticleCategory;
 use App\Models\Tag;
 use App\Services\ArticleService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -24,10 +27,15 @@ class Form extends Component
     public ArticleForm $form;
     public ?Article $article = null;
     public $categories;
+    public string $correlationId = '';
 
-    public function mount($id = null)
+    /**
+     * Mount the component.
+     */
+    public function mount(?int $id = null): void
     {
         $this->authorize('access', 'admin.articles.create');
+        $this->correlationId = Str::uuid()->toString();
 
         if ($id) {
             $this->authorize('access', 'admin.articles.edit');
@@ -36,7 +44,9 @@ class Form extends Component
             $this->form->setArticle($this->article);
         }
 
-        $this->categories = ArticleCategory::get(['name', 'id']);
+        $this->categories = Cache::remember('article_categories_dropdown', 3600, function () {
+            return ArticleCategory::get(['name', 'id']);
+        });
     }
 
     public function updatedFormTitle($title): void
@@ -44,7 +54,10 @@ class Form extends Component
         $this->form->slug = Str::slug($title);
     }
 
-    public function removeImage()
+    /**
+     * Remove uploaded image.
+     */
+    public function removeImage(): void
     {
         $this->form->removeImage();
     }
@@ -55,17 +68,27 @@ class Form extends Component
         $this->form->validate();
 
         try {
-            // Gunakan method injection untuk memanggil service
             $articleService = app(ArticleService::class);
             $articleData = ArticleData::fromLivewire($this->form);
 
             $articleService->saveArticle($articleData, $this->article);
 
+            Log::info('Article saved successfully', [
+                'user_id' => Auth::id(),
+                'article_id' => $this->article?->id,
+                'is_published' => $publish,
+                'correlation_id' => $this->correlationId,
+            ]);
+
             flash()->success($this->article ? 'Artikel berhasil diperbarui' : 'Artikel berhasil disimpan');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } catch (\Throwable $e) {
-            Log::error('Gagal menyimpan artikel: ' . $e->getMessage(), ['exception' => $e]);
-            flash()->error('Terjadi kesalahan saat menyimpan artikel.');
+            Log::error('Failed to save article', [
+                'user_id' => Auth::id(),
+                'correlation_id' => $this->correlationId,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error("Terjadi kesalahan saat menyimpan artikel. #{$this->correlationId}");
         }
     }
 
@@ -126,16 +149,27 @@ class Form extends Component
         return max(1, $readingTime);
     }
 
-    public function confirmDelete()
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(): void
     {
         $this->authorize('access', 'admin.articles.destroy');
         $this->dispatch('open-modal', 'delete-article-confirmation');
     }
 
-    public function delete(ArticleService $articleService)
+    /**
+     * Soft delete the article.
+     */
+    public function delete(ArticleService $articleService): void
     {
         $this->authorize('access', 'admin.articles.destroy');
         if ($articleService->deleteArticle($this->article)) {
+            Log::info('Article deleted from form page', [
+                'user_id' => Auth::id(),
+                'article_id' => $this->article?->id,
+                'correlation_id' => $this->correlationId,
+            ]);
             flash()->success('Artikel berhasil dihapus');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } else {
@@ -143,16 +177,28 @@ class Form extends Component
         }
     }
 
+    /**
+     * Force delete the article permanently.
+     */
     public function forceDelete(ArticleService $articleService): void
     {
         $this->authorize('forceDelete', $this->article);
         try {
             $articleService->forceDeleteArticle($this->article);
+            Log::info('Article force deleted from form page', [
+                'user_id' => Auth::id(),
+                'article_id' => $this->article?->id,
+                'correlation_id' => $this->correlationId,
+            ]);
             flash()->success('Artikel berhasil dihapus permanen');
             $this->redirect(route('admin.articles.index'), navigate: true);
         } catch (\Throwable $e) {
-            Log::error('Gagal hapus permanen artikel: ' . $e->getMessage(), ['exception' => $e]);
-            flash()->error('Terjadi kesalahan saat menghapus artikel.');
+            Log::error('Failed to force delete article', [
+                'user_id' => Auth::id(),
+                'correlation_id' => $this->correlationId,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error("Terjadi kesalahan saat menghapus artikel. #{$this->correlationId}");
         }
     }
 

@@ -75,11 +75,11 @@
             (!("color-theme" in localStorage) &&
                 window.matchMedia("(prefers-color-scheme: dark)").matches)
         ) {
-            console.log("dark");
             themeToggleLightIcon.classList.remove("hidden");
+            document.documentElement.classList.add("dark");
         } else {
-            console.log("light");
             themeToggleDarkIcon.classList.remove("hidden");
+            document.documentElement.classList.remove("dark");
         }
 
         var themeToggleBtn = document.getElementById("theme-toggle");

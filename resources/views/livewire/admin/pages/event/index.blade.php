@@ -10,11 +10,14 @@
 
     <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
         <div class="p-4 sm:p-6 space-y-4">
+            {{-- Header Kontrol: Tombol, Filter, dan Pencarian --}}
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
-                    <x-heroicon-s-plus class="w-5 h-5" />
-                    <span>{{ __('Tambah Kegiatan') }}</span>
-                </x-button>
+                @can('access', 'admin.events.create')
+                    <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
+                        <x-heroicon-s-plus class="w-5 h-5" />
+                        <span>{{ __('Tambah Kegiatan') }}</span>
+                    </x-button>
+                @endcan
 
                 <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
                     <div class="w-full sm:w-auto sm:flex-grow">
@@ -51,49 +54,55 @@
                     @forelse ($events as $event)
                         <div wire:key="event-card-{{ $event->id }}"
                             class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
-                            <div class="p-4 border-b dark:border-gray-700">
-                                <div class="flex items-start justify-between">
+                            <div class="p-4 border-b dark:border-gray-700 font-bold text-lg text-gray-800 dark:text-gray-200 flex justify-between items-start">
+                                <div>
                                     <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ $event->name }}
                                     </h3>
-                                    {{-- Dropdown di mobile relatif terhadap card, jadi tidak ada masalah z-index --}}
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button
-                                                class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                                <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
-                                            </button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
-                                                Detail
-                                            </x-dropdown-link>
+                                    <div class="mt-1">
+                                        <x-status-badge :status="$event->status" />
+                                    </div>
+                                </div>
+                                {{-- Dropdown di mobile --}}
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="trigger">
+                                        <button
+                                            class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                            <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
+                                        </button>
+                                    </x-slot>
+                                    <x-slot name="content">
+                                        <x-dropdown-link href="{{ route('admin.events.show', $event) }}">
+                                            Detail
+                                        </x-dropdown-link>
+                                        @can('access', 'admin.events.edit')
                                             <x-dropdown-link wire:click="edit({{ $event->id }})">
                                                 Edit
                                             </x-dropdown-link>
-                                            @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                        @endcan
+                                        @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                            @can('access', 'admin.events.approve')
                                                 <x-dropdown-link wire:click="confirmApprove({{ $event->id }})">
                                                     Approve
                                                 </x-dropdown-link>
+                                            @endcan
+                                            @can('access', 'admin.events.reject')
                                                 <x-dropdown-link wire:click="confirmReject({{ $event->id }})">
                                                     Reject
                                                 </x-dropdown-link>
-                                            @endif
-                                            <div class="border-t border-gray-100 dark:border-gray-600"></div>
+                                            @endcan
+                                        @endif
+                                        <div class="border-t border-gray-100 dark:border-gray-600"></div>
+                                        @can('access', 'admin.events.destroy')
                                             <x-dropdown-link wire:click="confirmDelete({{ $event->id }})"
                                                 class="text-red-600 dark:text-red-500">Delete
                                             </x-dropdown-link>
-                                        </x-slot>
-                                    </x-dropdown>
-                                </div>
-                                <x-status-badge :status="$event->status" class="mt-2" />
+                                        @endcan
+                                    </x-slot>
+                                </x-dropdown>
                             </div>
                             <div class="p-4 space-y-3 text-sm">
                                 <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                        </path>
-                                    </svg>
+                                    <x-heroicon-o-calendar class="w-4 h-4 mr-2 flex-shrink-0" />
                                     <span>
                                         {{ Carbon\Carbon::parse($event->start_recurring)->translatedFormat('d M Y') }}
                                         -
@@ -101,29 +110,43 @@
                                     </span>
                                 </div>
                                 <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2 0h2v2h-2V9zm2-4h-2v2h2V5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                    <x-heroicon-o-building-office class="w-4 h-4 mr-2 flex-shrink-0" />
                                     <span>{{ $event->organization->name ?? '-' }}</span>
                                 </div>
                                 {{-- Kategori --}}
                                 <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                    <div class="w-3 h-3 rounded-full mr-2"
+                                    <div class="w-3 h-3 rounded-full mr-2 flex-shrink-0"
                                         style="background-color: {{ $event->eventCategory->color ?? '#9ca3af' }}">
                                     </div>
                                     <span>{{ $event->eventCategory->name ?? '-' }}</span>
                                 </div>
                                 {{-- Lokasi --}}
                                 <div class="flex items-start text-gray-600 dark:text-gray-300">
-                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor"
-                                        viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                    <x-heroicon-o-map-pin class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
                                     <span>{{ $event->locations->pluck('name')->implode(', ') }}</span>
+                                </div>
+
+                                {{-- Mobile Card Actions --}}
+                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+                                    <button onclick="window.location='{{ route('admin.events.show', $event) }}'" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                        <x-heroicon-o-eye class="w-4 h-4" />
+                                        <span>{{ __('Detail') }}</span>
+                                    </button>
+
+                                    @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                        @can('access', 'admin.events.approve')
+                                            <button wire:click="confirmApprove({{ $event->id }})" class="text-green-600 dark:text-green-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                                <x-heroicon-o-check class="w-4 h-4" />
+                                                <span>{{ __('Approve') }}</span>
+                                            </button>
+                                        @endcan
+                                        @can('access', 'admin.events.reject')
+                                            <button wire:click="confirmReject({{ $event->id }})" class="text-red-500 dark:text-red-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                                <x-heroicon-o-x-mark class="w-4 h-4" />
+                                                <span>{{ __('Reject') }}</span>
+                                            </button>
+                                        @endcan
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -139,7 +162,7 @@
                     <x-table title="Data Kegiatan" :heads="$table_heads">
                         @forelse ($events as $key => $event)
                             <tr wire:key="event-table-{{ $event->id }}"
-                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 isolate">
+                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 isolate">
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                                     {{ $key + $events->firstItem() }}
                                 </td>
@@ -200,42 +223,50 @@
                                     <x-status-badge :status="$event->status" />
                                 </td>
                                 {{-- Actions --}}
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex items-center justify-end space-x-1">
-                                        {{-- Detail Button - Blue/Info --}}
+                                        {{-- Detail Button - Blue/Primary --}}
                                         <x-button tag="a" href="{{ route('admin.events.show', $event) }}"
-                                            variant="info" size="sm" class="!p-2" title="Lihat Detail">
+                                            variant="primary" size="sm" class="!p-2" title="Detail">
                                             <x-heroicon-o-eye class="w-4 h-4" />
                                             <span class="sr-only">Detail</span>
                                         </x-button>
 
-                                        {{-- Edit Button - Amber/Warning (available for all statuses, will reset to pending) --}}
+                                        {{-- Edit Button - Amber/Warning --}}
+                                        @can('access', 'admin.events.edit')
                                         <x-button type="button" variant="warning" size="sm" class="!p-2"
-                                            wire:click="edit({{ $event->id }})" title="Edit Kegiatan (akan dikembalikan ke Pending)">
+                                            wire:click="edit({{ $event->id }})" title="Edit">
                                             <x-heroicon-o-pencil-square class="w-4 h-4" />
                                             <span class="sr-only">Edit</span>
                                         </x-button>
+                                        @endcan
 
                                         {{-- Approve/Reject Buttons (only for pending) --}}
                                         @if ($event->status === App\Enums\EventApprovalStatus::PENDING)
+                                            @can('access', 'admin.events.approve')
                                             <x-button type="button" variant="success" size="sm" class="!p-2"
-                                                wire:click="confirmApprove({{ $event->id }})" title="Setujui Kegiatan">
-                                                <x-heroicon-o-check-circle class="w-4 h-4" />
+                                                wire:click="confirmApprove({{ $event->id }})" title="Approve">
+                                                <x-heroicon-o-check class="w-4 h-4" />
                                                 <span class="sr-only">Approve</span>
                                             </x-button>
-                                            <x-button type="button" variant="secondary" size="sm" class="!p-2 !bg-orange-100 !text-orange-600 hover:!bg-orange-200 dark:!bg-orange-900/30 dark:!text-orange-400"
-                                                wire:click="confirmReject({{ $event->id }})" title="Tolak Kegiatan">
-                                                <x-heroicon-o-x-circle class="w-4 h-4" />
+                                            @endcan
+                                            @can('access', 'admin.events.reject')
+                                            <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                                wire:click="confirmReject({{ $event->id }})" title="Reject">
+                                                <x-heroicon-o-x-mark class="w-4 h-4" />
                                                 <span class="sr-only">Reject</span>
                                             </x-button>
+                                            @endcan
                                         @endif
 
                                         {{-- Delete Button - Red/Danger --}}
+                                        @can('access', 'admin.events.destroy')
                                         <x-button type="button" variant="danger" size="sm" class="!p-2"
-                                            wire:click="confirmDelete({{ $event->id }})" title="Hapus Kegiatan">
+                                            wire:click="confirmDelete({{ $event->id }})" title="Hapus">
                                             <x-heroicon-o-trash class="w-4 h-4" />
                                             <span class="sr-only">Delete</span>
                                         </x-button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
@@ -243,7 +274,9 @@
                             <tr>
                                 <td colspan="{{ count($table_heads) }}"
                                     class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                    {{ __('Tidak ada data yang tersedia.') }}
+                                    <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                                    <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data yang tersedia') }}</h4>
+                                    <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau buat kegiatan baru.') }}</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -257,6 +290,7 @@
         </div>
     </div>
 
+    {{-- Event Form Modal --}}
     <x-modal name="event-modal" :show="$errors->isNotEmpty()" maxWidth="6xl" focusable>
         <form wire:submit="save" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
             <!-- Header with close button -->
@@ -563,82 +597,149 @@
         </form>
     </x-modal>
 
+    {{-- Delete Confirmation --}}
     <x-modal name="delete-event-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="delete" class="p-6">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to delete this event?') }}
+                {{ __('Hapus Data Kegiatan?') }}
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('This action cannot be undone.') }}
+                {{ __('Tindakan ini tidak dapat dibatalkan. Data kegiatan akan dihapus permanen dari sistem.') }}
             </p>
 
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Please confirm that you want to delete this event by clicking the button below.') }}
-            </p>
+            @if ($form->event)
+                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ __('Nama Kegiatan') }}</dt>
+                            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $form->event->name }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            @endif
 
-            <div class="mt-6 flex justify-end">
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-trash class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Data yang dihapus tidak dapat dipulihkan.') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button type="button" x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
+                    {{ __('Batal') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete') }}
+                <x-danger-button>
+                    <span wire:loading.remove wire:target="delete">{{ __('Hapus Kegiatan') }}</span>
+                    <span wire:loading wire:target="delete" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Menghapus...') }}
+                    </span>
                 </x-danger-button>
             </div>
         </form>
     </x-modal>
 
+    {{-- Approve Confirmation --}}
     <x-modal name="approve-event-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="approve" class="p-6">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to approve this event?') }}
+                {{ __('Konfirmasi Persetujuan') }}
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('This action cannot be undone.') }}
+                {{ __('Apakah Anda yakin ingin menyetujui kegiatan ini?') }}
             </p>
 
-            <div class="mt-6 flex justify-end">
+            @if ($form->event)
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $form->event->name }}
+                    </div>
+                </div>
+            @endif
+
+            <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-check-circle class="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span class="text-sm font-medium text-green-900 dark:text-green-200">
+                        {{ __('Status akan berubah menjadi Approved') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button type="button" x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
+                    {{ __('Batal') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Approve') }}
-                </x-danger-button>
+                <x-button variant="success">
+                    <span wire:loading.remove wire:target="approve">{{ __('Setujui Kegiatan') }}</span>
+                    <span wire:loading wire:target="approve" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Memproses...') }}
+                    </span>
+                </x-button>
             </div>
         </form>
     </x-modal>
 
+    {{-- Reject Confirmation --}}
     <x-modal name="reject-event-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="reject" class="p-6">
-
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to reject this event?') }}
+                {{ __('Konfirmasi Penolakan') }}
             </h2>
+
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {{ __('Apakah Anda yakin ingin menolak kegiatan ini?') }}
+            </p>
+
+            @if ($form->event)
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $form->event->name }}
+                    </div>
+                </div>
+            @endif
 
             <div class="mt-6">
                 <x-input-label for="rejection_reason" value="{{ __('Alasan Penolakan') }}" class="sr-only" />
-
                 <textarea wire:model="form.rejection_reason" id="rejection_reason" rows="4"
                     class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
-                    placeholder="{{ __('Reason for rejection') }}"></textarea>
-
+                    placeholder="{{ __('Alasan penolakan...') }}"></textarea>
                 <x-input-error :messages="$errors->get('form.rejection_reason')" class="mt-2" />
             </div>
 
-            <div class="mt-6 flex justify-end">
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Status akan berubah menjadi Rejected') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button type="button" x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
+                    {{ __('Batal') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Reject') }}
-                </x-danger-button>
+                <x-button variant="danger">
+                    <span wire:loading.remove wire:target="reject">{{ __('Tolak Kegiatan') }}</span>
+                    <span wire:loading wire:target="reject" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Memproses...') }}
+                    </span>
+                </x-button>
             </div>
         </form>
     </x-modal>
+
     <style>
         @keyframes fade-in {
             from {

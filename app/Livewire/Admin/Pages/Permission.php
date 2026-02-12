@@ -5,10 +5,15 @@ namespace App\Livewire\Admin\Pages;
 use App\Livewire\Forms\PermissionForm;
 use App\Models\CustomPermission;
 use App\Models\Group;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -25,8 +30,9 @@ class Permission extends Component
     #[Url(as: 'q')]
     public $search = '';
 
-    public $editId = null;
-    public $deleteId = null;
+    public ?int $editId = null;
+    public ?int $deleteId = null;
+    public string $correlationId = '';
 
     public $groups;
 
@@ -170,11 +176,17 @@ class Permission extends Component
         $this->resetPage();
     }
 
-    public function mount()
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
     {
         $this->authorize('access', 'admin.permissions.index');
+        $this->correlationId = Str::uuid()->toString();
 
-        $this->groups = Group::all();
+        $this->groups = Cache::remember('groups_dropdown', 3600, function () {
+            return Group::all(['id', 'name']);
+        });
     }
 
     public function render()
@@ -183,13 +195,18 @@ class Permission extends Component
 
         $table_heads = ['No', 'Group', 'Name', 'Route Name', 'Default', 'Actions'];
 
-        $permissions = CustomPermission::with('groupPermission')->when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('route_name', 'like', '%' . $this->search . '%')
-                ->orWhereHas('groupPermission', function ($query) {
-                    $query->where('name', 'like', '%' . $this->search . '%');
+        $permissions = CustomPermission::query()
+            ->select(['id', 'name', 'route_name', 'group', 'default', 'created_at'])
+            ->with('groupPermission:id,name')
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('route_name', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('groupPermission', function ($gq) {
+                            $gq->where('name', 'like', '%' . $this->search . '%');
+                        });
                 });
-        })->latest()->paginate(10);
+            })->latest()->paginate(10);
 
         return view('livewire.admin.pages.permission', [
             'table_heads' => $table_heads,

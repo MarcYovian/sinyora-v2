@@ -5,10 +5,6 @@ namespace App\Livewire\Forms;
 use App\Enums\EventRecurrenceType;
 use App\Exceptions\ScheduleConflictException;
 use App\Models\Event;
-use App\Repositories\Eloquent\EloquentBorrowingRepository;
-use App\Repositories\Eloquent\EloquentEventRecurrenceRepository;
-use App\Repositories\Eloquent\EloquentEventRepository;
-use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Services\EventCreationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -18,8 +14,7 @@ use Livewire\Form;
 
 class EventForm extends Form
 {
-    public ?Event $event;
-
+    public ?Event $event = null;
 
     // Form properties
     public string $name = '';
@@ -133,10 +128,13 @@ class EventForm extends Form
         ];
     }
 
+    /**
+     * Set the form data from an existing event.
+     */
     public function setEvent(?int $id = null): void
     {
         $this->event = app(EventCreationService::class)->getEventById($id);
-        // dd($this->event->toArray());
+
         if ($this->event) {
             $this->name = $this->event->name;
             $this->description = $this->event->description ?? '';
@@ -145,7 +143,10 @@ class EventForm extends Form
             $this->recurrence_type = $this->event->recurrence_type->value;
 
             if ($this->recurrence_type === EventRecurrenceType::CUSTOM->value) {
-                $recurrences = $this->event->eventRecurrences()->orderBy('date', 'asc')->orderBy('time_start', 'asc')->get();
+                // Use already-loaded relation (no extra query) instead of ->eventRecurrences()
+                $recurrences = $this->event->eventRecurrences
+                    ->sortBy([['date', 'asc'], ['time_start', 'asc']])
+                    ->values();
 
                 $this->custom_schedules = [];
                 $count = $recurrences->count();
@@ -190,7 +191,6 @@ class EventForm extends Form
                         $this->datetime_end = $continuousEndDate->format('Y-m-d\TH:i');
                     }
                 } else {
-                    // Jika tidak ada jadwal sama sekali, kosongkan
                     $this->datetime_start = '';
                     $this->datetime_end = '';
                 }
@@ -204,52 +204,90 @@ class EventForm extends Form
                 $this->end_recurring = '';
             }
 
-            $this->locations = $this->event->locations()->pluck('locations.id')->toArray();
+            // Use already-loaded relation instead of query
+            $this->locations = $this->event->locations->pluck('id')->toArray();
         }
     }
 
-    public function addCustomSchedule()
+    /**
+     * Add a new custom schedule entry.
+     */
+    public function addCustomSchedule(): void
     {
         $this->custom_schedules[] = ['datetime_start' => '', 'datetime_end' => ''];
     }
 
-    // Metode BARU untuk menghapus baris jadwal custom
-    public function removeCustomSchedule($index)
+    /**
+     * Remove a custom schedule entry by index.
+     */
+    public function removeCustomSchedule(int $index): void
     {
         unset($this->custom_schedules[$index]);
-        $this->custom_schedules = array_values($this->custom_schedules); // Re-index array
+        $this->custom_schedules = array_values($this->custom_schedules);
     }
 
+    /**
+     * Store a new event.
+     */
     public function store(): void
     {
         $validated = $this->validate();
 
+        Log::info('Event store validated data:', $validated);
+
         try {
             app(EventCreationService::class)->createEvent($validated);
+
+            Log::info('Event created via form', [
+                'event_name' => $validated['name'],
+                'user_id' => auth()->id(),
+            ]);
+
             $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {
-            Log::error('Error creating event: ' . $e->getMessage());
+            Log::error('Error creating event', [
+                'event_name' => $validated['name'] ?? 'unknown',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages(['error' => __('Failed to create event. Please try again.')]);
         }
     }
 
+    /**
+     * Update an existing event.
+     */
     public function update(): void
     {
         $validated = $this->validate();
 
         try {
             app(EventCreationService::class)->updateEvent($this->event, $validated);
+
+            Log::info('Event updated via form', [
+                'event_id' => $this->event?->id,
+                'event_name' => $validated['name'],
+                'user_id' => auth()->id(),
+            ]);
+
             $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {
-            Log::error('Error updating event: ' . $e->getMessage());
+            Log::error('Error updating event', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages(['error' => __('Failed to update event. Please try again.')]);
         }
     }
 
+    /**
+     * Delete the current event.
+     */
     public function delete(): void
     {
         if (!$this->event) {
@@ -258,37 +296,90 @@ class EventForm extends Form
 
         try {
             app(EventCreationService::class)->deleteEvent($this->event);
+
+            Log::info('Event deleted via form', [
+                'event_id' => $this->event->id,
+                'user_id' => auth()->id(),
+            ]);
+
             $this->reset();
         } catch (\Exception $e) {
-            Log::error('Error deleting event: ' . $e->getMessage());
+            Log::error('Error deleting event', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         }
     }
 
-    public function approve()
+    /**
+     * Approve the current event.
+     */
+    public function approve(): void
     {
         try {
             app(EventCreationService::class)->approveEvent($this->event);
+
+            Log::info('Event approved via form', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+            ]);
+
             $this->reset();
         } catch (ScheduleConflictException $e) {
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         } catch (\Exception $e) {
-            Log::error('Error deleting event: ' . $e->getMessage());
+            Log::error('Error approving event', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         }
     }
 
-    public function reject()
+    /**
+     * Reject the current event with a reason.
+     */
+    public function reject(): void
     {
         if ($this->rejection_reason === '') {
             throw ValidationException::withMessages(['rejection_reason' => 'Rejection reason is required.']);
         }
+
         try {
             app(EventCreationService::class)->rejectEvent($this->event, $this->rejection_reason);
+
+            Log::info('Event rejected via form', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+                'reason' => $this->rejection_reason,
+            ]);
+
             $this->reset();
         } catch (\Exception $e) {
-            Log::error('Error rejecting event: ' . $e->getMessage());
+            Log::error('Error rejecting event', [
+                'event_id' => $this->event?->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages(['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Reset the form to initial state.
+     */
+    public function resetForm(): void
+    {
+        $this->reset([
+            'name', 'description', 'event_category_id', 'organization_id',
+            'datetime_start', 'datetime_end', 'recurrence_type',
+            'start_recurring', 'end_recurring', 'locations',
+            'custom_schedules', 'rejection_reason',
+        ]);
+        $this->event = null;
+        $this->resetErrorBag();
     }
 }

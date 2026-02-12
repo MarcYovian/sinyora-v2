@@ -24,6 +24,12 @@ class BorrowingManagementServiceTest extends TestCase
     {
         parent::setUp();
 
+        // Mock Log facade since service uses logging throughout
+        \Illuminate\Support\Facades\Log::shouldReceive('info')->zeroOrMoreTimes();
+        \Illuminate\Support\Facades\Log::shouldReceive('debug')->zeroOrMoreTimes();
+        \Illuminate\Support\Facades\Log::shouldReceive('error')->zeroOrMoreTimes();
+        \Illuminate\Support\Facades\Log::shouldReceive('warning')->zeroOrMoreTimes();
+
         $this->borrowingRepository = \Mockery::mock(BorrowingRepositoryInterface::class);
         $this->eventRepository = \Mockery::mock(EventRepositoryInterface::class);
         $this->activityRepository = \Mockery::mock(ActivityRepositoryInterface::class);

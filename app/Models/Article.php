@@ -86,4 +86,17 @@ class Article extends Model implements Sitemapable
             ->setChangeFrequency(Url::CHANGE_FREQUENCY_MONTHLY)
             ->setPriority(0.8);
     }
+
+    public function getFeaturedImageUrlAttribute(): string
+    {
+        if (filter_var($this->featured_image, FILTER_VALIDATE_URL)) {
+            return $this->featured_image;
+        }
+
+        if ($this->featured_image) {
+            return asset('storage/' . $this->featured_image);
+        }
+
+        return 'https://via.placeholder.com/640x360';
+    }
 }

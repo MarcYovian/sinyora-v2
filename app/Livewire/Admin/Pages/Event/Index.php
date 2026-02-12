@@ -8,8 +8,12 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\Location;
 use App\Models\Organization;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -23,31 +27,57 @@ class Index extends Component
     #[Layout('layouts.app')]
 
     public EventForm $form;
-    public $editId = null;
-    public $deleteId = null;
-    public $approveId = null;
-    public $rejectId = null;
+    public ?int $editId = null;
+    public ?int $deleteId = null;
+    public ?int $approveId = null;
+    public ?int $rejectId = null;
 
-    public $categories;
-    public $organizations;
-    public $locations;
+    public Collection $categories;
+    public Collection $organizations;
+    public Collection $locations;
 
     #[Url(as: 'q')]
-    public ?string $search = '';
+    public string $search = '';
 
-    #[Url(as: 'status')]
-    public ?string $filterStatus = '';
+    #[Url(as: 's')]
+    public string $filterStatus = '';
 
-    public function mount()
+    public string $correlationId = '';
+
+    /**
+     * Mount the component and load dropdown data.
+     */
+    public function mount(): void
     {
+        $this->correlationId = Str::uuid()->toString();
+
         $this->authorize('access', 'admin.events.index');
 
-        $this->categories = EventCategory::active()->get(['id', 'name']);
-        $this->organizations = Organization::active()->get(['id', 'name']);
-        $this->locations = Location::active()->get(['id', 'name']);
+        $this->categories = Cache::remember('event_categories_dropdown', 3600, function () {
+            return EventCategory::active()->get(['id', 'name']);
+        });
+        $this->organizations = Cache::remember('organizations_dropdown', 3600, function () {
+            return Organization::active()->get(['id', 'name']);
+        });
+        $this->locations = Cache::remember('locations_dropdown', 3600, function () {
+            return Location::active()->get(['id', 'name']);
+        });
     }
 
-    public function create()
+    /**
+     * Handle property updates (reset pagination on filter change).
+     */
+    public function updated(string $propertyName): void
+    {
+        if (in_array($propertyName, ['search', 'filterStatus'])) {
+            $this->resetPage();
+        }
+    }
+
+    /**
+     * Open modal for creating a new event.
+     */
+    public function create(): void
     {
         $this->authorize('access', 'admin.events.create');
 
@@ -55,9 +85,17 @@ class Index extends Component
         $this->editId = null;
         $this->deleteId = null;
         $this->dispatch('open-modal', 'event-modal');
+
+        Log::debug('Create event modal opened', [
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
     }
 
-    public function edit($id)
+    /**
+     * Open modal for editing an existing event.
+     */
+    public function edit(int $id): void
     {
         $this->authorize('access', 'admin.events.edit');
 
@@ -65,26 +103,77 @@ class Index extends Component
         $this->editId = $id;
         $this->form->setEvent($id);
         $this->dispatch('open-modal', 'event-modal');
+
+        Log::debug('Edit event modal opened', [
+            'event_id' => $id,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
     }
 
-    public function save()
+    /**
+     * Save (create or update) an event.
+     */
+    public function save(): void
     {
-        if ($this->editId) {
-            $this->authorize('access', 'admin.events.edit');
+        try {
+            if ($this->editId) {
+                $this->authorize('access', 'admin.events.edit');
 
-            $this->form->update();
-            $this->editId = null;
-            flash()->success(__('Event updated successfully.'));
-        } else {
-            $this->authorize('access', 'admin.events.create');
+                Log::info('Updating event', [
+                    'event_id' => $this->editId,
+                    'user_id' => auth()->id(),
+                    'correlation_id' => $this->correlationId,
+                ]);
 
-            $this->form->store();
-            flash()->success(__('Event created successfully.'));
+                $this->form->update();
+                $this->editId = null;
+                flash()->success(__('Event updated successfully.'));
+
+                Log::info('Event updated successfully', [
+                    'event_id' => $this->editId,
+                    'correlation_id' => $this->correlationId,
+                ]);
+            } else {
+                $this->authorize('access', 'admin.events.create');
+
+                Log::info('Creating event', [
+                    'user_id' => auth()->id(),
+                    'correlation_id' => $this->correlationId,
+                ]);
+
+                $this->form->store();
+                flash()->success(__('Event created successfully.'));
+
+                Log::info('Event created successfully', [
+                    'correlation_id' => $this->correlationId,
+                ]);
+            }
+            $this->dispatch('close-modal', 'event-modal');
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk operasi ini.');
+            Log::warning('Unauthorized event save attempt', [
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (ValidationException $e) {
+            // Let validation errors bubble up to form
+            throw $e;
+        } catch (\Exception $e) {
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Event save failed', [
+                'event_id' => $this->editId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
         }
-        $this->dispatch('close-modal', 'event-modal');
     }
 
-    public function confirmDelete($id)
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(int $id): void
     {
         $this->authorize('access', 'admin.events.destroy');
 
@@ -93,19 +182,59 @@ class Index extends Component
         $this->dispatch('open-modal', 'delete-event-confirmation');
     }
 
-    public function delete()
+    /**
+     * Delete an event.
+     */
+    public function delete(): void
     {
-        $this->authorize('access', 'admin.events.destroy');
+        Log::info('Event deletion initiated', [
+            'event_id' => $this->deleteId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
-        if ($this->deleteId) {
+        try {
+            $this->authorize('access', 'admin.events.destroy');
+
+            if (!$this->deleteId) {
+                return;
+            }
+
             $this->form->delete();
-            $this->deleteId = null;
+
             flash()->success(__('Event deleted successfully.'));
+            $this->dispatch('close-modal', 'delete-event-confirmation');
+
+            Log::info('Event deleted successfully', [
+                'event_id' => $this->deleteId,
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menghapus event.');
+            Log::warning('Unauthorized event deletion attempt', [
+                'event_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (ValidationException $e) {
+            flash()->error($e->validator->errors()->first());
+        } catch (\Exception $e) {
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Event deletion failed', [
+                'event_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } finally {
+            $this->deleteId = null;
         }
-        $this->dispatch('close-modal', 'delete-event-confirmation');
     }
 
-    public function confirmApprove($id)
+    /**
+     * Open approve confirmation modal.
+     */
+    public function confirmApprove(int $id): void
     {
         $this->authorize('access', 'admin.events.approve');
         $this->form->resetErrorBag();
@@ -114,28 +243,65 @@ class Index extends Component
         $this->dispatch('open-modal', 'approve-event-confirmation');
     }
 
-    public function approve()
+    /**
+     * Approve an event.
+     */
+    public function approve(): void
     {
-        $this->authorize('access', 'admin.events.approve');
+        Log::info('Event approval initiated', [
+            'event_id' => $this->approveId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
-        if (!$this->approveId) {
-            return;
-        }
         try {
+            $this->authorize('access', 'admin.events.approve');
+
+            if (!$this->approveId) {
+                return;
+            }
+
             $this->form->approve();
-            $this->approveId = null;
+
             flash()->success('Event approved successfully.');
             $this->dispatch('close-modal', 'approve-event-confirmation');
+
+            Log::info('Event approved successfully', [
+                'event_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menyetujui event.');
+            Log::warning('Unauthorized event approval attempt', [
+                'event_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (ValidationException $e) {
             flash()->error($e->validator->errors()->first());
+            Log::warning('Event approval validation failed', [
+                'event_id' => $this->approveId,
+                'error' => $e->validator->errors()->first(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            // 4. Tangkap error umum lainnya
-            flash()->error('Terjadi kesalahan yang tidak terduga.');
-            Log::error('Caught Approval Exception in Component: ' . $e->getMessage());
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Event approval failed', [
+                'event_id' => $this->approveId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } finally {
+            $this->approveId = null;
         }
     }
 
-    public function confirmReject($id)
+    /**
+     * Open reject confirmation modal.
+     */
+    public function confirmReject(int $id): void
     {
         $this->authorize('access', 'admin.events.reject');
 
@@ -144,69 +310,128 @@ class Index extends Component
         $this->dispatch('open-modal', 'reject-event-confirmation');
     }
 
-    public function reject()
+    /**
+     * Reject an event.
+     */
+    public function reject(): void
     {
-        $this->authorize('access', 'admin.events.reject');
-
-        if (!$this->rejectId) {
-            return;
-        }
+        Log::info('Event rejection initiated', [
+            'event_id' => $this->rejectId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
         try {
+            $this->authorize('access', 'admin.events.reject');
+
+            if (!$this->rejectId) {
+                return;
+            }
+
             $this->form->reject();
-            $this->rejectId = null;
+
             flash()->success('Event rejected successfully.');
             $this->dispatch('close-modal', 'reject-event-confirmation');
+
+            Log::info('Event rejected successfully', [
+                'event_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menolak event.');
+            Log::warning('Unauthorized event rejection attempt', [
+                'event_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (ValidationException $e) {
             flash()->error($e->validator->errors()->first());
+            Log::warning('Event rejection validation failed', [
+                'event_id' => $this->rejectId,
+                'error' => $e->validator->errors()->first(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            // 4. Tangkap error umum lainnya
-            flash()->error('Terjadi kesalahan yang tidak terduga.');
-            Log::error('Caught Rejection Exception in Component: ' . $e->getMessage());
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Event rejection failed', [
+                'event_id' => $this->rejectId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } finally {
+            $this->rejectId = null;
         }
     }
 
-    public function addCustomSchedule()
+    /**
+     * Add a custom schedule entry to the form.
+     */
+    public function addCustomSchedule(): void
     {
         $this->form->addCustomSchedule();
     }
 
-    // Metode BARU untuk di-trigger dari view
-    public function removeCustomSchedule($index)
+    /**
+     * Remove a custom schedule entry from the form.
+     */
+    public function removeCustomSchedule(int $index): void
     {
         $this->form->removeCustomSchedule($index);
     }
 
+    /**
+     * Reset all filters.
+     */
     public function resetFilters(): void
     {
         $this->reset('search', 'filterStatus');
         $this->resetPage();
     }
 
+    /**
+     * Render the component.
+     */
     public function render()
     {
         $this->authorize('access', 'admin.events.index');
 
-        // table heads
         $table_heads = ['No', 'Event', 'Period', 'Categories', 'Locations', 'Status', 'Action'];
 
-        // events list
-        $events = Event::with(['eventCategory', 'organization', 'locations', 'eventRecurrences'])
+        $events = Event::query()
+            ->select([
+                'id',
+                'name',
+                'start_recurring',
+                'end_recurring',
+                'status',
+                'recurrence_type',
+                'event_category_id',
+                'organization_id',
+                'creator_id',
+                'creator_type',
+                'created_at',
+            ])
+            ->with([
+                'eventCategory:id,name',
+                'organization:id,name',
+                'locations:locations.id,locations.name',
+                'eventRecurrences:id,event_id,date,time_start,time_end',
+            ])
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('description', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('eventCategory', function ($query) {
-                        $query->where('name', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('organization', function ($query) {
-                        $query->where('name', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('locations', function ($query) {
-                        $query->where('name', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('eventRecurrences', function ($query) {
-                        $query->where('date', 'like', '%' . $this->search . '%');
-                    });
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('eventCategory', function ($sub) {
+                            $sub->where('name', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('organization', function ($sub) {
+                            $sub->where('name', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('locations', function ($sub) {
+                            $sub->where('name', 'like', '%' . $this->search . '%');
+                        });
+                });
             })
             ->when($this->filterStatus, function ($query) {
                 $query->where('status', $this->filterStatus);

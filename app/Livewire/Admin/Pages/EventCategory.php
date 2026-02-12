@@ -53,6 +53,14 @@ class EventCategory extends Component
     /**
      * Auto-generate slug when name changes.
      */
+    public function updatedFormName(): void
+    {
+        $this->generateSlug();
+    }
+
+    /**
+     * Generate slug from the form name.
+     */
     public function generateSlug(): void
     {
         $this->form->slug = str($this->form->name)->slug();
@@ -246,10 +254,14 @@ class EventCategory extends Component
     {
         $this->authorize('access', 'admin.event-categories.index');
 
-        $categories = ModelsEventCategory::when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('slug', 'like', '%' . $this->search . '%');
-        })
+        $categories = ModelsEventCategory::query()
+            ->select(['id', 'name', 'slug', 'color', 'is_active', 'is_mass_category', 'created_at'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('slug', 'like', '%' . $this->search . '%');
+                });
+            })
             ->latest()
             ->paginate(10);
 

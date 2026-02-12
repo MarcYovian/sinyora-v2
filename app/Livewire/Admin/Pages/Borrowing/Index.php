@@ -167,6 +167,7 @@ class Index extends Component
             ]);
         } finally {
             $this->approveId = null;
+            $this->borrowing = null;
         }
     }
 
@@ -223,6 +224,7 @@ class Index extends Component
             ]);
         } finally {
             $this->rejectId = null;
+            $this->borrowing = null;
         }
     }
 
@@ -271,6 +273,7 @@ class Index extends Component
             ]);
         } finally {
             $this->deleteId = null;
+            $this->borrowing = null;
         }
     }
 

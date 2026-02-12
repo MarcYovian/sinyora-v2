@@ -9,6 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,9 @@ class Index extends Component
     #[Url(as: 'q')]
     public string $search = '';
 
+    #[Url(as: 's')]
+    public string $filterStatus = '';
+
     public ?int $editId = null;
     public ?int $deleteId = null;
     public string $correlationId = '';
@@ -43,7 +47,9 @@ class Index extends Component
     public function mount(): void
     {
         $this->authorize('access', 'admin.assets.index');
-        $this->categories = AssetCategory::all();
+        $this->categories = Cache::remember('asset_categories_dropdown', 3600, function () {
+            return AssetCategory::all(['id', 'name']);
+        });
         $this->correlationId = Str::uuid()->toString();
     }
 
@@ -51,6 +57,14 @@ class Index extends Component
      * Reset pagination when search changes.
      */
     public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Reset pagination when filterStatus changes.
+     */
+    public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
@@ -83,7 +97,7 @@ class Index extends Component
      */
     public function resetFilters(): void
     {
-        $this->reset('search');
+        $this->reset('search', 'filterStatus');
         $this->resetPage();
     }
 
@@ -283,11 +297,18 @@ class Index extends Component
     {
         $this->authorize('access', 'admin.assets.index');
 
-        $assets = Asset::with('assetCategory')
+        $assets = Asset::query()
+            ->select(['id', 'name', 'slug', 'code', 'quantity', 'storage_location', 'is_active', 'asset_category_id', 'image', 'created_at'])
+            ->with('assetCategory:id,name')
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('code', 'like', '%' . $this->search . '%')
-                    ->orWhere('storage_location', 'like', '%' . $this->search . '%');
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('code', 'like', '%' . $this->search . '%')
+                        ->orWhere('storage_location', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filterStatus !== '', function ($query) {
+                $query->where('is_active', $this->filterStatus);
             })
             ->latest()
             ->paginate(10);

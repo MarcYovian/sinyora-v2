@@ -4,15 +4,15 @@
             {{ __('Manajemen Asset') }}
         </h2>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Kelola data asset fisik, lokasi penyimpanan, dan status inventaris.') }}
+            Kelola data asset fisik, inventaris, dan status ketersediaan.
         </p>
     </header>
 
     <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
         <div class="p-4 sm:p-6 space-y-4">
-            {{-- Top Actions Bar --}}
+            {{-- Header Kontrol: Tombol, Filter, dan Pencarian --}}
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                @can('create asset')
+                @can('access', 'admin.assets.create')
                     <x-button type="button" variant="primary" wire:click="create" class="items-center max-w-xs gap-2">
                         <x-heroicon-s-plus class="w-5 h-5" />
                         <span>{{ __('Tambah Asset') }}</span>
@@ -24,7 +24,14 @@
                         <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
                             placeholder="{{ __('Cari nama, kode, atau lokasi...') }}" />
                     </div>
-                    @if ($search)
+                    <div class="w-full sm:w-48">
+                        <x-select wire:model.live="filterStatus" class="w-full">
+                            <option value="">{{ __('Semua Status') }}</option>
+                            <option value="1">{{ __('Active') }}</option>
+                            <option value="0">{{ __('Inactive') }}</option>
+                        </x-select>
+                    </div>
+                    @if ($search || $filterStatus !== '')
                         <x-button type="button" wire:click="resetFilters" variant="secondary" class="w-full sm:w-auto">
                             {{ __('Reset') }}
                         </x-button>
@@ -33,42 +40,35 @@
             </div>
 
             {{-- Indikator Loading --}}
-            <div wire:loading.flex wire:target="search" class="items-center justify-center w-full py-4">
+            <div wire:loading.flex wire:target="search, filterStatus" class="items-center justify-center w-full py-4">
                 <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
                     <span>Memuat data...</span>
                 </div>
             </div>
 
-            <div wire:loading.remove wire:target="search">
+            <div wire:loading.remove wire:target="search, filterStatus">
                 {{-- Tampilan Mobile (Card) --}}
                 <div class="grid grid-cols-1 gap-4 md:hidden">
                     @forelse ($assets as $asset)
                         <div wire:key="asset-card-{{ $asset->id }}"
                             class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
-                            <div class="relative h-48 w-full bg-gray-200 dark:bg-gray-700">
-                                @if ($asset->image)
-                                    <img src="{{ Storage::url($asset->image) }}" alt="{{ $asset->name }}"
-                                        class="w-full h-full object-cover">
-                                @else
-                                    <div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-                                        <x-heroicon-o-photo class="w-12 h-12" />
-                                    </div>
-                                @endif
-                                <div class="absolute top-2 right-2">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $asset->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
-                                        {{ $asset->is_active ? 'Active' : 'Inactive' }}
-                                    </span>
-                                </div>
-                            </div>
                             <div class="p-4 border-b dark:border-gray-700 flex justify-between items-start">
-                                <div>
-                                    <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">
-                                        {{ $asset->name }}
-                                    </h3>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                                        {{ $asset->code }}
-                                    </p>
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                        @if ($asset->image)
+                                            <img src="{{ Storage::url($asset->image) }}" alt="{{ $asset->name }}"
+                                                class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                                <x-heroicon-o-photo class="w-6 h-6" />
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ $asset->name }}</h3>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $asset->code ?? '-' }}</div>
+                                    </div>
                                 </div>
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="trigger">
@@ -78,40 +78,66 @@
                                         </button>
                                     </x-slot>
                                     <x-slot name="content">
-                                        @can('edit asset')
+                                        @can('access', 'admin.assets.edit')
                                             <x-dropdown-link wire:click="edit({{ $asset->id }})">
-                                                Edit Asset
+                                                Edit
                                             </x-dropdown-link>
                                         @endcan
-                                        <div class="border-t border-gray-100 dark:border-gray-600"></div>
-                                        @can('delete asset')
+                                        @can('access', 'admin.assets.destroy')
                                             <x-dropdown-link wire:click="confirmDelete({{ $asset->id }})"
-                                                class="text-red-600 dark:text-red-500">Hapus Asset
+                                                class="text-red-600 dark:text-red-500">Delete
                                             </x-dropdown-link>
                                         @endcan
                                     </x-slot>
                                 </x-dropdown>
                             </div>
-                            <div class="p-4 space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-500 dark:text-gray-400">Kategori:</span>
-                                    <span class="text-gray-700 dark:text-gray-300 font-medium">
-                                        {{ $asset->assetCategory ? $asset->assetCategory->name : '-' }}
-                                    </span>
+                            <div class="p-4 space-y-3 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                        <x-heroicon-o-cube class="w-4 h-4 mr-2 flex-shrink-0" />
+                                        <span>Stok: {{ $asset->quantity }}</span>
+                                    </div>
+                                    <div>
+                                        @if ($asset->is_active)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                Active
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                Inactive
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-500 dark:text-gray-400">Jumlah:</span>
-                                    <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $asset->quantity }}</span>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-tag class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>{{ $asset->assetCategory->name ?? '-' }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-500 dark:text-gray-400">Lokasi:</span>
-                                    <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $asset->storage_location }}</span>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-map-pin class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>{{ $asset->storage_location ?? '-' }}</span>
+                                </div>
+
+                                {{-- Mobile Card Actions --}}
+                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+                                    @can('access', 'admin.assets.edit')
+                                        <button wire:click="edit({{ $asset->id }})" class="text-amber-500 dark:text-amber-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                            <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                            <span>{{ __('Edit') }}</span>
+                                        </button>
+                                    @endcan
+                                    @can('access', 'admin.assets.destroy')
+                                        <button wire:click="confirmDelete({{ $asset->id }})" class="text-red-600 dark:text-red-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                            <span>{{ __('Delete') }}</span>
+                                        </button>
+                                    @endcan
                                 </div>
                             </div>
                         </div>
                     @empty
                         <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                            {{ __('Tidak ada data asset.') }}
+                            {{ __('Tidak ada data asset') }}
                         </div>
                     @endforelse
                 </div>
@@ -119,39 +145,36 @@
                 {{-- Tampilan Desktop (Tabel) --}}
                 <div class="hidden md:block">
                     <x-table title="Data Asset" :heads="$table_heads">
-                        @forelse ($assets as $key => $asset)
-                            <tr wire:key="asset-table-{{ $asset->id }}"
-                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                                    {{ $key + $assets->firstItem() }}
+                        @forelse ($assets as $index => $asset)
+                            <tr wire:key="asset-row-{{ $asset->id }}"
+                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                                    {{ $assets->firstItem() + $index }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if ($asset->image)
-                                        <div class="h-10 w-10 flex-shrink-0">
-                                            <img class="h-10 w-10 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
-                                                 src="{{ Storage::url($asset->image) }}"
-                                                 alt="{{ $asset->name }}">
-                                        </div>
-                                    @else
-                                        <div class="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center ring-1 ring-gray-200 dark:ring-gray-700">
-                                            <x-heroicon-o-photo class="h-5 w-5 text-gray-400" />
-                                        </div>
-                                    @endif
+                                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                        @if ($asset->image)
+                                            <img src="{{ Storage::url($asset->image) }}" alt="{{ $asset->name }}"
+                                                class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                                <x-heroicon-o-photo class="w-5 h-5" />
+                                            </div>
+                                        @endif
+                                    </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4">
                                     <div class="font-semibold text-gray-900 dark:text-gray-200">{{ $asset->name }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $asset->assetCategory ? $asset->assetCategory->name : '-' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $asset->assetCategory->name ?? '-' }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                                        {{ $asset->code }}
-                                    </span>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300 font-mono text-xs">
+                                    {{ $asset->code ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
                                     {{ $asset->quantity }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
-                                    {{ $asset->storage_location }}
+                                    {{ $asset->storage_location ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if ($asset->is_active)
@@ -168,17 +191,16 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex items-center justify-end space-x-1">
-                                        @can('edit asset')
+                                        @can('access', 'admin.assets.edit')
                                             <x-button type="button" variant="warning" size="sm" class="!p-2"
-                                                wire:click="edit({{ $asset->id }})" title="Edit Asset">
+                                                wire:click="edit({{ $asset->id }})" title="Edit">
                                                 <x-heroicon-o-pencil-square class="w-4 h-4" />
                                                 <span class="sr-only">Edit</span>
                                             </x-button>
                                         @endcan
-
-                                        @can('delete asset')
+                                        @can('access', 'admin.assets.destroy')
                                             <x-button type="button" variant="danger" size="sm" class="!p-2"
-                                                wire:click="confirmDelete({{ $asset->id }})" title="Hapus Asset">
+                                                wire:click="confirmDelete({{ $asset->id }})" title="Hapus">
                                                 <x-heroicon-o-trash class="w-4 h-4" />
                                                 <span class="sr-only">Delete</span>
                                             </x-button>
@@ -190,7 +212,9 @@
                             <tr>
                                 <td colspan="{{ count($table_heads) }}"
                                     class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                    {{ __('Tidak ada data yang tersedia.') }}
+                                    <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                                    <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data asset') }}</h4>
+                                    <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau tambah asset baru.') }}</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -204,175 +228,117 @@
         </div>
     </div>
 
-    {{-- Create/Edit Modal --}}
-    <x-modal name="asset-modal" :show="$errors->isNotEmpty()" maxWidth="5xl" focusable>
-        <form wire:submit="save" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900" enctype="multipart/form-data">
-            <div class="flex items-start justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+    {{-- Asset Modal (Create/Edit) --}}
+    <x-modal name="asset-modal" :show="$errors->isNotEmpty()" maxWidth="4xl" focusable>
+        <form wire:submit="save" class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">
+                {{ $editId ? __('Edit Asset') : __('Tambah Asset Baru') }}
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Nama Asset --}}
+                <div class="col-span-1 md:col-span-2">
+                    <x-input-label for="name" value="{{ __('Nama Asset') }}" />
+                    <x-text-input wire:model.live="form.name" id="name" type="text" class="mt-1 block w-full"
+                        placeholder="Contoh: Kursi Lipat, Proyektor EPSON..." />
+                    <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
+                </div>
+
+                {{-- Kategori --}}
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {{ $editId ? __('Edit Asset') : __('Tambah Asset Baru') }}
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {{ __('Silakan lengkapi informasi asset di bawah ini.') }}
-                    </p>
-                </div>
-                <button type="button" @click="$dispatch('close')"
-                    class="p-2 -m-2 text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200 transition-all">
-                    <x-heroicon-s-x-mark class="h-6 w-6" />
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Left Column - Image Upload -->
-                <div class="md:col-span-1">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-                        <x-input-label value="{{ __('Foto Asset') }}" class="mb-2" />
-                        <div x-data="{ isUploading: false, progress: 0 }"
-                             x-on:livewire-upload-start="isUploading = true"
-                             x-on:livewire-upload-finish="isUploading = false"
-                             x-on:livewire-upload-error="isUploading = false"
-                             x-on:livewire-upload-progress="progress = $event.detail.progress">
-
-                            <div class="relative group cursor-pointer">
-                                <label for="image-upload" class="block w-full h-64 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200 overflow-hidden bg-gray-50 dark:bg-gray-900">
-                                    @if ($form->image)
-                                        <img src="{{ $form->image->temporaryUrl() }}" alt="Preview" class="w-full h-full object-cover">
-                                    @elseif ($form->existingImage)
-                                        <img src="{{ Storage::url($form->existingImage) }}" alt="Existing" class="w-full h-full object-cover">
-                                    @else
-                                        <div class="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 pb-6 pt-5">
-                                            <x-heroicon-o-cloud-arrow-up class="w-12 h-12 mb-3" />
-                                            <p class="mb-2 text-sm"><span class="font-semibold text-indigo-600 dark:text-indigo-400">Click to upload</span></p>
-                                            <p class="text-xs">PNG, JPG (MAX. 2MB)</p>
-                                        </div>
-                                    @endif
-
-                                    <!-- Hover Overlay -->
-                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                        <div class="text-center">
-                                            <x-heroicon-s-pencil-square class="w-8 h-8 mx-auto mb-2" />
-                                            <span class="text-sm font-medium">Ubah Foto</span>
-                                        </div>
-                                    </div>
-                                </label>
-                                <input id="image-upload" type="file" wire:model="form.image" class="hidden" accept="image/png, image/jpeg, image/jpg">
-                            </div>
-
-                            <!-- Remove Button -->
-                            @if ($form->image || $form->existingImage)
-                                <button type="button" wire:click="removeImage"
-                                    class="mt-2 w-full py-2 px-4 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                    {{ __('Hapus Foto') }}
-                                </button>
-                            @endif
-
-                            <!-- Progress Bar -->
-                            <div x-show="isUploading" class="mt-4 w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                                <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" x-bind:style="`width: ${progress}%`"></div>
-                            </div>
-                        </div>
-                        <x-input-error :messages="$errors->get('form.image')" class="mt-2" />
-                    </div>
+                    <x-input-label for="asset_category_id" value="{{ __('Kategori') }}" />
+                    <x-select wire:model="form.asset_category_id" id="asset_category_id" class="mt-1 block w-full">
+                        <option value="">{{ __('Pilih Kategori') }}</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input-error :messages="$errors->get('form.asset_category_id')" class="mt-2" />
                 </div>
 
-                <!-- Right Column - Form Fields -->
-                <div class="md:col-span-2 space-y-5">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-5">
-                        <!-- Name & Category -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <x-input-label for="name" value="{{ __('Nama Asset') }}" />
-                                <x-text-input wire:model.lazy="form.name" id="name" type="text"
-                                    class="mt-1 block w-full" placeholder="{{ __('e.g. Laptop Lenovo Thinkpad') }}" />
-                                <x-input-error :messages="$errors->get('form.name')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="asset_category_id" value="{{ __('Kategori') }}" />
-                                <select wire:model="form.asset_category_id" id="asset_category_id"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600">
-                                    <option value="">{{ __('Pilih Kategori') }}</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('form.asset_category_id')" class="mt-2" />
-                            </div>
-                        </div>
+                {{-- Kode Asset --}}
+                <div>
+                    <x-input-label for="code" value="{{ __('Kode Asset') }}" />
+                    <x-text-input wire:model="form.code" id="code" type="text" class="mt-1 block w-full"
+                        placeholder="Contoh: AST-001" />
+                    <x-input-error :messages="$errors->get('form.code')" class="mt-2" />
+                </div>
 
-                        <!-- Code & Slug -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <x-input-label for="code" value="{{ __('Kode Asset') }}" />
-                                <x-text-input wire:model="form.code" id="code" type="text"
-                                    class="mt-1 block w-full font-mono" placeholder="{{ __('e.g. AST-001') }}" />
-                                <x-input-error :messages="$errors->get('form.code')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="slug" value="{{ __('Slug') }}" />
-                                <x-text-input wire:model="form.slug" id="slug" type="text"
-                                    class="mt-1 block w-full font-mono" placeholder="{{ __('e.g. laptop-lenovo-thinkpad') }}" />
-                                <x-input-error :messages="$errors->get('form.slug')" class="mt-2" />
-                            </div>
-                        </div>
+                {{-- Jumlah --}}
+                <div>
+                    <x-input-label for="quantity" value="{{ __('Jumlah (Qty)') }}" />
+                    <x-text-input wire:model="form.quantity" id="quantity" type="number" min="0"
+                        class="mt-1 block w-full" />
+                    <x-input-error :messages="$errors->get('form.quantity')" class="mt-2" />
+                </div>
 
-                        <!-- Description -->
-                        <div>
-                            <x-input-label for="description" value="{{ __('Deskripsi') }}" />
-                            <textarea wire:model="form.description" id="description" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600"
-                                placeholder="{{ __('Deskripsi detail tentang aset ini...') }}"></textarea>
-                            <x-input-error :messages="$errors->get('form.description')" class="mt-2" />
-                        </div>
+                {{-- Lokasi Penyimpanan --}}
+                <div>
+                    <x-input-label for="storage_location" value="{{ __('Lokasi Penyimpanan') }}" />
+                    <x-text-input wire:model="form.storage_location" id="storage_location" type="text"
+                        class="mt-1 block w-full" placeholder="Contoh: Gudang A, Lemari 2" />
+                    <x-input-error :messages="$errors->get('form.storage_location')" class="mt-2" />
+                </div>
 
-                        <!-- Quantity & Location -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <x-input-label for="quantity" value="{{ __('Jumlah') }}" />
-                                <x-text-input wire:model="form.quantity" id="quantity" type="number" min="1"
-                                    class="mt-1 block w-full" placeholder="1" />
-                                <x-input-error :messages="$errors->get('form.quantity')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="storage_location" value="{{ __('Lokasi Penyimpanan') }}" />
-                                <x-text-input wire:model="form.storage_location" id="storage_location" type="text"
-                                    class="mt-1 block w-full" placeholder="{{ __('e.g. Gudang Utama, Rak A') }}" />
-                                <x-input-error :messages="$errors->get('form.storage_location')" class="mt-2" />
-                            </div>
-                        </div>
+                {{-- Status Aktif --}}
+                <div class="flex items-center mt-4">
+                    <label for="is_active" class="inline-flex items-center cursor-pointer">
+                        <input wire:model="form.is_active" id="is_active" type="checkbox"
+                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700">
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Asset Aktif / Dapat Digunakan') }}</span>
+                    </label>
+                    <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
+                </div>
 
-                        <!-- Status -->
-                        <div>
-                            <x-input-label for="is_active" value="{{ __('Status') }}" />
-                            <select wire:model="form.is_active" id="is_active"
-                                class="mt-1 block w-full md:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600">
-                                <option value="1">{{ __('Active') }}</option>
-                                <option value="0">{{ __('Inactive') }}</option>
-                            </select>
-                            <x-input-error :messages="$errors->get('form.is_active')" class="mt-2" />
+                {{-- Deskripsi --}}
+                <div class="col-span-1 md:col-span-2">
+                    <x-input-label for="description" value="{{ __('Deskripsi') }}" />
+                    <textarea wire:model="form.description" id="description" rows="3"
+                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"></textarea>
+                    <x-input-error :messages="$errors->get('form.description')" class="mt-2" />
+                </div>
+
+                {{-- Gambar --}}
+                <div class="col-span-1 md:col-span-2">
+                    <x-input-label for="image" value="{{ __('Gambar Asset') }}" />
+                    
+                    @if ($form->image && !is_string($form->image))
+                        <div class="mt-2 mb-2">
+                            <img src="{{ $form->image->temporaryUrl() }}" alt="Preview" class="h-32 w-32 object-cover rounded-lg border dark:border-gray-700">
                         </div>
-                    </div>
+                    @elseif ($form->existingImage)
+                        <div class="mt-2 mb-2 relative inline-block group">
+                            <img src="{{ Storage::url($form->existingImage) }}" alt="Existing Image" class="h-32 w-32 object-cover rounded-lg border dark:border-gray-700">
+                            <button type="button" wire:click="removeImage" 
+                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none transition-transform hover:scale-110"
+                                title="{{ __('Hapus Gambar') }}">
+                                <x-heroicon-s-x-mark class="w-4 h-4" />
+                            </button>
+                        </div>
+                    @endif
+                    <input wire:model="form.image" id="image" type="file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" accept="image/*">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">Format: JPG, PNG, max 2MB.</p>
+                    <x-input-error :messages="$errors->get('form.image')" class="mt-2" />
                 </div>
             </div>
 
-            <div class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                <x-secondary-button type="button" @click="$dispatch('close')" class="justify-center">
-                    {{ __('Cancel') }}
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    {{ __('Batal') }}
                 </x-secondary-button>
-                <x-primary-button type="submit" class="justify-center">
-                    <span wire:loading.remove wire:target="save">
-                        {{ $editId ? __('Update Asset') : __('Simpan Asset') }}
-                    </span>
+
+                <x-button variant="primary">
+                    <span wire:loading.remove wire:target="save">{{ $editId ? __('Simpan Perubahan') : __('Simpan Asset') }}</span>
                     <span wire:loading wire:target="save" class="flex items-center gap-2">
                         <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
-                        <span>{{ __('Menyimpan...') }}</span>
+                        {{ __('Menyimpan...') }}
                     </span>
-                </x-primary-button>
+                </x-button>
             </div>
         </form>
     </x-modal>
 
-    {{-- Delete Confirmation Modal --}}
+    {{-- Delete Confirmation --}}
     <x-modal name="delete-asset-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="delete" class="p-6">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -380,20 +346,27 @@
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Tindakan ini tidak dapat dibatalkan. Data asset akan dihapus dari sistem.') }}
+                {{ __('Tindakan ini tidak dapat dibatalkan. Data asset beserta riwayatnya mungkin akan terpengaruh.') }}
             </p>
 
+            @if ($form->name)
+                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ __('Nama Asset') }}</dt>
+                            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $form->name }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            @endif
+
             <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                    <div class="sm:col-span-1">
-                        <dt class="text-xs font-medium text-red-500 dark:text-red-400 uppercase">{{ __('Nama Asset') }}</dt>
-                        <dd class="mt-1 text-sm font-semibold text-red-900 dark:text-red-200">{{ $form->name }}</dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-xs font-medium text-red-500 dark:text-red-400 uppercase">{{ __('Kode') }}</dt>
-                        <dd class="mt-1 text-sm font-mono text-red-900 dark:text-red-200">{{ $form->code }}</dd>
-                    </div>
-                </dl>
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-trash class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Data yang dihapus tidak dapat dipulihkan.') }}
+                    </span>
+                </div>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">

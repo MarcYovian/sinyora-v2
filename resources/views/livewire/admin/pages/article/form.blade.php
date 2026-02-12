@@ -279,7 +279,7 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 {{ $form->title ?: 'Judul Artikel Anda' }}</h2>
             <div class="prose dark:prose-invert max-w-none">
-                {!! $form->content !!}
+                {!! \Stevebauman\Purify\Facades\Purify::config('trix')->clean($form->content) !!}
             </div>
             <div class="mt-6 pt-4 border-t dark:border-gray-700">
                 <x-button size="sm" type="button" variant="secondary" @click="$dispatch('close')">

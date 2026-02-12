@@ -3,13 +3,18 @@
 namespace App\Livewire\Admin\Pages\Event;
 
 use App\Livewire\Forms\EventForm;
-use App\Livewire\Forms\EventShowForm;
 use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\Location;
 use App\Models\Organization;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -21,26 +26,41 @@ class Show extends Component
 
     public EventForm $form;
     public Event $event;
+    public array $mergedSchedules = [];
+    public string $correlationId = '';
+
     public $categories;
     public $locations;
     public $organizations;
-    public array $mergedSchedules = [];
 
-    public function mount(Event $event)
+    /**
+     * Mount the component.
+     */
+    public function mount(Event $event): void
     {
         $this->authorize('access', 'admin.events.show');
+        $this->correlationId = Str::uuid()->toString();
 
         $this->event = $event->load(['eventRecurrences' => function ($query) {
             $query->orderBy('date', 'asc')->orderBy('time_start', 'asc');
-        }]);
+        }, 'eventCategory:id,name', 'organization:id,name', 'locations:locations.id,locations.name']);
 
         $this->mergedSchedules = $this->mergeEventRecurrences($this->event->eventRecurrences);
 
-        $this->categories = EventCategory::active()->get(['id', 'name']);
-        $this->organizations = Organization::active()->get(['id', 'name']);
-        $this->locations = Location::active()->get(['id', 'name']);
+        $this->categories = Cache::remember('event_categories_dropdown', 3600, function () {
+            return EventCategory::active()->get(['id', 'name']);
+        });
+        $this->organizations = Cache::remember('organizations_dropdown', 3600, function () {
+            return Organization::active()->get(['id', 'name']);
+        });
+        $this->locations = Cache::remember('locations_dropdown', 3600, function () {
+            return Location::active()->get(['id', 'name']);
+        });
     }
 
+    /**
+     * Merge consecutive event recurrences that span midnight.
+     */
     private function mergeEventRecurrences($recurrences): array
     {
         if ($recurrences->isEmpty()) {
@@ -77,63 +97,166 @@ class Show extends Component
         return $merged;
     }
 
-    public function confirmEdit($id)
+    /**
+     * Open edit confirmation modal.
+     */
+    public function confirmEdit(int $id): void
     {
-        $this->authorize('access', 'admin.events.edit');
-
-        $this->dispatch('open-modal', 'update-event-confirmation');
+        try {
+            $this->authorize('access', 'admin.events.edit');
+            $this->dispatch('open-modal', 'update-event-confirmation');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized event edit confirmation attempt', [
+                'user_id' => Auth::id(),
+                'event_id' => $id,
+            ]);
+            flash()->error('You are not authorized to edit events.');
+        }
     }
 
-    public function edit()
+    /**
+     * Open edit modal for the event.
+     */
+    public function edit(): void
     {
-        $this->authorize('access', 'admin.events.edit');
+        try {
+            $this->authorize('access', 'admin.events.edit');
 
-        $this->form->setEvent($this->event->id);
+            $this->form->setEvent($this->event->id);
+            $this->dispatch('close-modal', 'update-event-confirmation');
+            $this->dispatch('open-modal', 'event-modal');
 
-        $this->dispatch('close-modal', 'update-event-confirmation');
-        $this->dispatch('open-modal', 'event-modal');
+            Log::info('Event edit modal opened from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized event edit attempt', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+            ]);
+            flash()->error('You are not authorized to edit events.');
+        }
     }
 
-    public function save()
+    /**
+     * Save event changes.
+     */
+    public function save(): void
     {
-        $this->authorize('access', 'admin.events.edit');
+        try {
+            $this->authorize('access', 'admin.events.edit');
 
-        $this->form->update();
+            $this->form->update();
 
-        // Update data tanpa redirect
-        $this->event = $this->event->fresh();
+            // Refresh data without redirect
+            $this->event = $this->event->fresh(['eventRecurrences' => function ($query) {
+                $query->orderBy('date', 'asc')->orderBy('time_start', 'asc');
+            }, 'eventCategory:id,name', 'organization:id,name', 'locations:locations.id,locations.name']);
 
-        $this->dispatch('close-modal', 'event-modal');
+            $this->mergedSchedules = $this->mergeEventRecurrences($this->event->eventRecurrences);
+
+            $this->dispatch('close-modal', 'event-modal');
+
+            Log::info('Event updated from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized event save attempt from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+            ]);
+            flash()->error('You are not authorized to edit events.');
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Event save failed from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+                'correlation_id' => $this->correlationId,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error("An error occurred while saving the event. #{$this->correlationId}");
+        }
     }
 
-    public function confirmDelete()
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(): void
     {
-        $this->authorize('access', 'admin.events.destroy');
+        try {
+            $this->authorize('access', 'admin.events.destroy');
 
-        $this->form->setEvent($this->event->id);
-        $this->dispatch('open-modal', 'delete-event-confirmation');
+            $this->form->setEvent($this->event->id);
+            $this->dispatch('open-modal', 'delete-event-confirmation');
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized event delete confirmation from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+            ]);
+            flash()->error('You are not authorized to delete events.');
+        }
     }
 
-    public function delete()
+    /**
+     * Delete the event.
+     */
+    public function delete(): void
     {
-        $this->authorize('access', 'admin.events.destroy');
+        try {
+            $this->authorize('access', 'admin.events.destroy');
 
-        $this->form->delete();
-        $this->dispatch('deleteSuccess');
-        $this->redirect(route('admin.events.index'));
+            $eventName = $this->event->name;
+            $this->form->delete();
+
+            Log::info('Event deleted from show page', [
+                'user_id' => Auth::id(),
+                'event_name' => $eventName,
+                'correlation_id' => $this->correlationId,
+            ]);
+
+            $this->dispatch('deleteSuccess');
+            $this->redirect(route('admin.events.index'));
+        } catch (AuthorizationException $e) {
+            Log::warning('Unauthorized event deletion from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+            ]);
+            flash()->error('You are not authorized to delete events.');
+        } catch (\Exception $e) {
+            Log::error('Event deletion failed from show page', [
+                'user_id' => Auth::id(),
+                'event_id' => $this->event->id,
+                'correlation_id' => $this->correlationId,
+                'error' => $e->getMessage(),
+            ]);
+            flash()->error("An error occurred while deleting the event. #{$this->correlationId}");
+        }
     }
 
-    public function addCustomSchedule()
+    /**
+     * Add a custom schedule entry.
+     */
+    public function addCustomSchedule(): void
     {
         $this->form->addCustomSchedule();
     }
 
-    // Metode BARU untuk di-trigger dari view
-    public function removeCustomSchedule($index)
+    /**
+     * Remove a custom schedule entry by index.
+     */
+    public function removeCustomSchedule(int $index): void
     {
         $this->form->removeCustomSchedule($index);
     }
 
+    /**
+     * Render the component.
+     */
     public function render()
     {
         $this->authorize('access', 'admin.events.show');

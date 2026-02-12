@@ -51,7 +51,15 @@ class Tag extends Component
     }
 
     /**
-     * Reset all filters and pagination.
+     * Auto-generate slug when name changes.
+     */
+    public function updatedFormName(): void
+    {
+        $this->generateSlug();
+    }
+
+    /**
+     * Generate slug from the form name.
      */
     public function generateSlug(): void
     {
@@ -246,10 +254,14 @@ class Tag extends Component
     {
         $this->authorize('access', 'admin.articles.tags.index');
 
-        $tags = ModelsTag::withCount('articles')
+        $tags = ModelsTag::query()
+            ->select(['id', 'name', 'slug', 'created_at'])
+            ->withCount('articles')
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('slug', 'like', '%' . $this->search . '%');
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('slug', 'like', '%' . $this->search . '%');
+                });
             })
             ->latest()
             ->paginate(10);

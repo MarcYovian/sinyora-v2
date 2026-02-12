@@ -52,6 +52,14 @@ class Category extends Component
     }
 
     /**
+     * Auto-generate slug when name changes.
+     */
+    public function updatedFormName(): void
+    {
+        $this->generateSlug();
+    }
+
+    /**
      * Generate slug from name.
      */
     public function generateSlug(): void
@@ -251,10 +259,14 @@ class Category extends Component
     {
         $this->authorize('access', 'admin.articles.categories.index');
 
-        $categories = ArticleCategory::withCount('articles')
+        $categories = ArticleCategory::query()
+            ->select(['id', 'name', 'slug', 'created_at'])
+            ->withCount('articles')
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('slug', 'like', '%' . $this->search . '%');
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('slug', 'like', '%' . $this->search . '%');
+                });
             })
             ->latest()
             ->paginate(10);

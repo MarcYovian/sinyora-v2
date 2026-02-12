@@ -4,8 +4,13 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Forms\RoleForm;
 use App\Models\Group;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -25,9 +30,10 @@ class Role extends Component
     public $search = '';
 
     public $searchPermission = '';
-    public $editId = null;
-    public $deleteId = null;
+    public ?int $editId = null;
+    public ?int $deleteId = null;
     public $groups;
+    public string $correlationId = '';
 
     public function updatedSearch()
     {
@@ -264,9 +270,13 @@ class Role extends Component
         $this->resetPage();
     }
 
-    public function mount()
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
     {
         $this->authorize('access', 'admin.roles.index');
+        $this->correlationId = Str::uuid()->toString();
     }
 
     public function render()
@@ -275,9 +285,11 @@ class Role extends Component
 
         $table_heads = ['No', 'Name', 'Actions'];
 
-        $roles = SpatieRole::when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%');
-        })->latest()->paginate(10);
+        $roles = SpatieRole::query()
+            ->select(['id', 'name', 'guard_name', 'created_at'])
+            ->when($this->search, function ($query) {
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })->latest()->paginate(10);
 
         return view('livewire.admin.pages.role', [
             'roles' => $roles,

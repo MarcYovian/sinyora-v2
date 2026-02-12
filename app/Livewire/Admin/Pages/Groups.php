@@ -4,8 +4,13 @@ namespace App\Livewire\Admin\Pages;
 
 use App\Livewire\Forms\GroupForm;
 use App\Models\Group;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -20,10 +25,22 @@ class Groups extends Component
     public GroupForm $form;
 
     #[Url(as: 'q')]
-    public $search = '';
+    public string $search = '';
 
-    public $editId = null;
-    public $deleteId = null;
+    public ?int $editId = null;
+    public ?int $deleteId = null;
+    public string $correlationId = '';
+
+    public array $table_heads = ['No', 'Name', 'Actions'];
+
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
+    {
+        $this->authorize('access', 'admin.groups.index');
+        $this->correlationId = Str::uuid()->toString();
+    }
 
     public function updatedSearch()
     {
@@ -173,9 +190,11 @@ class Groups extends Component
 
         $table_heads = ['No', 'Name', 'Actions'];
 
-        $groups = Group::when($this->search, function ($query) {
-            $query->where('name', 'like', '%' . $this->search . '%');
-        })->latest()->paginate(5);
+        $groups = Group::query()
+            ->select(['id', 'name', 'created_at'])
+            ->when($this->search, function ($query) {
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })->latest()->paginate(5);
 
         return view('livewire.admin.pages.groups', [
             'groups' => $groups,
