@@ -106,33 +106,13 @@ class ContentService
             return;
         }
 
-        // Ekstrak IDs dan siapkan statement CASE
-        $ids = [];
-        $cases = [];
-        $bindings = [];
-
-        foreach ($updates as $update) {
-            $id = (int) $update['id'];
-            $ids[] = $id;
-            $cases[] = "WHEN {$id} THEN ?";
-            $bindings[] = $update['value'];
-        }
-
-        $idsString = implode(',', $ids);
-        $casesSql = implode(' ', $cases);
-
-        DB::transaction(function () use ($idsString, $casesSql, $bindings, $page, $ids) {
-            // Gabungkan bindings untuk WHERE IN clause
-            $allBindings = array_merge($bindings, $ids);
-
-            // Lakukan 1 query untuk semua update
-            DB::update(
-                "UPDATE content_settings SET `value` = CASE `id` {$casesSql} END WHERE `id` IN ({$idsString})",
-                $bindings
-            );
-
-            // Hapus cache HANYA jika transaksi berhasil
-            $this->clearCache($page);
+        DB::transaction(function () use ($updates) {
+            foreach ($updates as $update) {
+                $this->contentSettingRepository->update((int) $update['id'], [
+                    'value' => $update['value'],
+                ]);
+            }
+            // Cache clearing is handled automatically by ContentSettingObserver
         });
     }
 

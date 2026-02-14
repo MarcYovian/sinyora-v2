@@ -1,14 +1,21 @@
 <div class="font-sans antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
     {{-- Bagian Hero Section --}}
-    <section class="relative bg-cover bg-center bg-no-repeat py-24 sm:py-32 px-4 sm:px-6 lg:px-8"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ asset('images/1.jpg') }}');">
-        <div class="container mx-auto text-center text-white max-w-4xl">
+    <section class="relative bg-cover bg-center bg-no-repeat py-24 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <x-responsive-image 
+                :image="$content['hero']['background-image'] ?? null"
+                fallback="images/1.webp"
+                alt="Borrowing Hero Background"
+                style="filter: brightness(0.4);"
+            />
+        </div>
+        <div class="container mx-auto text-center text-white max-w-4xl relative z-10">
             <h1 class="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-                Peminjaman Aset Kapel
+                {{ $content['hero']['title'] ?? 'Peminjaman Aset Kapel' }}
             </h1>
             <p class="text-lg sm:text-xl mb-8 opacity-90 max-w-3xl mx-auto">
-                Temukan, cek ketersediaan, dan ajukan peminjaman aset untuk kegiatan Anda dengan mudah.
+                {{ $content['hero']['subtitle'] ?? 'Temukan, cek ketersediaan, dan ajukan peminjaman aset untuk kegiatan Anda dengan mudah.' }}
             </p>
             <div class="flex flex-wrap justify-center gap-4">
                 <button wire:click="createRequest"
@@ -19,6 +26,34 @@
             </div>
         </div>
     </section>
+
+    {{-- Info Section --}}
+    @if(isset($content['info']))
+    <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {{ $content['info']['title'] ?? 'Informasi Peminjaman' }}
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300">
+                        {{ $content['info']['content'] ?? '' }}
+                    </p>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <h4 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Kontak Peminjaman:</h4>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <span class="font-medium">{{ $content['info']['contact-person'] ?? 'Admin' }}</span>
+                        @if(isset($content['info']['contact-phone']) && $content['info']['contact-phone'] !== '-')
+                            <br>
+                            <span class="text-sm">{{ $content['info']['contact-phone'] }}</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Konten Utama: Filter dan Daftar Aset --}}
     <main class="py-12 sm:py-16">

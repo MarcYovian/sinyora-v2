@@ -197,8 +197,8 @@ class Index extends Component
         $this->authorize('access', 'admin.articles.index');
 
         $articles = Article::query()
-            ->select(['id', 'title', 'slug', 'featured_image', 'is_published', 'published_at', 'category_id', 'user_id', 'created_at', 'deleted_at'])
-            ->with(['user:id,name', 'category:id,name', 'tags:id,name'])
+            ->select(['id', 'title', 'slug', 'featured_image', 'is_published', 'published_at', 'category_id', 'created_at'])
+            ->with(['user:id,name', 'category:id,name'])
             ->whereNotNull('category_id')
             ->when($this->search, function ($query) {
                 $query->where('title', 'like', '%' . $this->search . '%');

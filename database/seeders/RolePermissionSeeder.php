@@ -622,9 +622,9 @@ class RolePermissionSeeder extends Seeder
             ],
             // Content Settings Permissions
             [
-                'name' => 'view content home', // lihat content home (pengurus kapel)
+                'name' => 'view content settings', // lihat content settings (pengurus kapel)
                 'group' => Group::where('name', 'Content Settings')->first()->id,
-                'route_name' => 'admin.content.home',
+                'route_name' => 'admin.content.index',
                 'default' => 'Non-Default',
             ],
             [

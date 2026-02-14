@@ -44,9 +44,9 @@ class Form extends Component
             $this->form->setArticle($this->article);
         }
 
-        $this->categories = Cache::remember('article_categories_dropdown', 3600, function () {
-            return ArticleCategory::get(['name', 'id']);
-        });
+        $this->categories = Cache::remember('articles.categories.all', 86400, fn() =>
+            ArticleCategory::select('id', 'name')->get()
+        );
     }
 
     public function updatedFormTitle($title): void

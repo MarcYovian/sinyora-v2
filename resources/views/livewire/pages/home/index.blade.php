@@ -25,17 +25,11 @@
         
         <!-- Responsive Background Image for LCP Optimization -->
         <div class="absolute inset-0 z-0">
-            <img 
-                src="{{ asset($content['hero']['background-image'] ?? 'images/1.webp') }}"
-                srcset="{{ asset('images/1-mobile.webp') }} 480w, 
-                        {{ asset('images/1-tablet.webp') }} 768w, 
-                        {{ asset('images/1.webp') }} 1200w"
-                sizes="100vw"
+            <x-responsive-image 
+                :image="$content['hero']['background-image'] ?? null"
+                fallback="images/1.webp"
                 alt="Kapel St. Yohanes Rasul Hero Background"
-                class="w-full h-full object-cover object-center"
-                style="filter: brightness(0.4);"
-                fetchpriority="high"
-            >
+            />
         </div>
         <div class="container mx-auto text-center text-white max-w-4xl px-4 relative z-10">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">

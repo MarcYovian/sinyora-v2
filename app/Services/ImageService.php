@@ -170,8 +170,12 @@ class ImageService
 
             $filename = $this->generateFilename($file, $options['format'], $options['filename']);
             
-            // Struktur folder: path/300x200/namafile.webp
-            $fullPath = $options['path'] . "/{$width}x{$height}/" . $filename;
+            // Use custom key for folder name if available (e.g., 'mobile'), 
+            // otherwise use WIDTHxHEIGHT or WIDTHw format
+            $sizeFolder = is_string($key) 
+                ? $key 
+                : ($height ? "{$width}x{$height}" : "{$width}w");
+            $fullPath = $options['path'] . "/{$sizeFolder}/" . $filename;
 
             $encoded = $this->encode($image, $options['format'], $options['quality']);
             Storage::disk($options['disk'])->put($fullPath, $encoded);

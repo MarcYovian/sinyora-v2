@@ -37,14 +37,21 @@
 
 <div class="font-sans antialiased text-gray-900">
     <!-- Hero Section -->
-    <section class="relative bg-cover bg-center bg-no-repeat py-32 px-6"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('{{ asset('images/1.jpg') }}');">
-        <div class="container mx-auto text-center text-white max-w-4xl">
+    <section class="relative bg-cover bg-center bg-no-repeat py-32 px-6 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <x-responsive-image 
+                :image="$content['hero']['background-image'] ?? null"
+                fallback="images/1.webp"
+                alt="Articles Hero Background"
+                style="filter: brightness(0.3);"
+            />
+        </div>
+        <div class="container mx-auto text-center text-white max-w-4xl relative z-10">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                Artikel Terbaru
+                {{ $content['hero']['title'] ?? 'Artikel Terbaru' }}
             </h1>
             <p class="text-lg sm:text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
-                Temukan artikel inspiratif, berita terbaru, dan wawasan rohani dari Kapel St. Yohanes Rasul
+                {{ $content['hero']['subtitle'] ?? 'Temukan artikel inspiratif, berita terbaru, dan wawasan rohani dari Kapel St. Yohanes Rasul' }}
             </p>
         </div>
     </section>
@@ -91,10 +98,12 @@
                             <div class="relative h-48 overflow-hidden">
                                 <img src="{{ $article->featured_image ? Storage::url($article->featured_image) : asset('images/article-placeholder.jpg') }}"
                                     alt="{{ $article->title }}" class="article-image w-full h-full object-cover">
-                                <span
-                                    class="absolute top-4 left-4 bg-yellow-400 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                                    {{ $article->category->name }}
-                                </span>
+                                @if($article->category)
+                                    <span
+                                        class="absolute top-4 left-4 bg-yellow-400 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                                        {{ $article->category->name }}
+                                    </span>
+                                @endif
                             </div>
 
                             <!-- Article Content -->
@@ -193,7 +202,7 @@
                                         <span class="text-sm font-medium text-gray-900">{{ $category->name }}</span>
                                         <span
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                            {{ $category->articles_count }}
+                                            {{ $category->published_articles_count }}
                                         </span>
                                     </div>
                                 </a>

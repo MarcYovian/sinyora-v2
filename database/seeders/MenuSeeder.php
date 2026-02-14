@@ -138,9 +138,9 @@ class MenuSeeder extends Seeder
         // Content Settings Menus
         Menu::create([
             'main_menu' => 'Content Settings',
-            'menu' => 'Home Content',
+            'menu' => 'Pages Content',
             'icon' => 'c-home',
-            'route_name' => 'admin.content.home',
+            'route_name' => 'admin.content.index',
             'sort' => 18,
         ]);
         Menu::create([

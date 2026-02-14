@@ -33,7 +33,10 @@ class EloquentContentSettingRepository implements ContentSettingRepositoryInterf
      */
     public function getByPage(string $page): Collection
     {
-        return $this->model->where('page', $page)->get();
+        return $this->model
+            ->select('id', 'page', 'section', 'key', 'value', 'type')
+            ->where('page', $page)
+            ->get();
     }
 
     public function update(int $id, array $data): bool

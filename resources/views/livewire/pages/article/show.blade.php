@@ -97,7 +97,7 @@
                     </svg>
                     Facebook
                 </a>
-                <a href="{{ 'https://wa.me/?text=' . urlencode($article->title . ' - ' . url('articles/' . $article->slug)) }}" 
+                <a href="{{ 'https://wa.me/?text=' . urlencode("📰 *{$article->title}*\n\n{$article->excerpt}\n\n📂 Kategori: {$article->category->name}\n👤 Penulis: {$article->user->name}\n⏱️ Waktu baca: {$article->reading_time} menit\n\nBaca selengkapnya:\n🔗 " . url('articles/' . $article->slug) . "\n\n---\nKapel St. Yohanes Rasul") }}" 
                     target="_blank"
                     rel="noopener noreferrer" 
                     class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">

@@ -135,13 +135,17 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'verified'], 'as' =>
     // ->middleware(['permission:view invitation documents']);
 
     Route::group(['prefix' => 'content', 'as' => 'content.'], function () {
-        Route::get('home', \App\Livewire\Admin\Pages\Content\Home::class)
-            ->name('home')
-            ->middleware(['permission:view content home']);
+        // Redirection for /admin/content -> /admin/content/home
+        Route::redirect('/', '/admin/content/home');
 
         Route::get('mass-schedules', \App\Livewire\Admin\Pages\Content\MassSchedule::class)
             ->name('mass-schedules');
         // ->middleware(['permission:view content mass schedules']);
+        
+        // Dynamic content pages (must be after specific routes like mass-schedules)
+        Route::get('{page?}', \App\Livewire\Admin\Pages\Content\PageSettings::class)
+            ->name('index');
+            // ->middleware(['permission:view content settings']); // Add permission later if needed
     });
 });
 

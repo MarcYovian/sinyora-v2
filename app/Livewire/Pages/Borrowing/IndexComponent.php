@@ -17,6 +17,7 @@ class IndexComponent extends Component
     #[Layout('components.layouts.app')]
 
     public $borrowings;
+    public $content = []; // Add content property
 
     // Properti untuk filter dan pencarian
     public string $search = '';
@@ -26,8 +27,11 @@ class IndexComponent extends Component
     public string $startDate;
     public string $endDate;
 
-    public function mount(SEOService $seo)
+    public function mount(SEOService $seo, \App\Services\ContentService $contentService)
     {
+        // Fetch content
+        $this->content = $contentService->getPage('borrowing');
+        
         $this->startDate = now()->format('Y-m-d');
         $this->endDate = now()->format('Y-m-d');
 
@@ -38,10 +42,10 @@ class IndexComponent extends Component
             ->limit(5) // Batasi untuk performa
             ->get();
 
-        $seo->setTitle('Peminjaman Aset Kapel St. Yohanes Rasul Surabaya');
+        $seo->setTitle($this->content['hero']['title'] ?? 'Peminjaman Aset Kapel St. Yohanes Rasul Surabaya');
 
         $seo->setDescription(
-            'Layanan peminjaman aset Kapel St. Yohanes Rasul. Cek ketersediaan barang seperti kursi, meja, sound system, dan lainnya untuk mendukung kegiatan dan acara Anda.'
+            $this->content['hero']['subtitle'] ?? 'Layanan peminjaman aset Kapel St. Yohanes Rasul. Cek ketersediaan barang seperti kursi, meja, sound system, dan lainnya untuk mendukung kegiatan dan acara Anda.'
         );
 
         $seo->setKeywords([

@@ -25,11 +25,16 @@ class Index extends Component
 
     public EventProposalForm $form;
     public $document;
+    public $content = []; // Add content property
 
-    public function mount(SEOService $seo)
+    public function mount(SEOService $seo, \App\Services\ContentService $contentService)
     {
-        $seo->setTitle('Kalender Kegiatan Kapel St. Yohanes Rasul Surabaya');
+        // Fetch content
+        $this->content = $contentService->getPage('events');
+
+        $seo->setTitle($this->content['hero']['title'] ?? 'Kalender Kegiatan Kapel St. Yohanes Rasul Surabaya');
         $seo->setDescription(
+            $this->content['hero']['subtitle'] ?? 
             'Temukan jadwal lengkap kegiatan, perayaan liturgi, acara komunitas, dan agenda khusus lainnya di Kapel St. Yohanes Rasul. ' .
                 'Jangan lewatkan setiap momen kebersamaan umat.'
         );

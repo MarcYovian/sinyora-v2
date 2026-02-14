@@ -18,6 +18,7 @@ class Index extends Component
 
     public $selectedCategory = '';
     public $search = '';
+    public $content = []; // Add content property
 
     public function filterByCategory($categoryId)
     {
@@ -25,10 +26,13 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function render(SEOService $seo)
+    public function render(SEOService $seo, \App\Services\ContentService $contentService)
     {
-        $pageTitle = 'Artikel Kapel';
-        $pageDescription = 'Kumpulan artikel inspiratif, berita terbaru, dan wawasan rohani dari Kapel St. Yohanes Rasul. Temukan bacaan yang menguatkan iman Anda.';
+        // Fetch content
+        $this->content = $contentService->getPage('articles');
+
+        $pageTitle = $this->content['hero']['title'] ?? 'Artikel Kapel';
+        $pageDescription = $this->content['hero']['subtitle'] ?? 'Kumpulan artikel inspiratif, berita terbaru, dan wawasan rohani dari Kapel St. Yohanes Rasul. Temukan bacaan yang menguatkan iman Anda.';
 
         if ($this->selectedCategory) {
             $category = ArticleCategory::find($this->selectedCategory);
@@ -71,13 +75,15 @@ class Index extends Component
             'articles.recent',
             1800,
             fn() =>
-            Article::published()
+            Article::select('id', 'title', 'slug', 'featured_image', 'published_at')
+                ->published()
                 ->latest('published_at')
                 ->limit(3)
                 ->get()
         );
 
-        $articles = Article::with(['user', 'category', 'tags'])
+        $articles = Article::select('id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'views', 'category_id')
+            ->with(['category:id,name'])
             ->published()
             ->when($this->selectedCategory, function ($query) {
                 $query->where('category_id', $this->selectedCategory);

@@ -1,13 +1,20 @@
 <div class="font-sans antialiased text-gray-900">
     <!-- Hero Section -->
-    <section class="relative bg-cover bg-center bg-no-repeat py-32 px-6"
-        style="background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('{{ asset('images/1.jpg') }}');">
-        <div class="container mx-auto text-center text-white max-w-4xl">
+    <section class="relative bg-cover bg-center bg-no-repeat py-32 px-6 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <x-responsive-image 
+                :image="$content['hero']['background-image'] ?? null"
+                fallback="images/1.webp"
+                alt="Events Hero Background"
+                style="filter: brightness(0.3);"
+            />
+        </div>
+        <div class="container mx-auto text-center text-white max-w-4xl relative z-10">
             <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                Kalender Kegiatan Kapel
+                {{ $content['hero']['title'] ?? 'Kalender Kegiatan Kapel' }}
             </h1>
             <p class="text-lg sm:text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
-                Temukan jadwal kegiatan, perayaan liturgi, dan acara khusus di Kapel St. Yohanes Rasul
+                {{ $content['hero']['subtitle'] ?? 'Temukan jadwal kegiatan, perayaan liturgi, dan acara khusus di Kapel St. Yohanes Rasul' }}
             </p>
             <div class="flex flex-wrap justify-center gap-4">
                 <a href="#calendar-section"
