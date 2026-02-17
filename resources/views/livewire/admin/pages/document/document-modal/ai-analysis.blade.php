@@ -54,22 +54,55 @@
 
         <div x-show="isOpen" x-collapse>
             <div class="pt-4 mt-4 border-t border-slate-200 dark:border-slate-600">
-                @if (!$isProcessing && !$form->analysisResult && $this->doc->status !== App\Enums\DocumentStatus::PROCESSED)
+                @if (!$isProcessing && !$form->analysisResult && $doc->status !== App\Enums\DocumentStatus::DONE)
+                    {{-- Warning banner jika API tidak tersedia --}}
+                    @unless ($isApiAvailable)
+                        <div
+                            class="mb-3 p-3 flex items-start gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+                            <div class="flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.001-1.742 3.001H4.42c-1.532 0-2.492-1.667-1.742-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <p>Layanan analisis AI sedang tidak tersedia. Anda dapat menggunakan input manual untuk
+                                mengisi data dokumen.</p>
+                        </div>
+                    @endunless
+
+                    {{-- Tombol Analisis AI --}}
                     <button wire:click="processDocument" wire:loading.attr="disabled" type="button"
-                        class="mt-2 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        @disabled(!$isApiAvailable)
+                        @class([
+                            'mt-2 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2',
+                            'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' => $isApiAvailable,
+                            'bg-gray-400 cursor-not-allowed opacity-60' => !$isApiAvailable,
+                        ])>
                         <div wire:loading wire:target="processDocument"
                             class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2">
                         </div>
-                        Jalankan Analisis
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                        </svg>
+                        Jalankan Analisis AI
                     </button>
-                @elseif (!$isProcessing && !$form->analysisResult && $this->doc->status === App\Enums\DocumentStatus::PROCESSED)
-                    <button wire:click="processDocument" wire:loading.attr="disabled" type="button"
-                        class="mt-2 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <div wire:loading wire:target="processDocument"
-                            class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2">
-                        </div>
-                        Jalankan Analisis
-                    </button>
+
+                    {{-- Tombol Input Manual (muncul jika API down) --}}
+                    @unless ($isApiAvailable)
+                        <button wire:click="startManualInput" wire:loading.attr="disabled" type="button"
+                            class="mt-2 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
+                            Input Data Manual
+                        </button>
+                    @endunless
                 @endif
 
                 @if ($isProcessing)

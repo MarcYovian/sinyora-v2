@@ -41,9 +41,7 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($groups as $group) {
-            Group::create([
-                'name' => $group,
-            ]);
+            Group::firstOrCreate(['name' => $group]);
         }
 
 
@@ -578,9 +576,9 @@ class RolePermissionSeeder extends Seeder
                 'default' => 'Non-Default',
             ],
             [
-                'name' => 'delete document', // hapus ruangan (pengurus kapel)
+                'name' => 'delete document',
                 'group' => Group::where('name', 'Document')->first()->id,
-                'route_name' => 'admin.documents.destroy',
+                'route_name' => 'admin.documents.delete',
                 'default' => 'Non-Default',
             ],
             [
@@ -642,13 +640,16 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            CustomPermission::create($permission);
+            CustomPermission::firstOrCreate(
+                ['name' => $permission['name']],
+                $permission
+            );
         }
 
-        // Roles
-        $admin = Role::create(['name' => 'admin']);
-        $pengurus = Role::create(['name' => 'pengurus kapel']);
-        $guest = Role::create(['name' => 'guest']);
+        // Roles - use firstOrCreate to avoid duplicates
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $pengurus = Role::firstOrCreate(['name' => 'pengurus kapel']);
+        $guest = Role::firstOrCreate(['name' => 'guest']);
 
         $permissions = CustomPermission::all();
         $admin->syncPermissions($permissions);

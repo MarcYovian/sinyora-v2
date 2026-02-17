@@ -8,15 +8,17 @@
         </p>
     </header>
 
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg">
+    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
         <div class="p-4 sm:p-6 space-y-4">
+            {{-- Header Kontrol: Tombol, Filter, dan Pencarian --}}
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                @can('add document')
-                    <x-button type="button" variant="primary" wire:click="add" class="w-full sm:w-auto">
+                @can('access', 'admin.documents.create')
+                    <x-button type="button" variant="primary" wire:click="add" class="items-center max-w-xs gap-2">
                         <x-heroicon-s-plus class="w-5 h-5" />
                         <span>{{ __('Tambah Dokumen') }}</span>
                     </x-button>
                 @endcan
+
                 <div class="flex-grow flex flex-col sm:flex-row items-center gap-3">
                     <div class="w-full sm:w-auto sm:flex-grow">
                         <x-text-input wire:model.live.debounce.300ms="search" type="text" class="w-full"
@@ -38,6 +40,7 @@
                 </div>
             </div>
 
+            {{-- Indikator Loading --}}
             <div wire:loading.flex wire:target="search, filterStatus" class="items-center justify-center w-full py-4">
                 <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
@@ -46,115 +49,125 @@
             </div>
 
             <div wire:loading.remove wire:target="search, filterStatus">
+                {{-- Tampilan Mobile (Card) --}}
                 <div class="grid grid-cols-1 gap-4 md:hidden">
                     @forelse ($documents as $document)
                         <div wire:key="document-card-{{ $document->id }}"
-                            class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
-                            <div class="p-4">
-                                <div class="flex items-start justify-between">
-                                    <div class="space-y-1">
-                                        @if ($document->subject)
-                                            <p class="font-semibold text-gray-800 dark:text-gray-200">
-                                                {{ $document->subject }}
-                                            </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                No: {{ $document->doc_num ?? '-' }}
-                                            </p>
-                                        @else
-                                            <p class="font-semibold text-gray-600 dark:text-gray-400 italic">
-                                                {{ $document->original_file_name }}
-                                            </p>
-                                            <p class="text-xs text-yellow-600 dark:text-yellow-500">
-                                                [Menunggu Analisis Informasi...]
-                                            </p>
-                                        @endif
-
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 pt-1">
-                                            Oleh: {{ $document->submitter->name }}
+                            class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
+                            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-start">
+                                <div>
+                                    @if ($document->subject)
+                                        <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">
+                                            {{ $document->subject }}
+                                        </h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            No: {{ $document->doc_num ?? '-' }}
                                         </p>
-
-                                        <div class="pt-1">
-                                            <x-status-badge :status="$document->status" />
-                                        </div>
+                                    @else
+                                        <h3 class="font-bold text-lg text-gray-600 dark:text-gray-400 italic">
+                                            {{ $document->original_file_name }}
+                                        </h3>
+                                        <p class="text-xs text-yellow-600 dark:text-yellow-500">
+                                            [Menunggu Analisis Informasi...]
+                                        </p>
+                                    @endif
+                                    <div class="mt-1">
+                                        <x-status-badge :status="$document->status" />
                                     </div>
-
-                                    {{-- Kanan: Dropdown Aksi --}}
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button
-                                                class="p-1.5 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
-                                                <x-heroicon-s-ellipsis-vertical class="h-5 w-5" />
-                                            </button>
-                                        </x-slot>
-                                        <x-slot name="content">
-                                            @can('delete document')
-                                                <x-dropdown-link href="#"
-                                                    wire:click="confirmDelete({{ $document->id }})"
+                                </div>
+                                {{-- Dropdown Aksi Mobile --}}
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="trigger">
+                                        <button
+                                            class="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                            <x-heroicon-s-ellipsis-vertical class="w-5 h-5" />
+                                        </button>
+                                    </x-slot>
+                                    <x-slot name="content">
+                                        @can('access', 'admin.documents.show')
+                                            <x-dropdown-link wire:click="viewDetails({{ $document->id }})">
+                                                Detail
+                                            </x-dropdown-link>
+                                        @endcan
+                                        <div class="border-t border-gray-100 dark:border-gray-600"></div>
+                                        @can('access', 'admin.documents.delete')
+                                            @if ($document->status !== App\Enums\DocumentStatus::DONE)
+                                                <x-dropdown-link wire:click="confirmDelete({{ $document->id }})"
                                                     class="text-red-600 dark:text-red-500">
                                                     Hapus
                                                 </x-dropdown-link>
-                                            @endcan
-                                        </x-slot>
-                                    </x-dropdown>
+                                            @endif
+                                        @endcan
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="p-4 space-y-3 text-sm">
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-user class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>{{ $document->submitter->name }}</span>
                                 </div>
-
-                                {{-- Bagian Body: Info Tambahan (Tanggal & Pemroses) --}}
-                                <div class="mt-3 pt-3 border-t dark:border-gray-700 space-y-2 text-sm">
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2 flex-shrink-0" />
+                                    <span>
+                                        Diunggah:
+                                        {{ $document->created_at->translatedFormat('d M Y, H:i') }}
+                                    </span>
+                                </div>
+                                @if ($document->processor)
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                        <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2 flex-shrink-0" />
-                                        <span>
-                                            Diunggah:
-                                            {{ $document->created_at->translatedFormat('d M Y, H:i') }}
-                                        </span>
+                                        <x-heroicon-o-check-circle class="w-4 h-4 mr-2 flex-shrink-0" />
+                                        <span>Diproses oleh: {{ $document->processor->name }}</span>
                                     </div>
-                                    @if ($document->processor)
-                                        <div class="flex items-center text-gray-600 dark:text-gray-300">
-                                            <x-heroicon-o-user class="w-4 h-4 mr-2 flex-shrink-0" />
-                                            <span>Diproses oleh: {{ $document->processor->name }}</span>
-                                        </div>
-                                    @endif
+                                @endif
+
+                                {{-- Mobile Card Actions --}}
+                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+                                    @can('access', 'admin.documents.show')
+                                        <button wire:click="viewDetails({{ $document->id }})"
+                                            class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                            <x-heroicon-o-eye class="w-4 h-4" />
+                                            <span>{{ __('Detail') }}</span>
+                                        </button>
+                                    @endcan
+
+                                    @can('access', 'admin.documents.delete')
+                                        @if ($document->status !== App\Enums\DocumentStatus::DONE)
+                                            <button wire:click="confirmDelete({{ $document->id }})"
+                                                class="text-red-500 dark:text-red-400 font-medium hover:underline flex items-center gap-1.5 transition-colors">
+                                                <x-heroicon-o-trash class="w-4 h-4" />
+                                                <span>{{ __('Hapus') }}</span>
+                                            </button>
+                                        @endif
+                                    @endcan
                                 </div>
                             </div>
-
-                            {{-- Bagian Footer: Tombol Aksi Utama --}}
-                            @can('view document details')
-                                <div class="bg-gray-50 dark:bg-gray-900/50 px-4 py-2 flex items-center justify-end">
-                                    <x-button wire:click="viewDetails({{ $document->id }})" variant="secondary"
-                                        size="sm">
-                                        Lihat Detail
-                                    </x-button>
-                                </div>
-                            @endcan
                         </div>
                     @empty
-                        {{-- Tampilan jika data kosong --}}
-                        <div class="text-center py-12 text-gray-500 dark:text-gray-400 col-span-1">
-                            <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
-                            <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data dokumen') }}</h4>
-                            <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau unggah dokumen baru.') }}</p>
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            {{ __('Tidak ada data yang tersedia') }}
                         </div>
                     @endforelse
                 </div>
 
+                {{-- Tampilan Desktop (Tabel) --}}
                 <div class="hidden md:block">
-                    <x-table title="Data Documents" :heads="$table_heads">
+                    <x-table title="Data Dokumen" :heads="$table_heads">
                         @forelse ($documents as $key => $document)
                             <tr wire:key="document-row-{{ $document->id }}"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                    {{ $documents->firstItem() + $loop->index }}
+                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 isolate">
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                                    {{ $key + $documents->firstItem() }}
                                 </td>
-                                <td class="px-6 py-4">
+                                {{-- Dokumen --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     @if ($document->subject)
-                                        {{-- Tampilkan jika subjek hasil analisis AI SUDAH ADA --}}
-                                        <div class="font-semibold text-gray-800 dark:text-gray-200">
+                                        <div class="font-semibold text-gray-900 dark:text-gray-200">
                                             {{ $document->subject }}
                                         </div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400">
                                             No: {{ $document->doc_num ?? '-' }}
                                         </div>
                                     @else
-                                        {{-- Tampilkan jika subjek BELUM ADA (menunggu analisis) --}}
                                         <div class="font-semibold text-gray-600 dark:text-gray-400 italic">
                                             {{ $document->original_file_name }}
                                         </div>
@@ -163,36 +176,48 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                {{-- Pengaju --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                     {{ $document->submitter->name }}
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                {{-- Tanggal Unggah --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                     {{ $document->created_at->translatedFormat('d M Y') }}
                                 </td>
-                                <td class="px-6 py-4">
+                                {{-- Status --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <x-status-badge :status="$document->status" />
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                {{-- Diproses Oleh --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                     @if ($document->processor)
                                         <div>{{ $document->processor->name }}</div>
-                                        <div>({{ $document->processed_at->translatedFormat('d M') }})</div>
+                                        <div class="text-xs text-gray-400">
+                                            ({{ $document->processed_at->translatedFormat('d M') }})
+                                        </div>
                                     @else
                                         {{ __('-') }}
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-gray-700 dark:text-gray-300 text-sm">
-                                    <div class="flex flex-col items-center gap-2">
-                                        @can('view document details')
-                                            <x-button size="sm" variant="primary" type="button"
-                                                wire:click="viewDetails({{ $document->id }})">
-                                                {{ __('Detail') }}
+                                {{-- Aksi --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end space-x-1">
+                                        {{-- Detail Button - Blue/Primary --}}
+                                        @can('access', 'admin.documents.show')
+                                            <x-button type="button" variant="primary" size="sm" class="!p-2"
+                                                wire:click="viewDetails({{ $document->id }})" title="Detail">
+                                                <x-heroicon-o-eye class="w-4 h-4" />
+                                                <span class="sr-only">Detail</span>
                                             </x-button>
                                         @endcan
-                                        @can('delete document')
-                                            @if ($document->status !== 'done')
-                                                <x-button size="sm" variant="danger" type="button"
-                                                    wire:click="confirmDelete({{ $document->id }})">
-                                                    {{ __('Delete') }}
+
+                                        {{-- Delete Button - Red/Danger --}}
+                                        @can('access', 'admin.documents.delete')
+                                            @if ($document->status !== App\Enums\DocumentStatus::DONE)
+                                                <x-button type="button" variant="danger" size="sm" class="!p-2"
+                                                    wire:click="confirmDelete({{ $document->id }})" title="Hapus">
+                                                    <x-heroicon-o-trash class="w-4 h-4" />
+                                                    <span class="sr-only">Hapus</span>
                                                 </x-button>
                                             @endif
                                         @endcan
@@ -200,10 +225,12 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr class="bg-white dark:bg-gray-800">
+                            <tr>
                                 <td colspan="{{ count($table_heads) }}"
-                                    class="whitespace-nowrap px-6 py-4 text-rose-700 dark:text-rose-400 text-sm text-center">
-                                    {{ __('No data available') }}
+                                    class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <x-heroicon-o-inbox class="mx-auto h-12 w-12" />
+                                    <h4 class="mt-2 text-sm font-semibold">{{ __('Tidak ada data yang tersedia') }}</h4>
+                                    <p class="mt-1 text-sm">{{ __('Coba ubah filter Anda atau unggah dokumen baru.') }}</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -212,23 +239,30 @@
             </div>
         </div>
 
-        <div class="px-6 py-4">
+        <div class="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
             {{ $documents->links() }}
         </div>
     </div>
 
+    {{-- Add Document Modal --}}
     <x-modal name="add-document-modal" focusable>
         <div class="p-4 sm:p-6 bg-white dark:bg-gray-800">
 
             {{-- Header Modal --}}
-            <header class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    Formulir Pengajuan Dokumen Baru
-                </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Unggah proposal kegiatan Anda dalam format PDF atau gambar.
-                </p>
-            </header>
+            <div class="flex items-start justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        Formulir Pengajuan Dokumen Baru
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Unggah proposal kegiatan Anda dalam format PDF atau gambar.
+                    </p>
+                </div>
+                <button type="button" @click="$dispatch('close')"
+                    class="p-2 -m-2 text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-200 transition-all">
+                    <x-heroicon-s-x-mark class="h-6 w-6" />
+                </button>
+            </div>
 
             <form wire:submit.prevent="save" class="space-y-6" enctype="multipart/form-data">
                 <div>
@@ -247,13 +281,11 @@
                             @change="fileName = $refs.fileInput.files[0] ? $refs.fileInput.files[0].name : ''">
 
                         {{-- Area Dropzone --}}
-                        {{-- [IMPROVEMENT] Menggunakan x-show.transition untuk animasi yang lebih halus --}}
                         <div x-show="!fileName" x-transition:enter="transition ease-out duration-300"
                             x-transition:enter-start="opacity-0" @click="$refs.fileInput.click()"
                             @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
                             @drop.prevent="isDragging = false; $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change'))"
                             class="relative flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors"
-                            {{-- [IMPROVEMENT] Menggunakan warna tema dari Tailwind untuk dark/light mode --}}
                             :class="isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' :
                                 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'">
 
@@ -280,7 +312,6 @@
                         </div>
 
                         {{-- Pratinjau File & Progress Bar --}}
-                        {{-- [IMPROVEMENT] Tampilan pratinjau yang lebih bersih dan terstruktur --}}
                         <div x-show="fileName" style="display: none;"
                             class="relative w-full p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center space-x-4">
 
@@ -331,43 +362,72 @@
                 </div>
 
                 {{-- Footer dengan Tombol Aksi --}}
-                <footer
-                    class="mt-8 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t pt-4 dark:border-gray-700">
-                    <x-secondary-button x-on:click="$dispatch('close')" class="w-full sm:w-auto justify-center">
-                        Batal
+                <div
+                    class="mt-8 pt-5 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                    <x-secondary-button type="button" x-on:click="$dispatch('close')" class="justify-center">
+                        {{ __('Batal') }}
                     </x-secondary-button>
 
-                    <x-primary-button type="submit" class="w-full sm:w-auto justify-center"
+                    <x-primary-button type="submit" class="justify-center"
                         wire:loading.attr="disabled" wire:target="save">
-                        <div wire:loading wire:target="save"
-                            class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        <span>{{ __('Ajukan Proposal') }}</span>
+                        <span wire:loading.remove wire:target="save">
+                            {{ __('Ajukan Proposal') }}
+                        </span>
+                        <span wire:loading wire:target="save" class="flex items-center gap-2">
+                            <x-heroicon-s-arrow-path class="h-5 w-5 animate-spin" />
+                            {{ __('Memproses...') }}
+                        </span>
                     </x-primary-button>
-                </footer>
+                </div>
             </form>
         </div>
     </x-modal>
 
+    {{-- Delete Document Confirmation Modal --}}
     <x-modal name="delete-document-confirmation" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="delete" class="p-6">
-
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to delete this document?') }}
+                {{ __('Hapus Data Dokumen?') }}
             </h2>
+
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('This action cannot be undone.') }}
-            </p>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Please confirm that you want to delete this menu by clicking the button below.') }}
+                {{ __('Tindakan ini tidak dapat dibatalkan. Data dokumen akan dihapus permanen dari sistem.') }}
             </p>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
+            @if ($document)
+                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                {{ __('Nama Dokumen') }}</dt>
+                            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {{ $document->subject ?? $document->original_file_name }}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            @endif
+
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                <div class="flex items-center gap-3">
+                    <x-heroicon-o-trash class="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <span class="text-sm font-medium text-red-900 dark:text-red-200">
+                        {{ __('Data yang dihapus tidak dapat dipulihkan.') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    {{ __('Batal') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete') }}
+                <x-danger-button>
+                    <span wire:loading.remove wire:target="delete">{{ __('Hapus Dokumen') }}</span>
+                    <span wire:loading wire:target="delete" class="flex items-center gap-2">
+                        <x-heroicon-s-arrow-path class="h-4 w-4 animate-spin" />
+                        {{ __('Menghapus...') }}
+                    </span>
                 </x-danger-button>
             </div>
         </form>

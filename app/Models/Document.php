@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\DataTransferObjects\LetterData;
 use App\Enums\DocumentStatus;
+use App\Observers\DocumentObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
+#[ObservedBy(DocumentObserver::class)]
 class Document extends Model
 {
     protected $fillable = [

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\Contracts\AssetRepositoryInterface;
 use App\Repositories\Contracts\LocationRepositoryInterface;
 use App\Repositories\Contracts\OrganizationRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 class DocumentDataCorrectionService
 {
@@ -50,6 +51,12 @@ class DocumentDataCorrectionService
             data_set($data, "events.{$eventIndex}.location_data.{$locIndex}.name", $location->name);
             data_set($data, "events.{$eventIndex}.location_data.{$locIndex}.location_id", $location->id);
             data_set($data, "events.{$eventIndex}.location_data.{$locIndex}.match_status", 'matched');
+
+            Log::debug('Document correction: location updated.', [
+                'event_index' => $eventIndex,
+                'location_id' => $location->id,
+                'location_name' => $location->name,
+            ]);
         }
         return $data;
     }
@@ -110,6 +117,12 @@ class DocumentDataCorrectionService
         data_set($data, "{$path}.match_status", 'matched');
         data_set($data, "{$path}.item_id", $masterItem->id);
         data_set($data, "{$path}.name", $masterItem->name);
+
+        Log::debug('Document correction: item linked.', [
+            'collection' => $collectionKey,
+            'item_id' => $masterItem->id,
+            'item_name' => $masterItem->name,
+        ]);
 
         flash()->success(ucfirst($collectionKey) . ' berhasil ditautkan.');
         return $data;

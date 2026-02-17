@@ -25,6 +25,25 @@ class DocumentProcessingService
     ) {}
 
     /**
+     * Mengecek apakah BERT API dapat dijangkau dan tidak mengembalikan error 5xx.
+     */
+    public function checkApiHealth(): bool
+    {
+        try {
+            $response = Http::timeout(5)
+                ->get(config('services.bert_api.url') . 'health');
+
+            return !$response->serverError();
+        } catch (ConnectionException $e) {
+            Log::warning('BERT API health check failed (connection): ' . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            Log::warning('BERT API health check failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Memanggil API eksternal, memproses, dan menyimpan hasil analisis mentah.
      *
      * @throws Exception jika terjadi kegagalan.

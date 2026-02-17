@@ -2,15 +2,16 @@
 
 namespace App\Livewire\Admin\Pages;
 
+use App\Enums\DocumentStatus;
 use App\Livewire\Admin\Pages\Document\DocumentModal;
 use App\Models\Document as ModelsDocument;
-use App\Models\User as ModelsUser;
 use App\Services\DocumentManagementService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -21,18 +22,33 @@ use Livewire\WithPagination;
 class Document extends Component
 {
     use WithPagination, AuthorizesRequests, WithFileUploads;
+
     #[Layout('layouts.app')]
 
-    public ModelsDocument $document;
+    public ?ModelsDocument $document = null;
     public $attachment = null;
+    public ?int $deleteId = null;
 
-    #[Url(keep: true)]
+    #[Url(as: 'q')]
     public string $search = '';
 
-    #[Url(as: 'status', keep: true)]
+    #[Url(as: 's')]
     public string $filterStatus = '';
 
+    public string $correlationId = '';
 
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
+    {
+        $this->correlationId = Str::uuid()->toString();
+        $this->authorize('access', 'admin.documents.index');
+    }
+
+    /**
+     * Validation rules for file upload.
+     */
     public function rules(): array
     {
         return [
@@ -40,98 +56,214 @@ class Document extends Component
         ];
     }
 
-    public function viewDetails($id)
+    /**
+     * Handle property updates (reset pagination on filter change).
+     */
+    public function updated(string $propertyName): void
     {
-        $this->dispatch('setDataForDetailDocument', documentId: $id)->to(DocumentModal::class);
-        $this->dispatch('open-modal', 'document-modal');
+        if (in_array($propertyName, ['search', 'filterStatus'])) {
+            $this->resetPage();
+        }
     }
 
-    public function add()
+    /**
+     * View document details.
+     */
+    public function viewDetails(int $id): void
     {
+        $this->authorize('access', 'admin.documents.show');
+
+        $this->dispatch('setDataForDetailDocument', documentId: $id)->to(DocumentModal::class);
+        $this->dispatch('open-modal', 'document-modal');
+
+        Log::debug('Document detail modal opened', [
+            'document_id' => $id,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
+    }
+
+    /**
+     * Open modal for adding a new document.
+     */
+    public function add(): void
+    {
+        $this->authorize('access', 'admin.documents.create');
+
         $this->attachment = null;
         $this->dispatch('reset-file-input');
         $this->dispatch('open-modal', 'add-document-modal');
+
+        Log::debug('Add document modal opened', [
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
     }
 
-    public function removeAttachment()
+    /**
+     * Remove the current attachment.
+     */
+    public function removeAttachment(): void
     {
         if ($this->attachment) {
             $this->attachment = null;
         }
     }
 
-    public function save()
+    /**
+     * Save newly uploaded document.
+     */
+    public function save(): void
     {
-        $this->validate();
-
         try {
+            $this->authorize('access', 'admin.documents.create');
+            $this->validate();
+
             $file = $this->attachment;
-            $user = ModelsUser::find(Auth::id());
+            $user = Auth::user();
+
+            Log::info('Storing new document', [
+                'user_id' => auth()->id(),
+                'file_name' => $file->getClientOriginalName(),
+                'correlation_id' => $this->correlationId,
+            ]);
 
             app(DocumentManagementService::class)->storeNewDocument($file, $user);
 
             flash()->success('Dokumen berhasil diunggah.');
             $this->dispatch('close-modal', 'add-document-modal');
-            $this->reset();
+            $this->reset(['attachment']);
+
+            Log::info('Document stored successfully', [
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk operasi ini.');
+            Log::warning('Unauthorized document upload attempt', [
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('Gagal mengunggah dokumen: ' . $e->getMessage());
-            flash()->error('Gagal mengunggah dokumen, silakan coba lagi.');
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Document upload failed', [
+                'user_id' => auth()->id(),
+                'file_name' => $this->attachment?->getClientOriginalName(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
         }
     }
 
-    public function confirmDelete(int $documentId)
+    /**
+     * Open delete confirmation modal.
+     */
+    public function confirmDelete(int $documentId): void
     {
-        $this->document = ModelsDocument::find($documentId);
+        $this->authorize('access', 'admin.documents.delete');
+
+        $this->document = ModelsDocument::select(['id', 'subject', 'original_file_name', 'status', 'document_path'])
+            ->find($documentId);
+
         if (!$this->document) {
-            flash()->error(__('Document not found.'));
+            flash()->error(__('Dokumen tidak ditemukan.'));
             return;
         }
 
-        if ($this->document->status === 'done') {
-            flash()->error(__('You cannot delete a document that has been processed.'));
+        if ($this->document->status === DocumentStatus::DONE) {
+            flash()->error(__('Dokumen yang sudah selesai diproses tidak dapat dihapus.'));
             return;
         }
 
+        $this->deleteId = $documentId;
         $this->dispatch('open-modal', 'delete-document-confirmation');
     }
 
-    public function delete()
+    /**
+     * Delete a document.
+     */
+    public function delete(): void
     {
-        if (!$this->document) {
-            flash()->error(__('Document not found.'));
-            return;
-        }
+        Log::info('Document deletion initiated', [
+            'document_id' => $this->deleteId,
+            'user_id' => auth()->id(),
+            'correlation_id' => $this->correlationId,
+        ]);
 
         try {
+            $this->authorize('access', 'admin.documents.delete');
+
+            if (!$this->deleteId || !$this->document) {
+                return;
+            }
+
             app(DocumentManagementService::class)->deleteDocument($this->document);
-            flash()->success(__('Document deleted successfully.'));
+
+            flash()->success(__('Dokumen berhasil dihapus.'));
             $this->dispatch('close-modal', 'delete-document-confirmation');
+
+            Log::info('Document deleted successfully', [
+                'document_id' => $this->deleteId,
+                'correlation_id' => $this->correlationId,
+            ]);
+        } catch (AuthorizationException $e) {
+            flash()->error('Anda tidak memiliki izin untuk menghapus dokumen.');
+            Log::warning('Unauthorized document deletion attempt', [
+                'document_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'correlation_id' => $this->correlationId,
+            ]);
         } catch (\Exception $e) {
-            Log::error('Gagal menghapus dokumen: ' . $e->getMessage());
-            flash()->error('Gagal menghapus dokumen, silakan coba lagi.');
+            flash()->error("Terjadi kesalahan yang tidak terduga. #{$this->correlationId}");
+            Log::error('Document deletion failed', [
+                'document_id' => $this->deleteId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'correlation_id' => $this->correlationId,
+            ]);
+        } finally {
+            $this->deleteId = null;
         }
     }
 
+    /**
+     * Reset all filters.
+     */
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filterStatus');
+        $this->resetPage();
+    }
+
+    /**
+     * Render the component.
+     */
     #[On('refresh-documents')]
     public function render()
     {
-        $table_heads = ['#', 'Subject', 'Submitter', 'Upload Date', 'Status', 'Processed By', 'Actions'];
-        $search = $this->search;
-        $filterStatus = $this->filterStatus;
+        $table_heads = ['No', 'Dokumen', 'Pengaju', 'Tanggal Unggah', 'Status', 'Diproses Oleh', 'Aksi'];
+
         $documents = ModelsDocument::query()
-            ->with(['submitter', 'processor'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where('subject', 'like', "%{$search}%")
-                        ->orWhere('doc_num', 'like', "%{$search}%")
-                        ->orWhere('original_file_name', 'like', "%{$search}%");
+            ->select([
+                'id', 'subject', 'doc_num', 'original_file_name',
+                'status', 'submitter_type', 'submitter_id',
+                'processed_by', 'processed_at', 'created_at',
+                'document_path',
+            ])
+            ->with(['submitter', 'processor:id,name'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('subject', 'like', '%' . $this->search . '%')
+                        ->orWhere('doc_num', 'like', '%' . $this->search . '%')
+                        ->orWhere('original_file_name', 'like', '%' . $this->search . '%');
                 })
-                    ->orWhereHas('submitter', function ($subQuery) use ($search) {
-                        $subQuery->where('name', 'like', "%{$search}%");
+                    ->orWhereHas('submitter', function ($subQuery) {
+                        $subQuery->where('name', 'like', '%' . $this->search . '%');
                     });
             })
-            ->when($filterStatus, function ($query, $status) {
-                $query->where('status', $status);
+            ->when($this->filterStatus, function ($query) {
+                $query->where('status', $this->filterStatus);
             })
             ->latest()
             ->paginate(10);

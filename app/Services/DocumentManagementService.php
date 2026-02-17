@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\DataTransferObjects\StoreDocumentData;
 use App\Enums\DocumentStatus;
-use App\Enums\DocumentType;
 use App\Events\DocumentProposalCreated;
 use App\Models\Document;
 use App\Models\GuestSubmitter;
@@ -13,93 +12,118 @@ use App\Repositories\Contracts\DocumentRepositoryInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DocumentManagementService
 {
-    protected $documentRepository;
     /**
      * Create a new class instance.
      */
     public function __construct(
-        DocumentRepositoryInterface $documentRepository
-    ) {
-        $this->documentRepository = $documentRepository;
-    }
+        protected DocumentRepositoryInterface $documentRepository
+    ) {}
 
-    public function storeNewDocument(UploadedFile $file, User|GuestSubmitter $submitter)
+    /**
+     * Store a new document submitted by a user or guest.
+     */
+    public function storeNewDocument(UploadedFile $file, User|GuestSubmitter $submitter): Document
     {
-        $document = DB::transaction(function () use ($file, $submitter) {
-            $path = $file->store('documents/proposals', 'public');
-            $mimeType = Storage::disk('public')->mimeType($path);
+        Log::info('Storing new document', [
+            'file_name' => $file->getClientOriginalName(),
+            'submitter_type' => class_basename($submitter),
+            'submitter_id' => $submitter->id ?? null,
+            'user_id' => Auth::id(),
+        ]);
 
-            $documentData = new StoreDocumentData(
-                document_path: $path,
-                original_file_name: $file->getClientOriginalName(),
-                mime_type: $mimeType,
-                status: DocumentStatus::PENDING
-            );
-
-            return $this->documentRepository->create($submitter, $documentData);
-        });
-
-        if ($document && $submitter instanceof GuestSubmitter) {
-            DocumentProposalCreated::dispatch($submitter, $document);
-        }
-
-        if ($document && $submitter instanceof User) {
-            // DocumentProposalCreated::dispatch($submitter, $document);
-        }
-
-        return $document;
-    }
-
-    public function updateDocumentWithAnalysis(array $data)
-    {
-        $docId = data_get($data, 'id');
-        $docData = [
-            'email' => data_get($data, 'document_information.emitter_email'),
-            'subject' => implode(', ', data_get($data, 'document_information.subjects', [])),
-            'city' => data_get($data, 'document_information.document_city'),
-            'doc_date' => data_get($data, 'document_information.document_date.date'),
-            'doc_num' => data_get($data, 'document_information.document_number'),
-            'status' => DocumentStatus::DONE,
-            'processed_by' => Auth::id(),
-            'processed_at' => now(),
-        ];
-        $docType = data_get($data, 'type');
-        $signatureBlocks = data_get($data, 'signature_blocks', []);
-
-        DB::transaction(function () use ($docId, $docData, $docType, $signatureBlocks) {
+        return DB::transaction(function () use ($file, $submitter) {
             try {
-                $documentUpdated = $this->documentRepository->update($docId, $docData);
+                $path = $file->store('documents/proposals', 'public');
+                $mimeType = Storage::disk('public')->mimeType($path);
 
-                if (!$documentUpdated) {
-                    throw new \Exception("Document with ID $docId could not be updated.");
+                // Sanitize user-supplied filename
+                $originalName = Str::limit(
+                    pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                    200
+                ) . '.' . $file->getClientOriginalExtension();
+
+                $documentData = new StoreDocumentData(
+                    document_path: $path,
+                    original_file_name: $originalName,
+                    mime_type: $mimeType,
+                    status: DocumentStatus::PENDING
+                );
+
+                $document = $this->documentRepository->create($submitter, $documentData);
+
+                if ($document && $submitter instanceof GuestSubmitter) {
+                    DocumentProposalCreated::dispatch($submitter, $document);
                 }
 
-                $document = $this->documentRepository->findById($docId);
+                Log::info('Document stored successfully', [
+                    'document_id' => $document?->id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'submitter_type' => class_basename($submitter),
+                    'submitter_id' => $submitter->id ?? null,
+                    'user_id' => Auth::id(),
+                ]);
 
-                $document->signatures()->createMany($signatureBlocks);
+                return $document;
+            } catch (\Throwable $th) {
+                Log::error('Failed to store document', [
+                    'file_name' => $file->getClientOriginalName(),
+                    'submitter_type' => class_basename($submitter),
+                    'user_id' => Auth::id(),
+                    'error' => $th->getMessage(),
+                ]);
 
-                if ($docType === DocumentType::BORROWING->value) {
-                } elseif ($docType === DocumentType::LICENSING->value) {
-                } elseif ($docType === DocumentType::INVITATION->value) {
-                } else {
-                    throw new \Exception("Unknown document type: $docType");
-                }
-            } catch (\Exception $e) {
-                throw $e;
+                throw $th;
             }
         });
     }
 
-
-    public function deleteDocument(Document $document)
+    /**
+     * Delete a document and its associated file from storage.
+     */
+    public function deleteDocument(Document $document): bool
     {
+        Log::info('Deleting document', [
+            'document_id' => $document->id,
+            'file_name' => $document->original_file_name,
+            'user_id' => Auth::id(),
+        ]);
+
         return DB::transaction(function () use ($document) {
-            Storage::disk('public')->delete($document->document_path);
-            return $this->documentRepository->delete($document->id);
+            try {
+                $filePath = $document->document_path;
+
+                $deleted = Storage::disk('public')->delete($filePath);
+                if (!$deleted) {
+                    Log::warning('File not found on disk during document deletion', [
+                        'document_id' => $document->id,
+                        'path' => $filePath,
+                    ]);
+                }
+
+                $result = $this->documentRepository->delete($document->id);
+
+                Log::info('Document deleted successfully', [
+                    'document_id' => $document->id,
+                    'file_deleted' => $deleted,
+                    'user_id' => Auth::id(),
+                ]);
+
+                return $result;
+            } catch (\Throwable $th) {
+                Log::error('Failed to delete document', [
+                    'document_id' => $document->id,
+                    'user_id' => Auth::id(),
+                    'error' => $th->getMessage(),
+                ]);
+
+                throw $th;
+            }
         });
     }
 }

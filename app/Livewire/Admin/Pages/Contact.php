@@ -56,9 +56,19 @@ class Contact extends Component
     }
 
     /**
-     * Show contact details in non-modal view.
+     * Set status filter.
      */
-    public function show(int $id): void
+    public function setStatusFilter(string $status): void
+    {
+        $this->statusFilter = $status;
+        $this->resetPage();
+        $this->selectedContact = null; // Clear selection when filter changes
+    }
+
+    /**
+     * Select a contact to view details.
+     */
+    public function selectContact(int $id): void
     {
         try {
             $this->selectedContact = ContactModel::findOrFail($id);
@@ -73,11 +83,10 @@ class Contact extends Component
                     'correlation_id' => $this->correlationId,
                 ]);
             }
-
-            $this->dispatch('open-modal', 'view-contact-modal');
         } catch (ModelNotFoundException $e) {
-            Log::warning('Contact not found for show', ['contact_id' => $id, 'user_id' => Auth::id()]);
+            Log::warning('Contact not found for selection', ['contact_id' => $id, 'user_id' => Auth::id()]);
             flash()->error('Pesan tidak ditemukan.');
+            $this->selectedContact = null;
         } catch (\Exception $e) {
             Log::error('Failed to load contact', [
                 'contact_id' => $id,
@@ -86,6 +95,7 @@ class Contact extends Component
                 'error' => $e->getMessage(),
             ]);
             flash()->error('Gagal memuat pesan. Silakan coba lagi.');
+            $this->selectedContact = null;
         }
     }
 

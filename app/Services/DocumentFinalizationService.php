@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DocumentFinalizationService
 {
@@ -23,9 +24,17 @@ class DocumentFinalizationService
 
     public function finalize(array $data)
     {
-        DB::transaction(function () use ($data) {
+        $type = data_get($data, 'type');
+        $docId = data_get($data, 'id');
+
+        Log::info('Document finalization started.', [
+            'document_id' => $docId,
+            'type' => $type,
+            'events_count' => count(data_get($data, 'events', [])),
+        ]);
+
+        DB::transaction(function () use ($data, $type, $docId) {
             $document = $this->updateDocumentAndSignatures($data);
-            $type = data_get($data, 'type');
 
             foreach (data_get($data, 'events') as $event) {
                 if ($type === DocumentType::LICENSING->value) {
@@ -36,6 +45,11 @@ class DocumentFinalizationService
                     $this->invitationCreationService->createInvitationFromDocument($document, $event, data_get($data, 'document_information'));
                 }
             }
+
+            Log::info('Document finalization completed.', [
+                'document_id' => $docId,
+                'type' => $type,
+            ]);
         });
     }
 

@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use App\Events\DocumentProposalCreated;
 use App\Models\GuestSubmitter;
 use App\Models\User;
@@ -48,6 +49,8 @@ class DocumentManagementServiceTest extends TestCase
         DB::shouldReceive('transaction')->andReturnUsing(function ($callback) {
             return $callback();
         });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
 
         $file = UploadedFile::fake()->create('document.pdf', 100);
         
@@ -72,6 +75,8 @@ class DocumentManagementServiceTest extends TestCase
         DB::shouldReceive('transaction')->andReturnUsing(function ($callback) {
             return $callback();
         });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
 
         $file = UploadedFile::fake()->create('document.pdf', 100);
 
@@ -96,9 +101,12 @@ class DocumentManagementServiceTest extends TestCase
         DB::shouldReceive('transaction')->andReturnUsing(function ($callback) {
             return $callback();
         });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
 
         $storageDiskMock = \Mockery::mock();
-        $storageDiskMock->shouldReceive('delete')->once();
+        $storageDiskMock->shouldReceive('delete')->once()->andReturn(true);
         Storage::shouldReceive('disk')->with('public')->andReturn($storageDiskMock);
 
         $this->documentRepository->shouldReceive('delete')->once()->andReturn(true);
@@ -108,32 +116,5 @@ class DocumentManagementServiceTest extends TestCase
         $result = $this->service->deleteDocument($document);
 
         $this->assertTrue($result);
-    }
-
-    /** @test */
-    public function it_updates_a_document_with_analysis()
-    {
-        DB::shouldReceive('transaction')->andReturnUsing(function ($callback) {
-            return $callback();
-        });
-
-        \Illuminate\Support\Facades\Auth::shouldReceive('id')->andReturn(1);
-
-        $documentMock = \Mockery::mock(\App\Models\Document::class);
-        $documentMock->shouldReceive('signatures->createMany')->once();
-
-        $this->documentRepository->shouldReceive('update')->once()->andReturn(true);
-        $this->documentRepository->shouldReceive('findById')->once()->andReturn($documentMock);
-
-        $data = [
-            'id' => 1,
-            'type' => \App\Enums\DocumentType::LICENSING->value,
-            'signature_blocks' => [],
-            'document_information' => [],
-        ];
-
-        $this->service->updateDocumentWithAnalysis($data);
-
-        $this->assertTrue(true); // To avoid risky test warning
     }
 }

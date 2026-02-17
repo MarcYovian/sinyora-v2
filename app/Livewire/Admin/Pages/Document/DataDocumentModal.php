@@ -33,8 +33,16 @@ class DataDocumentModal extends Component
             $this->editingLocationIndex[$index] = null;
         }
 
-        $this->allOrganizations = app(OrganizationRepositoryInterface::class)->getAllOrderedByName();
-        $this->allLocations = app(LocationRepositoryInterface::class)->getAllOrderedByName();
+        $this->allOrganizations = \Illuminate\Support\Facades\Cache::remember(
+            'dropdown_organizations',
+            3600,
+            fn() => app(OrganizationRepositoryInterface::class)->getAllOrderedByName()
+        );
+        $this->allLocations = \Illuminate\Support\Facades\Cache::remember(
+            'dropdown_locations',
+            3600,
+            fn() => app(LocationRepositoryInterface::class)->getAllOrderedByName()
+        );
     }
 
     public function editLocation($eventIndex, $locIndex)

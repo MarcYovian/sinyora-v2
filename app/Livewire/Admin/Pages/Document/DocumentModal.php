@@ -22,6 +22,7 @@ class DocumentModal extends Component
     public string $processingStatus = '';
     public bool $isProcessing = false;
     public bool $isEditing = false;
+    public bool $isApiAvailable = true;
     public array $editableKegiatan = [];
     public array $editableData = [];
 
@@ -66,6 +67,9 @@ class DocumentModal extends Component
                 Log::error('Gagal memuat analysis_result dari DB untuk dokumen ID: ' . $this->doc->id, ['error' => $e->getMessage()]);
             }
         }
+
+        // Cek ketersediaan BERT API
+        $this->isApiAvailable = app(DocumentProcessingService::class)->checkApiHealth();
     }
 
     public function closeModal()
@@ -81,6 +85,42 @@ class DocumentModal extends Component
         $this->isProcessing = false;
         $this->isEditing = false;
         $this->isSave = false;
+        $this->isApiAvailable = true;
+    }
+
+    /**
+     * Memulai mode input manual dengan template data kosong.
+     */
+    public function startManualInput()
+    {
+        $this->form->analysisResult = [
+            'id' => $this->doc->id,
+            'file_name' => $this->doc->original_file_name,
+            'type' => '',
+            'text' => '',
+            'document_information' => [
+                'document_date' => '',
+                'document_number' => '',
+                'document_city' => '',
+                'emitter_email' => '',
+                'subjects' => [''],
+                'recipients' => [['name' => '', 'position' => '']],
+                'emitter_organizations' => [['name' => '']],
+            ],
+            'events' => [[
+                'eventName' => '',
+                'date' => '',
+                'time' => '',
+                'location' => '',
+                'attendees' => '',
+                'equipment' => [],
+                'organizers' => [],
+                'schedule' => [],
+            ]],
+            'signature_blocks' => [['name' => '', 'position' => '']],
+        ];
+        $this->isEditing = true;
+        $this->processingStatus = 'Mode input manual aktif. Silakan isi data dokumen secara manual.';
     }
 
     #[On('start-processing')]
@@ -158,220 +198,128 @@ class DocumentModal extends Component
         flash()->success('Hasil analisis berhasil diperbarui.');
     }
 
-    public function addItem($kegiatanIndex)
+    // -----------------------------------------------------------
+    // Generic Array Helpers
+    // -----------------------------------------------------------
+
+    /**
+     * Append an item to a nested array in analysisResult.
+     */
+    private function appendToAnalysisResult(string $path, mixed $template): void
     {
         if (!$this->isEditing) return;
 
-        // Pastikan 'equipment' ada dan merupakan array
-        if (!isset($this->form->analysisResult['events'][$kegiatanIndex]['equipment']) || !is_array($this->form->analysisResult['events'][$kegiatanIndex]['equipment'])) {
-            $this->form->analysisResult['events'][$kegiatanIndex]['equipment'] = [];
-        }
+        $current = data_get($this->form->analysisResult, $path, []);
+        if (!is_array($current)) $current = [];
+        $current[] = $template;
+        data_set($this->form->analysisResult, $path, $current);
+    }
 
-        // Tambahkan item equipment baru
-        $this->form->analysisResult['events'][$kegiatanIndex]['equipment'][] = ['item' => '', 'quantity' => 1];
+    /**
+     * Remove an item from a nested array in analysisResult and re-index.
+     */
+    private function removeFromAnalysisResult(string $path, int $index): void
+    {
+        if (!$this->isEditing) return;
+
+        $current = data_get($this->form->analysisResult, $path, []);
+        if (isset($current[$index])) {
+            array_splice($current, $index, 1);
+            data_set($this->form->analysisResult, $path, $current);
+        }
+    }
+
+    // -----------------------------------------------------------
+    // Item (Equipment) Methods
+    // -----------------------------------------------------------
+
+    public function addItem($kegiatanIndex)
+    {
+        $this->appendToAnalysisResult("events.{$kegiatanIndex}.equipment", ['item' => '', 'quantity' => 1]);
     }
 
     public function removeItem($kegiatanIndex, $itemIndex)
     {
-        if (!$this->isEditing) return;
-
-        // Pastikan equipment ada dan item index valid
-        if (isset($this->form->analysisResult['events'][$kegiatanIndex]['equipment'][$itemIndex])) {
-            // Hapus item berdasarkan index
-            unset($this->form->analysisResult['events'][$kegiatanIndex]['equipment'][$itemIndex]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['events'][$kegiatanIndex]['equipment'] = array_values($this->form->analysisResult['events'][$kegiatanIndex]['equipment']);
-        }
+        $this->removeFromAnalysisResult("events.{$kegiatanIndex}.equipment", $itemIndex);
     }
 
     public function removeKegiatan($index)
     {
-        if (!$this->isEditing) return;
-
-        if (isset($this->form->analysisResult['events'][$index])) {
-            unset($this->form->analysisResult['events'][$index]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['events'] = array_values($this->form->analysisResult['events']);
-        }
+        $this->removeFromAnalysisResult('events', $index);
     }
+
+    // -----------------------------------------------------------
+    // Document Information Methods
+    // -----------------------------------------------------------
 
     public function addSubject()
     {
-        if (!$this->isEditing) return;
-
-        if (!isset($this->form->analysisResult['document_information']['subjects']) || !is_array($this->form->analysisResult['document_information']['subjects'])) {
-            $this->form->analysisResult['document_information']['subjects'] = [];
-        }
-
-        // Tambahkan subjek baru
-        $this->form->analysisResult['document_information']['subjects'][] = '';
+        $this->appendToAnalysisResult('document_information.subjects', '');
     }
 
     public function removeSubject($index)
     {
-        if (!$this->isEditing) return;
-
-        // Pastikan 'subjek' ada dan merupakan array
-        if (!isset($this->form->analysisResult['document_information']['subjects'][$index]) || !is_array($this->form->analysisResult['document_information']['subjects'])) {
-            // Jika tidak ada subjek, inisialisasi sebagai array kosong
-            $this->form->analysisResult['document_information']['subjects'] = [];
-        }
-
-        // Hapus subjek berdasarkan index
-        if (isset($this->form->analysisResult['document_information']['subjects'][$index])) {
-            unset($this->form->analysisResult['document_information']['subjects'][$index]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['document_information']['subjects'] = array_values($this->form->analysisResult['document_information']['subjects']);
-        }
-    }
-
-    public function removeRecipient($index)
-    {
-        if (!$this->isEditing) return;
-
-        // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->form->analysisResult['document_information']['recipients'][$index]) || !is_array($this->form->analysisResult['document_information']['recipients'])) {
-            // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->form->analysisResult['document_information']['recipients'] = [];
-        }
-
-        // Hapus penerima berdasarkan index
-        if (isset($this->form->analysisResult['document_information']['recipients'][$index])) {
-            unset($this->form->analysisResult['document_information']['recipients'][$index]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['document_information']['recipients'] = array_values($this->form->analysisResult['document_information']['recipients']);
-        }
-    }
-
-    public function addOrganization()
-    {
-        if (!$this->isEditing) return;
-
-        if (!isset($this->form->analysisResult['document_information']['emitter_organizations']) || !is_array($this->form->analysisResult['document_information']['emitter_organizations'])) {
-            $this->form->analysisResult['document_information']['emitter_organizations'] = [];
-        }
-
-        // Tambahkan penerima baru
-        $this->form->analysisResult['document_information']['emitter_organizations'][] = [
-            'nama' => '',
-        ];
-    }
-
-    public function removeOrganization($index)
-    {
-        if (!$this->isEditing) return;
-        // Pastikan 'penerima' ada dan merupakan array
-        if (!isset($this->form->analysisResult['document_information']['emitter_organizations'][$index]) || !is_array($this->form->analysisResult['document_information']['emitter_organizations'])) {
-            // Jika tidak ada penerima, inisialisasi sebagai array kosong
-            $this->form->analysisResult['document_information']['emitter_organizations'] = [];
-        }
-
-        // Hapus penerima berdasarkan index
-        if (isset($this->form->analysisResult['document_information']['emitter_organizations'][$index])) {
-            unset($this->form->analysisResult['document_information']['emitter_organizations'][$index]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['document_information']['emitter_organizations'] = array_values($this->form->analysisResult['document_information']['emitter_organizations']);
-        }
-    }
-
-    public function addOrganizers(int $eventIndex)
-    {
-        // Pastikan array 'organizers' ada sebelum menambahkan
-        if (!isset($this->form->analysisResult['events'][$eventIndex]['organizers'])) {
-            $this->form->analysisResult['events'][$eventIndex]['organizers'] = [];
-        }
-
-        $this->form->analysisResult['events'][$eventIndex]['organizers'][] = [
-            'name' => '',
-            'contact' => '',
-        ];
-    }
-
-    public function removeOrganizer(int $eventIndex, int $organizerIndex)
-    {
-        if (isset($this->form->analysisResult['events'][$eventIndex]['organizers'][$organizerIndex])) {
-            unset($this->form->analysisResult['events'][$eventIndex]['organizers'][$organizerIndex]);
-            // Re-index array agar tidak ada "lubang"
-            $this->form->analysisResult['events'][$eventIndex]['organizers'] = array_values(
-                $this->form->analysisResult['events'][$eventIndex]['organizers']
-            );
-        }
+        $this->removeFromAnalysisResult('document_information.subjects', $index);
     }
 
     public function addRecipient()
     {
-        if (!$this->isEditing) return;
+        $this->appendToAnalysisResult('document_information.recipients', ['name' => '', 'position' => '']);
+    }
 
-        // Pastikan 'penerima_surat' ada dan merupakan array
-        if (!isset($this->form->analysisResult['document_information']['recipients']) || !is_array($this->form->analysisResult['document_information']['recipients'])) {
-            $this->form->analysisResult['document_information']['recipients'] = [];
-        }
+    public function removeRecipient($index)
+    {
+        $this->removeFromAnalysisResult('document_information.recipients', $index);
+    }
 
-        // Tambahkan penerima baru
-        $this->form->analysisResult['document_information']['recipients'][] = [
-            'name' => '',
-            'position' => '',
-        ];
+    public function addOrganization()
+    {
+        $this->appendToAnalysisResult('document_information.emitter_organizations', ['nama' => '']);
+    }
+
+    public function removeOrganization($index)
+    {
+        $this->removeFromAnalysisResult('document_information.emitter_organizations', $index);
+    }
+
+    // -----------------------------------------------------------
+    // Event Sub-item Methods
+    // -----------------------------------------------------------
+
+    public function addOrganizers(int $eventIndex)
+    {
+        $this->appendToAnalysisResult("events.{$eventIndex}.organizers", ['name' => '', 'contact' => '']);
+    }
+
+    public function removeOrganizer(int $eventIndex, int $organizerIndex)
+    {
+        $this->removeFromAnalysisResult("events.{$eventIndex}.organizers", $organizerIndex);
     }
 
     public function addScheduleItem($eventIndex)
     {
-        if (!$this->isEditing) return;
-
-        // Pastikan 'jadwal' ada dan merupakan array
-        if (!isset($this->form->analysisResult['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['events'][$eventIndex]['schedule'])) {
-            $this->form->analysisResult['events'][$eventIndex]['schedule'] = [];
-        }
-
-        // Tambahkan item jadwal baru
-        $this->form->analysisResult['events'][$eventIndex]['schedule'][] = [
-            'description' => '',
-            'duration' => '',
-            'startTime' => '',
-            'endTime' => '',
-        ];
+        $this->appendToAnalysisResult("events.{$eventIndex}.schedule", [
+            'description' => '', 'duration' => '', 'startTime' => '', 'endTime' => '',
+        ]);
     }
 
     public function removeScheduleItem($eventIndex, $itemIndex)
     {
-        if (!$this->isEditing) return;
+        $this->removeFromAnalysisResult("events.{$eventIndex}.schedule", $itemIndex);
+    }
 
-        // Pastikan 'jadwal' ada dan merupakan array
-        if (!isset($this->form->analysisResult['events'][$eventIndex]['schedule']) || !is_array($this->form->analysisResult['events'][$eventIndex]['schedule'])) {
-            // Jika tidak ada jadwal, inisialisasi sebagai array kosong
-            $this->form->analysisResult['events'][$eventIndex]['schedule'] = [];
-        }
+    // -----------------------------------------------------------
+    // Signature Block Methods
+    // -----------------------------------------------------------
 
-        // Hapus item jadwal berdasarkan index
-        if (isset($this->form->analysisResult['events'][$eventIndex]['schedule'][$itemIndex])) {
-            unset($this->form->analysisResult['events'][$eventIndex]['schedule'][$itemIndex]);
-            // Re-index array untuk menghindari masalah di sisi frontend
-            $this->form->analysisResult['events'][$eventIndex]['schedule'] = array_values($this->form->analysisResult['events'][$eventIndex]['schedule']);
-        }
+    public function addSigner()
+    {
+        $this->appendToAnalysisResult('signature_blocks', ['name' => '', 'position' => '']);
     }
 
     public function removeSigner($index)
     {
-        if (!$this->isEditing) return;
-
-        if (isset($this->form->analysisResult['signature_blocks'][$index])) {
-            unset($this->form->analysisResult['signature_blocks'][$index]);
-            $this->form->analysisResult['signature_blocks'] = array_values($this->form->analysisResult['signature_blocks']);
-        }
-    }
-
-    public function addSigner()
-    {
-        if (!$this->isEditing) return;
-
-        if (!isset($this->form->analysisResult['signature_blocks']) || !is_array($this->form->analysisResult['signature_blocks'])) {
-            $this->form->analysisResult['signature_blocks'] = [];
-        }
-
-        $this->form->analysisResult['signature_blocks'][] = [
-            'name' => '',
-            'position' => '',
-        ];
+        $this->removeFromAnalysisResult('signature_blocks', $index);
     }
 
     public function save()
